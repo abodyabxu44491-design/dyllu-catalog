@@ -1,0 +1,41 @@
+{
+ "name": "dyllu-catalog",
+ "private": true,
+ "scripts": {
+  "dev": "next dev",
+  "build": "next build",
+  "start": "next start",
+  "db:push": "prisma db push",
+  "db:seed": "tsx prisma/seed.ts",
+  "studio": "prisma studio",
+  "postinstall": "prisma generate",
+  "typecheck": "tsc --noEmit",
+  "check": "node scripts/check-env.mjs",
+  "db:validate": "prisma validate",
+  "setup": "npm run check && prisma generate && prisma db push && tsx prisma/seed.ts"
+ },
+ "dependencies": {
+  "next": "^14.2.0",
+  "react": "^18.3.0",
+  "react-dom": "^18.3.0",
+  "@prisma/client": "^5.20.0",
+  "zod": "^3.23.0",
+  "zustand": "^4.5.0",
+  "qrcode": "^1.5.4",
+  "@aws-sdk/client-s3": "^3.600.0"
+ },
+ "devDependencies": {
+  "typescript": "^5.5.0",
+  "@types/node": "^20",
+  "@types/react": "^18",
+  "prisma": "^5.20.0",
+  "tailwindcss": "^3.4.0",
+  "postcss": "^8",
+  "autoprefixer": "^10",
+  "tsx": "^4.19.0",
+  "@types/qrcode": "^1.5.5"
+ },
+ "engines": {
+  "node": ">=18.17"
+ }
+}

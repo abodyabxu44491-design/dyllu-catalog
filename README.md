@@ -1,0 +1,154 @@
+# DYLLU Catalog
+
+كتالوج منتجات: QR ← تصفّح ← سلة ← طلب عبر واتساب، مع لوحة تحكم كاملة (/admin)، أسعار جملة بكود سري، مناديب، إعلانات، وتبديل عربي/English.
+التقنيات: Next.js 14 (App Router) + TypeScript + Tailwind + Prisma + PostgreSQL.
+
+---
+
+## 1) المتطلبات (مرة واحدة)
+
+| المطلوب | التفاصيل |
+|---|---|
+| Node.js | الإصدار **20 LTS** (الحد الأدنى 18.17). تحقق: `node -v` |
+| npm | يأتي مع Node |
+| قاعدة بيانات **PostgreSQL** | خارجية، ولا تُشغَّل من المشروع. اختر خيارًا من الثلاثة أدناه |
+
+### خيارات قاعدة البيانات (اختر واحدًا)
+1. **سحابية مجانية (الأسهل):** أنشئ قاعدة على [Neon](https://neon.tech) أو [Supabase](https://supabase.com) وانسخ رابط الاتصال (Connection string) الذي يبدأ بـ `postgresql://`.
+2. **Docker محليًا:**
+   ```
+   docker run --name dyllu-db -e POSTGRES_PASSWORD=اختر_كلمة_مرور -e POSTGRES_DB=dyllu -p 5432:5432 -d postgres:16
+   ```
+   رابط الاتصال: `postgresql://postgres:اختر_كلمة_مرور@localhost:5432/dyllu`
+3. **PostgreSQL مثبّت على جهازك/سيرفرك:** أنشئ قاعدة اسمها `dyllu` ومستخدمًا، والرابط: `postgresql://USER:PASSWORD@HOST:5432/dyllu`
+
+---
+
+## 2) التشغيل من الصفر (بالترتيب)
+
+```bash
+# 1. فك الضغط ثم ادخل المجلد
+cd dyllu-catalog
+
+# 2. أنشئ ملف الإعدادات واملأ القيم (الجدول في القسم 3)
+cp .env.example .env
+
+# 3. ثبّت الحزم (يشغّل prisma generate تلقائيًا)
+npm install
+
+# 4. افحص الإعدادات: يجب أن تظهر كلها ✓
+npm run check
+
+# 5. تحقق من ملف قاعدة البيانات
+npm run db:validate
+
+# 6. أنشئ الجداول في قاعدة البيانات
+npm run db:push
+
+# 7. أنشئ حساب الأدمن (من ADMIN_EMAIL و ADMIN_PASSWORD في .env)
+npm run db:seed
+
+# 8. شغّل الموقع
+npm run dev
+```
+
+اختصار للخطوات 4 إلى 7 معًا: `npm run setup`
+
+ثم افتح:
+- الموقع: http://localhost:3000
+- لوحة التحكم: http://localhost:3000/admin-login (البريد وكلمة المرور من `.env`)
+
+> بعد نجاح `db:seed` **احذف قيمة `ADMIN_PASSWORD` من ملف `.env`**. لتغيير كلمة المرور لاحقًا ضعها مجددًا وأعد `npm run db:seed`.
+
+---
+
+## 3) متغيرات `.env` (كل المطلوب)
+
+| المتغير | إلزامي | ماذا تضع |
+|---|---|---|
+| `DATABASE_URL` | نعم | رابط PostgreSQL (القسم 1) |
+| `ADMIN_SESSION_SECRET` | نعم | نص عشوائي 32 حرفًا فأكثر. ولّده: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `NEXT_PUBLIC_SITE_URL` | نعم | رابط موقعك: محليًا `http://localhost:3000`، وفي الإنتاج `https://دومينك` |
+| `ADMIN_EMAIL` | للـ seed | بريد الدخول إلى لوحة التحكم |
+| `ADMIN_PASSWORD` | للـ seed | كلمة مرور 8 أحرف فأكثر (احذفها بعد الـ seed) |
+| `S3_BUCKET`, `S3_ENDPOINT`, `S3_REGION`, `S3_KEY`, `S3_SECRET`, `S3_PUBLIC_URL` | اختياري | تخزين الصور السحابي (القسم 4). اتركها فارغة للتخزين المحلي |
+
+لا توجد كلمات مرور أو مفاتيح داخل أي ملف في المشروع. كل الأسرار في `.env` فقط وهو خارج Git.
+
+---
+
+## 4) التخزين (الصور وملفات PDF)
+
+- **افتراضي (محلي):** تُحفظ في `public/uploads`. يعمل على سيرفر خاص/VPS، **ولا يعمل على Vercel** (نظام ملفاته للقراءة فقط).
+- **سحابي (S3 أو Cloudflare R2):** مطلوب عند النشر على Vercel. المطلوب:
+  1. أنشئ Bucket وفعّل له رابطًا عامًا للقراءة.
+  2. أنشئ مفتاح وصول (Access key + Secret) بصلاحية الكتابة على الـ Bucket.
+  3. ضع القيم: `S3_BUCKET` (اسم الـ Bucket)، `S3_ENDPOINT` (لـ R2: `https://<account>.r2.cloudflarestorage.com`، ولـ AWS اتركه فارغًا)، `S3_REGION` (`auto` لـ R2 أو مثل `us-east-1`)، `S3_KEY`، `S3_SECRET`، `S3_PUBLIC_URL` (الرابط العام بدون `/` في النهاية).
+
+---
+
+## 5) أول إعداد من لوحة التحكم
+
+1. **الإعدادات:** رقم واتساب العام، اسم المتجر، الشعار، نصوص الرئيسية.
+2. **التصنيفات** ثم **المنتجات** (سعر عادي، وسعر جملة اختياري).
+3. **المناديب:** اسم وموقع وواتساب كل مندوب (يصل إليه الطلب).
+4. **أكواد الجملة:** كود لكل عميل جملة. العميل يضغط الشعار 3 ضغطات متتالية فيكتب الكود.
+5. **الإعلانات:** صور السلايدر ومدة كل إعلان وجدولته.
+6. **QR:** رمز لكل محل بمصدر خاص يظهر في لوحة الطلبات.
+
+---
+
+## 6) الإنتاج
+
+```bash
+npm run build
+npm start        # المنفذ 3000 (غيّره بـ PORT=8080 npm start)
+```
+- **Vercel:** ارفع المشروع، وأضف كل متغيرات `.env` من إعدادات المشروع (Environment Variables)، واستخدم S3/R2 للصور. أنشئ الجداول مرة واحدة من جهازك بعد وضع `DATABASE_URL` الإنتاجي: `npm run db:push` ثم `npm run db:seed`.
+- حدّ المحاولات (تسجيل الدخول، كود الجملة، الطلبات) محفوظ في ذاكرة السيرفر، أي لكل نسخة تعمل على حدة.
+- بعد تحديث المشروع بنسخة جديدة نفّذ دائمًا: `npm install && npm run db:push`.
+
+---
+
+## 7) حل المشاكل الشائعة
+
+| الرسالة / العَرَض | الحل |
+|---|---|
+| `Environment variable not found: DATABASE_URL` | ملف `.env` غير موجود أو `DATABASE_URL` فارغ. شغّل `npm run check` |
+| `P1001: Can't reach database server` | قاعدة البيانات متوقفة أو الرابط/المنفذ خطأ. إن كانت سحابية تأكد أن الرابط يحتوي `?sslmode=require` عند الحاجة |
+| `P1000: Authentication failed` | اسم المستخدم أو كلمة المرور في `DATABASE_URL` خطأ |
+| الدخول إلى /admin-login يعطي «ADMIN_SESSION_SECRET غير مضبوط» | أضف المفتاح في `.env` ثم أعد تشغيل `npm run dev` |
+| «بيانات الدخول غير صحيحة» | أعد `npm run db:seed` بنفس البريد/كلمة المرور (البريد غير حساس لحالة الأحرف) |
+| `Cannot find module '.prisma/client'` | شغّل `npx prisma generate` |
+| `EADDRINUSE: port 3000` | منفذ مستخدم: `PORT=3001 npm run dev` |
+| الصور لا تظهر بعد النشر على Vercel | فعّل S3/R2 (القسم 4) |
+| تغييرات `.env` لا تظهر | أعد تشغيل `npm run dev` |
+
+---
+
+## 8) أوامر مفيدة
+
+| الأمر | الوظيفة |
+|---|---|
+| `npm run check` | فحص الإعدادات قبل التشغيل |
+| `npm run db:validate` | التحقق من ملف قاعدة البيانات `prisma/schema.prisma` |
+| `npm run db:push` | إنشاء/تحديث الجداول |
+| `npm run db:seed` | إنشاء/تحديث حساب الأدمن |
+| `npm run studio` | واجهة Prisma لتصفح البيانات |
+| `npm run typecheck` | فحص TypeScript |
+| `npm run dev` / `build` / `start` | تشغيل التطوير / البناء / الإنتاج |
+
+## 9) هيكل المشروع
+
+- `prisma/schema.prisma` الجداول | `prisma/seed.ts` حساب الأدمن
+- `src/app/*` الصفحات: الرئيسية، `/categories`، `/products`، `/cart`، `/order/[token]`، `/admin-login`، `/admin/*`
+- `src/app/api/*` الـ API العام والأدمن | `src/components/*` المكونات
+- `src/config/brand.ts` ألوان الهوية والنصوص الافتراضية | `src/lib/*` منطق الطلبات والواتساب والجلسات
+- `public/brand/*` شعارات DYLLU | `public/uploads` الصور المرفوعة محليًا
+
+## 10) التنقل في الواجهة
+
+- الرئيسية: قسم التصنيفات فيه رابط «عرض كل المنتجات» يفتح /products مباشرة. إذا زادت التصنيفات عن 6 يصبح الرابط «عرض كل التصنيفات».
+- قسم المميز: «عرض كل المنتجات المميزة» ← `/products?featured=1`.
+- /products وصفحة التصنيف: ترقيم صفحات (24 منتجًا للصفحة).
+- نصوص الروابط تُعدَّل من `/admin/settings`.

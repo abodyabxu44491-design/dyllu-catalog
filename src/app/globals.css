@@ -1,0 +1,23 @@
+@tailwind base; @tailwind components; @tailwind utilities;
+body { font-family: Arial, Helvetica, Tahoma, system-ui, sans-serif; background: #fff; color: #1C1F22; }
+
+@keyframes bnr { from { width: 0 } to { width: 100% } }
+
+html { -webkit-text-size-adjust: 100%; }
+body { overflow-x: clip; }
+/* لوحة التحكم: 16px في الحقول يمنع تكبير الجوال التلقائي، وبدون عرض زائد */
+.admin input, .admin select, .admin textarea { font-size: 16px; max-width: 100%; min-width: 0; }
+.admin input[type="datetime-local"] { -webkit-appearance: none; appearance: none; width: 100%; min-height: 46px; }
+
+/* خطوط الهوية: العناوين Arial Black، النص Arial */
+h1, h2 { font-family: "Arial Black", Arial, Tahoma, sans-serif; }
+
+/* ===== هوية DYLLU للوحة التحكم: كبسولة ليمونية بمعيّن برتقالي، بطاقات مدورة، تركيز ليموني ===== */
+.admin h1 { position: relative; display: inline-flex; align-items: center; background: #D0DF00; color: #2B2D2F; border-radius: 9999px; padding: .4rem 1rem; padding-inline-start: 1.8rem; font-size: 15px; line-height: 1.4; }
+.admin h1::before { content: ""; position: absolute; inset-inline-start: .7rem; width: 10px; height: 10px; background: #FF6900; transform: rotate(45deg); }
+.admin h2 { font-family: "Arial Black", Arial, Tahoma, sans-serif; }
+.admin .rounded-2xl { border-radius: 1.5rem; }
+.admin .bg-white.rounded-2xl { box-shadow: 0 6px 22px -14px rgba(43,45,47,.35); }
+.admin input:focus, .admin select:focus, .admin textarea:focus { outline: 2px solid #D0DF00; outline-offset: 0; border-color: #63666A; }
+.admin button, .admin a { transition: transform .12s, opacity .12s, background-color .15s; }
+.admin button:active { transform: scale(.97); }

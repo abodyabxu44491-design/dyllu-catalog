@@ -1,0 +1,186 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum OrderStatus {
+  NEW
+  CONTACTED
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+model Category {
+  id Int @id @default(autoincrement())
+  slug String @unique
+  nameAr String
+  nameEn String
+  descriptionAr String?
+  subtitleAr String?
+  subtitleEn String?
+  image String?
+  sortOrder Int @default(0)
+  isActive Boolean @default(true)
+  products Product[]
+}
+model Product {
+  id Int @id @default(autoincrement())
+  slug String @unique
+  sku String? @unique
+  nameAr String
+  nameEn String
+  descriptionAr String?
+  descriptionEn String?
+  price Decimal? @db.Decimal(10,2)
+  wholesalePrice Decimal? @db.Decimal(10,2)
+  videoUrl String?
+  showPrice Boolean @default(true)
+  isActive Boolean @default(true)
+  allowCart Boolean @default(true)
+  inStock Boolean @default(true)
+  isFeatured Boolean @default(false)
+  sortOrder Int @default(0)
+  categoryId Int
+  category Category @relation(fields: [categoryId], references: [id])
+  images ProductImage[]
+  specs ProductSpec[]
+  features ProductFeature[]
+  documents ProductDocument[]
+  items OrderItem[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([categoryId, isActive])
+  @@index([isActive, isFeatured])
+}
+model ProductImage {
+  id Int @id @default(autoincrement())
+  productId Int
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url String
+  sortOrder Int @default(0)
+  isPrimary Boolean @default(false)
+}
+model ProductSpec {
+  id Int @id @default(autoincrement())
+  productId Int
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  nameAr String
+  nameEn String
+  value String
+  sortOrder Int @default(0)
+}
+model ProductFeature {
+  id Int @id @default(autoincrement())
+  productId Int
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  textAr String
+  textEn String
+  sortOrder Int @default(0)
+}
+model ProductDocument {
+  id Int @id @default(autoincrement())
+  productId Int
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title String
+  url String
+}
+model Customer {
+  id Int @id @default(autoincrement())
+  name String
+  phone String
+  company String?
+  city String?
+  orders Order[]
+  createdAt DateTime @default(now())
+}
+model Order {
+  id Int @id @default(autoincrement())
+  number String @unique
+  token String @unique @default(uuid())
+  customerId Int
+  customer Customer @relation(fields: [customerId], references: [id])
+  notes String?
+  total Decimal? @db.Decimal(10,2)
+  hasUnpriced Boolean @default(false)
+  status OrderStatus @default(NEW)
+  source String?
+  isWholesale Boolean @default(false)
+  wholesaleCodeId Int?
+  wholesaleCode WholesaleCode? @relation(fields: [wholesaleCodeId], references: [id])
+  repId Int?
+  rep Rep? @relation(fields: [repId], references: [id])
+  items OrderItem[]
+  createdAt DateTime @default(now())
+  @@index([createdAt])
+  @@index([status])
+}
+model OrderItem {
+  id Int @id @default(autoincrement())
+  orderId Int
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId Int
+  product Product @relation(fields: [productId], references: [id])
+  nameSnapshot String
+  unitPrice Decimal? @db.Decimal(10,2)
+  quantity Int
+}
+model Setting {
+  key String @id
+  value String
+}
+model AdminUser {
+  id Int @id @default(autoincrement())
+  email String @unique
+  passwordHash String
+  name String
+}
+
+// كود الجملة: يُنشأ من لوحة التحكم، ويكتبه عميل الجملة بـ 3 ضغطات متتالية على الشعار
+model WholesaleCode {
+  id Int @id @default(autoincrement())
+  code String @unique
+  name String
+  isActive Boolean @default(true)
+  orders Order[]
+  createdAt DateTime @default(now())
+}
+// المندوب: يظهر للعميل عند إتمام الطلب، ويُرسل الطلب إلى واتساب المندوب
+model Rep {
+  id Int @id @default(autoincrement())
+  name String
+  location String
+  phone String
+  photo String?
+  sortOrder Int @default(0)
+  isActive Boolean @default(true)
+  orders Order[]
+}
+
+// إعلانات الرئيسية: سلايدر يقلب كل N ثانية (الافتراضي 5). نوعان: صورة فقط، أو صورة مع نص وزر
+enum BannerType {
+  IMAGE
+  IMAGE_TEXT
+}
+model Banner {
+  id Int @id @default(autoincrement())
+  type BannerType @default(IMAGE_TEXT)
+  image String
+  titleAr String?
+  titleEn String?
+  subtitleAr String?
+  subtitleEn String?
+  buttonAr String?
+  buttonEn String?
+  linkUrl String?
+  seconds Int @default(5)
+  startsAt DateTime?
+  endsAt DateTime?
+  sortOrder Int @default(0)
+  isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+}
