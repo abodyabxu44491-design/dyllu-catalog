@@ -23,7 +23,7 @@ export default function Login() {
           <button type="button" aria-label={show ? "إخفاء" : "إظهار"} onClick={() => setShow(!show)} className="absolute end-1 top-1 btn-icon w-10 h-10 text-steel hover:text-ink"><Icon n={show ? "eyeOff" : "eye"} s={20} /></button></span></label>
         {err && <p className="flex items-center gap-2 text-accent font-bold text-sm bg-accent/10 rounded-xl p-3"><Icon n="alert" s={16} />{err}</p>}
         <button disabled={busy} className="btn btn-lg btn-lime w-full">{busy ? "..." : "دخول"}</button>
-        <a href="/" className="flex items-center justify-center gap-1 text-sm text-steel hover:text-ink"><Icon n="external" s={16} />عرض المتجر</a>
+        <div className="flex items-center justify-center gap-4 text-sm text-steel"><a href="/" className="inline-flex items-center gap-1 hover:text-ink"><Icon n="external" s={16} />عرض المتجر</a><a href="/rep-login" className="inline-flex items-center gap-1 hover:text-ink"><Icon n="users" s={16} />دخول المندوبين</a></div>
       </form>
     </section>
   </main>);

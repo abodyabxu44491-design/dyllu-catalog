@@ -1,0 +1,591 @@
+{
+ "categories": {
+  "hand-tools": {
+   "nameAr": "العدد اليدوية",
+   "nameEn": "Hand Tools",
+   "subtitleAr": "مساطر ومفاتيح",
+   "subtitleEn": "Trowels & wrenches",
+   "image": "/items/adjustable-wrench-250mm.webp"
+  },
+  "hand-saws": {
+   "nameAr": "المناشير اليدوية",
+   "nameEn": "Hand Saws",
+   "subtitleAr": "تقليم وجبس",
+   "subtitleEn": "Pruning & drywall",
+   "image": "/items/pruning-saw-curved.webp"
+  },
+  "cutting-discs": {
+   "nameAr": "أقراص القص",
+   "nameEn": "Cutting Discs",
+   "subtitleAr": "معادن وألماس",
+   "subtitleEn": "Metal & diamond",
+   "image": "/items/diamond-disc-turbo-115mm.webp"
+  }
+ },
+ "products": [
+  {
+   "slug": "putty-trowel-50mm",
+   "cat": "hand-tools",
+   "sku": null,
+   "nameAr": "مسطرين معجون 50 ملم (2 إنش)",
+   "nameEn": "Putty Trowel 50mm (2\")",
+   "descriptionAr": "مسطرين معجون DYLLU بشفرة فولاذية مصقولة عرضها 50 ملم ومقبض مريح مانع للانزلاق. مناسب لفرد المعجون والجبس وتعبئة الشقوق وكشط الأسطح.",
+   "descriptionEn": "DYLLU putty trowel with a 50mm polished steel blade and a comfortable non-slip handle. For spreading putty and plaster, filling cracks and scraping surfaces.",
+   "specs": [
+    [
+     "عرض الشفرة",
+     "Blade width",
+     "50mm (2\")"
+    ],
+    [
+     "الشفرة",
+     "Blade",
+     "Polished steel"
+    ]
+   ],
+   "features": [
+    [
+     "شفرة بسماكة متدرجة: أقوى عند المقبض وأكثر مرونة عند الحافة",
+     "Tapered blade: stiff at the handle, flexible at the edge"
+    ],
+    [
+     "مقبض مريح مانع للانزلاق",
+     "Comfortable non-slip grip"
+    ],
+    [
+     "فتحة تعليق في نهاية المقبض",
+     "Hanging hole at the handle end"
+    ]
+   ],
+   "image": "/items/putty-trowel-50mm.webp"
+  },
+  {
+   "slug": "putty-trowel-75mm",
+   "cat": "hand-tools",
+   "sku": null,
+   "nameAr": "مسطرين معجون 75 ملم (3 إنش)",
+   "nameEn": "Putty Trowel 75mm (3\")",
+   "descriptionAr": "مسطرين معجون DYLLU بشفرة فولاذية مصقولة عرضها 75 ملم ومقبض مريح مانع للانزلاق. مناسب لفرد المعجون والجبس وتعبئة الشقوق وكشط الأسطح.",
+   "descriptionEn": "DYLLU putty trowel with a 75mm polished steel blade and a comfortable non-slip handle. For spreading putty and plaster, filling cracks and scraping surfaces.",
+   "specs": [
+    [
+     "عرض الشفرة",
+     "Blade width",
+     "75mm (3\")"
+    ],
+    [
+     "الشفرة",
+     "Blade",
+     "Polished steel"
+    ]
+   ],
+   "features": [
+    [
+     "شفرة بسماكة متدرجة: أقوى عند المقبض وأكثر مرونة عند الحافة",
+     "Tapered blade: stiff at the handle, flexible at the edge"
+    ],
+    [
+     "مقبض مريح مانع للانزلاق",
+     "Comfortable non-slip grip"
+    ],
+    [
+     "فتحة تعليق في نهاية المقبض",
+     "Hanging hole at the handle end"
+    ]
+   ],
+   "image": "/items/putty-trowel-75mm.webp"
+  },
+  {
+   "slug": "putty-trowel-100mm",
+   "cat": "hand-tools",
+   "sku": null,
+   "nameAr": "مسطرين معجون 100 ملم (4 إنش)",
+   "nameEn": "Putty Trowel 100mm (4\")",
+   "descriptionAr": "مسطرين معجون DYLLU بشفرة فولاذية مصقولة عرضها 100 ملم ومقبض مريح مانع للانزلاق. مناسب لفرد المعجون والجبس وتعبئة الشقوق وكشط الأسطح.",
+   "descriptionEn": "DYLLU putty trowel with a 100mm polished steel blade and a comfortable non-slip handle. For spreading putty and plaster, filling cracks and scraping surfaces.",
+   "specs": [
+    [
+     "عرض الشفرة",
+     "Blade width",
+     "100mm (4\")"
+    ],
+    [
+     "الشفرة",
+     "Blade",
+     "Polished steel"
+    ]
+   ],
+   "features": [
+    [
+     "شفرة بسماكة متدرجة: أقوى عند المقبض وأكثر مرونة عند الحافة",
+     "Tapered blade: stiff at the handle, flexible at the edge"
+    ],
+    [
+     "مقبض مريح مانع للانزلاق",
+     "Comfortable non-slip grip"
+    ],
+    [
+     "فتحة تعليق في نهاية المقبض",
+     "Hanging hole at the handle end"
+    ]
+   ],
+   "image": "/items/putty-trowel-100mm.webp"
+  },
+  {
+   "slug": "putty-trowel-125mm",
+   "cat": "hand-tools",
+   "sku": null,
+   "nameAr": "مسطرين معجون 125 ملم (5 إنش)",
+   "nameEn": "Putty Trowel 125mm (5\")",
+   "descriptionAr": "مسطرين معجون DYLLU بشفرة فولاذية مصقولة عرضها 125 ملم ومقبض مريح مانع للانزلاق. مناسب لفرد المعجون والجبس وتعبئة الشقوق وكشط الأسطح.",
+   "descriptionEn": "DYLLU putty trowel with a 125mm polished steel blade and a comfortable non-slip handle. For spreading putty and plaster, filling cracks and scraping surfaces.",
+   "specs": [
+    [
+     "عرض الشفرة",
+     "Blade width",
+     "125mm (5\")"
+    ],
+    [
+     "الشفرة",
+     "Blade",
+     "Polished steel"
+    ]
+   ],
+   "features": [
+    [
+     "شفرة بسماكة متدرجة: أقوى عند المقبض وأكثر مرونة عند الحافة",
+     "Tapered blade: stiff at the handle, flexible at the edge"
+    ],
+    [
+     "مقبض مريح مانع للانزلاق",
+     "Comfortable non-slip grip"
+    ],
+    [
+     "فتحة تعليق في نهاية المقبض",
+     "Hanging hole at the handle end"
+    ]
+   ],
+   "image": "/items/putty-trowel-125mm.webp"
+  },
+  {
+   "slug": "adjustable-wrench-200mm",
+   "cat": "hand-tools",
+   "sku": "DTAW1108",
+   "nameAr": "مفتاح إنجليزي 8 إنش (200 ملم)",
+   "nameEn": "Adjustable Wrench 8\" (200mm)",
+   "descriptionAr": "مفتاح إنجليزي DYLLU من فولاذ C45 بطول 200 ملم، بفك قابل للضبط حتى 24 ملم. للصيانة والتركيبات والسباكة.",
+   "descriptionEn": "DYLLU adjustable wrench, 200mm long, made of C45 steel with a jaw opening up to 24mm. For maintenance, installation and plumbing.",
+   "specs": [
+    [
+     "الطول",
+     "Length",
+     "200mm (8\")"
+    ],
+    [
+     "فتحة الفك",
+     "Jaw opening",
+     "0-24mm"
+    ],
+    [
+     "الخامة",
+     "Material",
+     "C45 steel"
+    ]
+   ],
+   "features": [
+    [
+     "فولاذ C45 عالي التحمل",
+     "Durable C45 steel"
+    ],
+    [
+     "فك قابل للضبط بدقة",
+     "Precisely adjustable jaw"
+    ],
+    [
+     "فتحة تعليق في نهاية المقبض",
+     "Hanging hole at the handle end"
+    ]
+   ],
+   "image": "/items/adjustable-wrench-200mm.webp"
+  },
+  {
+   "slug": "adjustable-wrench-250mm",
+   "cat": "hand-tools",
+   "sku": "DTAW1110",
+   "nameAr": "مفتاح إنجليزي 10 إنش (250 ملم)",
+   "nameEn": "Adjustable Wrench 10\" (250mm)",
+   "descriptionAr": "مفتاح إنجليزي DYLLU من فولاذ C45 بطول 250 ملم، بفك قابل للضبط حتى 30 ملم. للصيانة والتركيبات والسباكة.",
+   "descriptionEn": "DYLLU adjustable wrench, 250mm long, made of C45 steel with a jaw opening up to 30mm. For maintenance, installation and plumbing.",
+   "specs": [
+    [
+     "الطول",
+     "Length",
+     "250mm (10\")"
+    ],
+    [
+     "فتحة الفك",
+     "Jaw opening",
+     "0-30mm"
+    ],
+    [
+     "الخامة",
+     "Material",
+     "C45 steel"
+    ]
+   ],
+   "features": [
+    [
+     "فولاذ C45 عالي التحمل",
+     "Durable C45 steel"
+    ],
+    [
+     "فك قابل للضبط بدقة",
+     "Precisely adjustable jaw"
+    ],
+    [
+     "فتحة تعليق في نهاية المقبض",
+     "Hanging hole at the handle end"
+    ]
+   ],
+   "image": "/items/adjustable-wrench-250mm.webp"
+  },
+  {
+   "slug": "adjustable-wrench-300mm",
+   "cat": "hand-tools",
+   "sku": "DTAW1112",
+   "nameAr": "مفتاح إنجليزي 12 إنش (300 ملم)",
+   "nameEn": "Adjustable Wrench 12\" (300mm)",
+   "descriptionAr": "مفتاح إنجليزي DYLLU من فولاذ C45 بطول 300 ملم، بفك قابل للضبط حتى 35 ملم. للصيانة والتركيبات والسباكة.",
+   "descriptionEn": "DYLLU adjustable wrench, 300mm long, made of C45 steel with a jaw opening up to 35mm. For maintenance, installation and plumbing.",
+   "specs": [
+    [
+     "الطول",
+     "Length",
+     "300mm (12\")"
+    ],
+    [
+     "فتحة الفك",
+     "Jaw opening",
+     "0-35mm"
+    ],
+    [
+     "الخامة",
+     "Material",
+     "C45 steel"
+    ]
+   ],
+   "features": [
+    [
+     "فولاذ C45 عالي التحمل",
+     "Durable C45 steel"
+    ],
+    [
+     "فك قابل للضبط بدقة",
+     "Precisely adjustable jaw"
+    ],
+    [
+     "فتحة تعليق في نهاية المقبض",
+     "Hanging hole at the handle end"
+    ]
+   ],
+   "image": "/items/adjustable-wrench-300mm.webp"
+  },
+  {
+   "slug": "pruning-saw-curved",
+   "cat": "hand-saws",
+   "sku": null,
+   "nameAr": "منشار تقليم منحني",
+   "nameEn": "Curved Pruning Saw",
+   "descriptionAr": "منشار تقليم DYLLU بشفرة منحنية من فولاذ 65Mn وأسنان 6 TPI للقص السريع. مناسب لتقليم الأشجار والأغصان، بمقبض مريح مانع للانزلاق.",
+   "descriptionEn": "DYLLU pruning saw with a curved 65Mn steel blade and 6 TPI fast-cut teeth. For pruning trees and branches, with a comfortable non-slip handle.",
+   "specs": [
+    [
+     "الشفرة",
+     "Blade",
+     "65Mn steel"
+    ],
+    [
+     "الأسنان",
+     "Teeth",
+     "6 TPI"
+    ],
+    [
+     "شكل الشفرة",
+     "Blade shape",
+     "Curved"
+    ]
+   ],
+   "features": [
+    [
+     "أسنان Fast Cut مشحوذة ثلاثية الأوجه لقص أسرع",
+     "Triple-ground Fast Cut teeth for faster cutting"
+    ],
+    [
+     "شفرة منحنية تسهّل قص الأغصان",
+     "Curved blade for easier branch cutting"
+    ],
+    [
+     "مقبض مريح مانع للانزلاق مع فتحة تعليق",
+     "Non-slip grip with hanging hole"
+    ]
+   ],
+   "image": "/items/pruning-saw-curved.webp"
+  },
+  {
+   "slug": "pruning-saw-straight",
+   "cat": "hand-saws",
+   "sku": null,
+   "nameAr": "منشار تقليم مستقيم",
+   "nameEn": "Straight Pruning Saw",
+   "descriptionAr": "منشار تقليم DYLLU بشفرة مستقيمة من فولاذ 65Mn وأسنان 7 TPI لقص سريع وناعم. للأغصان والخشب، بمقبض مريح مانع للانزلاق.",
+   "descriptionEn": "DYLLU pruning saw with a straight 65Mn steel blade and 7 TPI fast-cut teeth for quick, smooth cuts in branches and wood. Comfortable non-slip handle.",
+   "specs": [
+    [
+     "الشفرة",
+     "Blade",
+     "65Mn steel"
+    ],
+    [
+     "الأسنان",
+     "Teeth",
+     "7 TPI"
+    ],
+    [
+     "شكل الشفرة",
+     "Blade shape",
+     "Straight"
+    ]
+   ],
+   "features": [
+    [
+     "أسنان Fast Cut مشحوذة ثلاثية الأوجه لقص أسرع",
+     "Triple-ground Fast Cut teeth for faster cutting"
+    ],
+    [
+     "مقبض مريح مانع للانزلاق مع فتحة تعليق",
+     "Non-slip grip with hanging hole"
+    ]
+   ],
+   "image": "/items/pruning-saw-straight.webp"
+  },
+  {
+   "slug": "jab-saw-150mm",
+   "cat": "hand-saws",
+   "sku": null,
+   "nameAr": "منشار جبس 150 ملم (6 إنش)",
+   "nameEn": "Jab Saw 150mm (6\")",
+   "descriptionAr": "منشار جبس (منشار فتحات) DYLLU بشفرة 150 ملم من فولاذ 65Mn وأسنان 7 TPI. لعمل الفتحات في ألواح الجبس وقص الخشب الخفيف.",
+   "descriptionEn": "DYLLU jab saw with a 150mm 65Mn steel blade and 7 TPI teeth. For cutting openings in drywall and light wood.",
+   "specs": [
+    [
+     "طول الشفرة",
+     "Blade length",
+     "150mm (6\")"
+    ],
+    [
+     "الشفرة",
+     "Blade",
+     "65Mn steel"
+    ],
+    [
+     "الأسنان",
+     "Teeth",
+     "7 TPI"
+    ]
+   ],
+   "features": [
+    [
+     "أسنان مشحوذة ثنائية الأوجه",
+     "Double-ground teeth"
+    ],
+    [
+     "رأس مدبب لبدء القص من منتصف اللوح",
+     "Pointed tip to start cuts mid-board"
+    ],
+    [
+     "مقبض مريح مانع للانزلاق مع فتحة تعليق",
+     "Non-slip grip with hanging hole"
+    ]
+   ],
+   "image": "/items/jab-saw-150mm.webp"
+  },
+  {
+   "slug": "cutting-disc-metal-115x1mm",
+   "cat": "cutting-discs",
+   "sku": null,
+   "nameAr": "قرص قص معادن وستانلس 115×1.0 ملم",
+   "nameEn": "Metal & Inox Cutting Disc 115×1.0mm",
+   "descriptionAr": "قرص قص DYLLU مسطح بقطر 115 ملم وسماكة 1.0 ملم لقص الحديد والستانلس ستيل (Inox) على الصاروخ (الجلاخة).",
+   "descriptionEn": "DYLLU flat cutting disc, 115mm diameter and 1.0mm thick, for cutting metal and stainless steel (Inox) on an angle grinder.",
+   "specs": [
+    [
+     "القطر",
+     "Diameter",
+     "115mm"
+    ],
+    [
+     "السماكة",
+     "Thickness",
+     "1.0mm"
+    ],
+    [
+     "الشكل",
+     "Shape",
+     "Flat"
+    ],
+    [
+     "الاستخدام",
+     "Application",
+     "Metal & Inox"
+    ]
+   ],
+   "features": [
+    [
+     "سماكة 1.0 ملم لقص سريع ونظيف",
+     "1.0mm thin for fast, clean cuts"
+    ],
+    [
+     "للحديد والستانلس (Inox)",
+     "For metal and stainless steel (Inox)"
+    ]
+   ],
+   "image": "/items/cutting-disc-metal-115x1mm.webp"
+  },
+  {
+   "slug": "diamond-disc-turbo-115mm",
+   "cat": "cutting-discs",
+   "sku": null,
+   "nameAr": "قرص ألماس توربو 115 ملم",
+   "nameEn": "Turbo Diamond Disc 115mm (4-1/2\")",
+   "descriptionAr": "قرص ألماس DYLLU بحافة توربو بقطر 115 ملم (4-1/2 إنش) لقص نظيف في الخرسانة والطوب والحجر. يعمل بالقص الجاف والرطب.",
+   "descriptionEn": "DYLLU turbo-rim diamond disc, 115mm (4-1/2\"), for clean cuts in concrete, brick and stone. Dry and wet cutting.",
+   "specs": [
+    [
+     "القطر",
+     "Diameter",
+     "115mm (4-1/2\")"
+    ],
+    [
+     "الحافة",
+     "Rim",
+     "Turbo"
+    ],
+    [
+     "طريقة القطع",
+     "Cutting",
+     "Dry & wet"
+    ]
+   ],
+   "features": [
+    [
+     "قص نظيف (Clean cut)",
+     "Clean cut"
+    ],
+    [
+     "يعمل جافًا ورطبًا",
+     "Dry and wet cutting"
+    ]
+   ],
+   "image": "/items/diamond-disc-turbo-115mm.webp"
+  },
+  {
+   "slug": "diamond-disc-segmented-115mm",
+   "cat": "cutting-discs",
+   "sku": null,
+   "nameAr": "قرص ألماس مقطّع 115 ملم",
+   "nameEn": "Segmented Diamond Disc 115mm",
+   "descriptionAr": "قرص ألماس DYLLU بحافة مقطّعة بقطر 115 ملم للقص السريع في الخرسانة والطوب والحجر. يعمل بالقص الجاف والرطب.",
+   "descriptionEn": "DYLLU segmented diamond disc, 115mm, for fast cutting in concrete, brick and stone. Dry and wet cutting.",
+   "specs": [
+    [
+     "القطر",
+     "Diameter",
+     "115mm (4-1/2\")"
+    ],
+    [
+     "فتحة التركيب",
+     "Bore",
+     "22.2mm (7/8\")"
+    ],
+    [
+     "الحافة",
+     "Rim",
+     "Segmented"
+    ],
+    [
+     "طريقة القطع",
+     "Cutting",
+     "Dry & wet"
+    ],
+    [
+     "أقصى سرعة",
+     "Max speed",
+     "13,200 RPM"
+    ],
+    [
+     "المعيار",
+     "Standard",
+     "EN 13236"
+    ]
+   ],
+   "features": [
+    [
+     "قص سريع (Fast cut)",
+     "Fast cut"
+    ],
+    [
+     "يعمل جافًا ورطبًا",
+     "Dry and wet cutting"
+    ]
+   ],
+   "image": "/items/diamond-disc-segmented-115mm.webp"
+  },
+  {
+   "slug": "diamond-disc-ultrathin-tiles-115mm",
+   "cat": "cutting-discs",
+   "sku": null,
+   "nameAr": "قرص ألماس رفيع للبلاط 115 ملم",
+   "nameEn": "Ultrathin Diamond Disc for Tiles 115mm",
+   "descriptionAr": "قرص ألماس DYLLU رفيع جدًا بقطر 115 ملم لقص دقيق ونظيف في البلاط والسيراميك والبورسلان. للقص الرطب، ويأتي مع حلقة تثبيت.",
+   "descriptionEn": "DYLLU ultrathin diamond disc, 115mm, for precise, clean cuts in tiles, ceramic and porcelain. Wet cutting, supplied with a flange plate.",
+   "specs": [
+    [
+     "القطر",
+     "Diameter",
+     "115mm (4-1/2\")"
+    ],
+    [
+     "فتحة التركيب",
+     "Bore",
+     "22.2mm (7/8\")"
+    ],
+    [
+     "طريقة القطع",
+     "Cutting",
+     "Wet"
+    ],
+    [
+     "أقصى سرعة",
+     "Max speed",
+     "13,200 RPM"
+    ],
+    [
+     "المعيار",
+     "Standard",
+     "EN 13236"
+    ]
+   ],
+   "features": [
+    [
+     "رفيع جدًا لقص دقيق بدون تكسير البلاط",
+     "Ultrathin for precise, chip-free tile cuts"
+    ],
+    [
+     "مع حلقة تثبيت (Flange plate)",
+     "Supplied with a flange plate"
+    ]
+   ],
+   "image": "/items/diamond-disc-ultrathin-tiles-115mm.webp"
+  }
+ ]
+}

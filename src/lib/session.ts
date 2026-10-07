@@ -20,3 +20,12 @@ export async function verifySession(t?: string) {
   const [id, ver, exp, sig] = t.split(".");
   return Number(exp) > Date.now() && sig === (await hmac(`${id}.${ver}.${exp}`)) ? { id: Number(id), ver: Number(ver) } : null;
 }
+
+// جلسة المندوب (/rep): r.repId.sessionVersion.exp.sig — مفصولة عن جلسة الأدمن ولا تمنح أي صلاحية في /admin
+export const REP_COOKIE = "dyllu_rep";
+export async function signRepSession(repId: number, ver: number) { const p = `r.${repId}.${ver}.${Date.now() + 30 * 864e5}`; return `${p}.${await hmac(p)}`; }
+export async function verifyRepSession(t?: string) {
+  if (!t || !process.env.ADMIN_SESSION_SECRET) return null;
+  const [k, id, ver, exp, sig] = t.split(".");
+  return k === "r" && Number(exp) > Date.now() && sig === (await hmac(`${k}.${id}.${ver}.${exp}`)) ? { id: Number(id), ver: Number(ver) } : null;
+}
