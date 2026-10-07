@@ -93,6 +93,7 @@ model Customer {
   id Int @id @default(autoincrement())
   name String
   phone String
+  phoneKey String? @unique // الجوال بصيغة دولية موحّدة (966...)، لربط طلبات نفس العميل بسجل واحد
   company String?
   city String?
   orders Order[]
@@ -138,6 +139,7 @@ model AdminUser {
   email String @unique
   passwordHash String
   name String
+  sessionVersion Int @default(0) // يُرفع عند الخروج أو تغيير كلمة المرور لإبطال كل الجلسات
 }
 
 // كود الجملة: يُنشأ من لوحة التحكم، ويكتبه عميل الجملة بـ 3 ضغطات متتالية على الشعار

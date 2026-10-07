@@ -10,3 +10,5 @@ export function priceLabel(p: PP, s: Record<string, string>, lang = "ar", ws = f
   if (v != null) return `${v} ${en ? s["currency.en"] ?? "SAR" : s["currency.ar"]}`;
   return en ? "Contact us" : s["price.hiddenLabel.ar"];
 }
+// رقم الصفحة من الرابط: أي قيمة غير صالحة (نص، صفر، سالب، كسر) تصبح 1
+export const pageParam = (v: unknown) => { const n = Math.floor(Number(v)); return Number.isFinite(n) && n >= 1 ? n : 1; };

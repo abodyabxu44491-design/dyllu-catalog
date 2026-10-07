@@ -19,7 +19,7 @@ async function main() {
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL غير مضبوط في .env");
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) throw new Error("ADMIN_EMAIL مطلوب في .env وبصيغة بريد صحيحة");
   if (!pw || pw.length < 8) throw new Error("ADMIN_PASSWORD مطلوب في .env (8 أحرف على الأقل)");
-  await db.adminUser.upsert({ where: { email }, update: { passwordHash: hashPassword(pw) }, create: { email, name: "Admin", passwordHash: hashPassword(pw) } });
+  await db.adminUser.upsert({ where: { email }, update: { passwordHash: hashPassword(pw), sessionVersion: { increment: 1 } }, create: { email, name: "Admin", passwordHash: hashPassword(pw) } });
   console.log(`✓ حساب الأدمن جاهز: ${email}`);
   console.log("  سجّل الدخول من /admin-login، ثم احذف ADMIN_PASSWORD من ملف .env.");
 }

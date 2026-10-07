@@ -1,21 +1,29 @@
 "use client";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import Icon from "@/components/Icon";
 import { post } from "@/lib/client";
+import { toast } from "@/store/toast";
+import { AEmpty, Badge, PageHead } from "./ui";
+import Switch from "./Switch";
 type C = { id: number; code: string; name: string; isActive: boolean; orders: number };
 export default function CodesManager({ initial }: { initial: C[] }) {
-  const [name, setName] = useState(""), [err, setErr] = useState(""), [copied, setCopied] = useState<number | null>(null);
-  const reload = () => window.location.reload();
-  async function create() { const r = await post("/api/admin/codes", { name }); r.ok ? reload() : setErr(r.data.error); }
-  async function toggle(c: C) { await post("/api/admin/codes", { id: c.id, isActive: !c.isActive }, "PUT"); reload(); }
-  async function remove(c: C) { if (!confirm("حذف الكود؟")) return; const r = await fetch(`/api/admin/codes?id=${c.id}`, { method: "DELETE" }); r.ok ? reload() : setErr((await r.json()).error); }
-  return (<div className="space-y-4 max-w-3xl"><h1 className="text-xl font-extrabold">أكواد الجملة</h1>
-    <div className="bg-ink text-white rounded-2xl p-4 text-sm space-y-1"><b className="text-lime">طريقة الاستخدام</b><p>أنشئ كودًا لكل عميل جملة وأعطه الكود. العميل يضغط على شعار DYLLU <b>3 ضغطات متتالية بسرعة</b> فتظهر نافذة الكود، يكتبه، فتتحول الأسعار لأسعار الجملة. لا يوجد رابط ولا زر ظاهر في الواجهة.</p><p className="text-white/70">أوقف الكود في أي وقت وسيفقد العميل أسعار الجملة فورًا.</p></div>
-    <div className="bg-white rounded-2xl p-4 flex gap-2"><input className="border rounded-xl p-2.5 flex-1 bg-white" placeholder="اسم العميل / الشركة" value={name} onChange={(e) => setName(e.target.value)} onKeyDown={(e) => e.key === "Enter" && create()} /><button onClick={create} className="bg-lime font-extrabold rounded-xl px-5">إنشاء كود</button></div>
-    {err && <p className="text-accent font-bold">{err}</p>}
-    <div className="space-y-2">{initial.map((c) => (<div key={c.id} className={`bg-white rounded-2xl p-3 flex items-center gap-3 flex-wrap ${c.isActive ? "" : "opacity-60"}`}>
-      <div className="flex-1 min-w-[160px]"><b>{c.name}</b><div className="text-xs text-steel">{c.orders} طلب</div></div>
-      <code dir="ltr" className="bg-soft rounded-lg px-3 py-1.5 font-extrabold tracking-widest">{c.code}</code>
-      <button className="border rounded-xl px-3 py-1.5 text-sm font-bold" onClick={() => { navigator.clipboard?.writeText(c.code); setCopied(c.id); setTimeout(() => setCopied(null), 1200); }}>{copied === c.id ? "تم النسخ ✓" : "نسخ"}</button>
-      <button className="border rounded-xl px-3 py-1.5 text-sm font-bold" onClick={() => toggle(c)}>{c.isActive ? "إيقاف" : "تفعيل"}</button><button className="text-accent text-sm font-bold" onClick={() => remove(c)}>حذف</button></div>))}
-      {initial.length === 0 && <p className="text-steel text-center p-6">لا توجد أكواد بعد.</p>}</div></div>);
+  const r = useRouter(), [name, setName] = useState(""), [busy, setBusy] = useState(false);
+  async function create() { if (!name.trim()) return toast("اكتب اسم العميل", { tone: "err" }); setBusy(true); const x = await post("/api/admin/codes", { name }); setBusy(false); if (x.ok) { setName(""); toast(`تم إنشاء الكود ${x.data.code}`); r.refresh(); } else toast(x.data.error, { tone: "err" }); }
+  async function toggle(c: C, v: boolean) { const x = await post("/api/admin/codes", { id: c.id, isActive: v }, "PUT"); if (x.ok) { toast(v ? "تم تفعيل الكود" : "تم إيقاف الكود"); r.refresh(); } else toast("تعذر الحفظ", { tone: "err" }); }
+  async function remove(c: C) { if (!confirm(`حذف كود ${c.name}؟`)) return; const x = await fetch(`/api/admin/codes?id=${c.id}`, { method: "DELETE" }); if (x.ok) { toast("تم حذف الكود"); r.refresh(); } else toast((await x.json()).error, { tone: "err" }); }
+  const copy = (c: C) => { navigator.clipboard?.writeText(c.code); toast(`تم نسخ ${c.code}`); };
+  return (<div className="max-w-4xl space-y-4">
+    <PageHead title="أكواد الجملة" desc="أنشئ كودًا لكل عميل جملة. عند إدخاله تتحول الأسعار لأسعار الجملة. أوقف الكود في أي وقت ويفقد العميل الأسعار فورًا." />
+    <div className="rounded-2xl bg-ink text-white p-4 md:p-5 flex gap-4 items-start"><span className="w-11 h-11 rounded-xl bg-lime text-ink grid place-items-center shrink-0"><Icon n="info" s={22} /></span>
+      <div className="text-sm leading-7"><b className="text-lime">كيف يدخل العميل الكود؟</b><p className="text-white/80">يضغط على شعار DYLLU أعلى المتجر <b className="text-white">3 ضغطات متتالية بسرعة</b>، فتظهر نافذة الكود. لا يوجد رابط أو زر ظاهر لبقية العملاء.</p></div></div>
+    <form onSubmit={(e) => { e.preventDefault(); create(); }} className="card p-3 flex flex-col sm:flex-row gap-2"><input className="field flex-1" placeholder="اسم العميل أو الشركة" value={name} onChange={(e) => setName(e.target.value)} /><button disabled={busy} className="btn btn-lg btn-lime"><Icon n="plus" s={18} />{busy ? "..." : "إنشاء كود"}</button></form>
+    <div className="card overflow-hidden divide-y divide-line">{initial.map((c) => (<div key={c.id} className={`flex flex-wrap items-center gap-3 p-3 ${c.isActive ? "" : "bg-soft/50"}`}>
+      <span className={`w-10 h-10 rounded-xl grid place-items-center shrink-0 ${c.isActive ? "bg-lime text-ink" : "bg-soft text-steel"}`}><Icon n="key" s={18} /></span>
+      <div className="flex-1 min-w-[140px]"><b className="block text-sm">{c.name}</b><small className="text-xs text-steel">{c.orders} طلب</small>{!c.isActive && <Badge cls="bg-soft text-steel ms-2">موقوف</Badge>}</div>
+      <button onClick={() => copy(c)} title="نسخ" className="inline-flex items-center gap-2 bg-soft hover:bg-line rounded-xl px-3 h-10 font-extrabold tracking-widest text-sm" dir="ltr"><Icon n="copy" s={16} className="text-steel" />{c.code}</button>
+      <Switch on={c.isActive} onChange={(v) => toggle(c, v)} label={undefined} />
+      <button onClick={() => remove(c)} aria-label="حذف" className="btn-icon w-10 h-10 text-steel hover:text-accent hover:bg-accent/5"><Icon n="trash" s={18} /></button></div>))}
+      {initial.length === 0 && <AEmpty icon="key" title="لا توجد أكواد بعد" />}</div>
+  </div>);
 }

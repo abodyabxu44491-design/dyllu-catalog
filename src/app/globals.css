@@ -1,23 +1,68 @@
 @tailwind base; @tailwind components; @tailwind utilities;
-body { font-family: Arial, Helvetica, Tahoma, system-ui, sans-serif; background: #fff; color: #1C1F22; }
 
+@layer base {
+  html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
+  body { @apply font-sans bg-white text-ink antialiased; overflow-x: clip; }
+  /* خطوط الهوية: العناوين Arial Black */
+  /* Arial Black لا يحتوي حروفًا عربية، فالوزن 800 يجعل الخط البديل للعربية عريضًا أيضًا */
+  h1, h2, h3, .font-display { font-family: "Arial Black", Arial, Tahoma, sans-serif; font-weight: 800; }
+  /* 16px في الحقول يمنع تكبير الجوال التلقائي */
+  input, select, textarea { font-size: 16px; }
+  :focus-visible { outline: 2px solid theme("colors.accent"); outline-offset: 2px; }
+  ::selection { background: theme("colors.lime.DEFAULT"); color: theme("colors.ink"); }
+}
+
+@layer components {
+  /* حاوية الصفحة الموحدة: جوال ← تابلت ← كمبيوتر */
+  .wrap { @apply w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8; }
+
+  /* لسان العنوان من دليل الهوية: كبسولة ليمونية بمثلث برتقالي في بدايتها */
+  .dy-tab { @apply relative inline-flex items-center gap-2 bg-lime text-steel font-display rounded-e-full ps-7 pe-5 py-1.5 text-[15px] leading-6 md:text-lg; }
+  .dy-tab::before { content: ""; @apply absolute top-1/2 -translate-y-1/2 start-0 w-0 h-0; border-block: 9px solid transparent; border-inline-start: 11px solid theme("colors.accent"); }
+
+  /* شريط التذييل من دليل الهوية: خط برتقالي رفيع فوق شريط ليموني */
+  .dy-stripe { @apply relative bg-lime h-3; box-shadow: 0 -3px 0 theme("colors.accent"); }
+
+  .btn { @apply inline-flex items-center justify-center gap-2 rounded-xl font-bold whitespace-nowrap select-none transition active:scale-[.97] disabled:opacity-50 disabled:pointer-events-none; }
+  .btn-lg { @apply h-12 px-6 text-base; }
+  .btn-md { @apply h-11 px-5 text-sm; }
+  .btn-sm { @apply h-9 px-3.5 text-sm; }
+  .btn-lime { @apply bg-lime text-ink hover:bg-lime-dark; }
+  .btn-dark { @apply bg-ink text-white hover:bg-black; }
+  .btn-accent { @apply bg-accent text-white hover:brightness-95; }
+  .btn-ghost { @apply bg-white text-ink border border-line hover:border-steel/50 hover:bg-soft; }
+  .btn-danger { @apply bg-white text-accent border border-accent/30 hover:bg-accent/5; }
+  .btn-icon { @apply inline-grid place-items-center rounded-xl transition active:scale-95; }
+
+  .field { @apply w-full min-w-0 h-12 rounded-xl border border-line bg-white px-3.5 text-base text-ink outline-none transition placeholder:text-steel/70 focus:border-steel focus:ring-4 focus:ring-lime/40; }
+  textarea.field { @apply h-auto py-3 leading-7; }
+  select.field { @apply pe-9 appearance-none bg-no-repeat; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='20' height='20' viewBox='0 0 24 24' fill='none' stroke='%2363666A' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E"); background-position: left .75rem center; }
+  [dir="ltr"] select.field, select.field[dir="ltr"] { background-position: right .75rem center; }
+
+  .card { @apply bg-white rounded-2xl border border-line; }
+  .chip { @apply inline-flex items-center gap-1.5 h-10 px-4 rounded-full text-sm font-bold whitespace-nowrap border transition; }
+  .chip-on { @apply bg-ink text-white border-ink; }
+  .chip-off { @apply bg-white text-ink border-line hover:border-steel/50; }
+
+  .skeleton { @apply bg-soft rounded-xl relative overflow-hidden; }
+  .skeleton::after { content: ""; @apply absolute inset-0; background: linear-gradient(90deg, transparent, rgba(255,255,255,.7), transparent); animation: shimmer 1.4s infinite; }
+}
+
+@layer utilities {
+  .no-scrollbar { scrollbar-width: none; } .no-scrollbar::-webkit-scrollbar { display: none; }
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .flip-rtl { @apply rtl:-scale-x-100; }
+}
+
+@keyframes shimmer { from { transform: translateX(-100%) } to { transform: translateX(100%) } }
 @keyframes bnr { from { width: 0 } to { width: 100% } }
+@keyframes pop { 0% { transform: scale(1) } 40% { transform: scale(1.25) } 100% { transform: scale(1) } }
+@keyframes rise { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
+.animate-pop { animation: pop .35s ease-out; }
+.animate-rise { animation: rise .25s ease-out both; }
 
-html { -webkit-text-size-adjust: 100%; }
-body { overflow-x: clip; }
-/* لوحة التحكم: 16px في الحقول يمنع تكبير الجوال التلقائي، وبدون عرض زائد */
-.admin input, .admin select, .admin textarea { font-size: 16px; max-width: 100%; min-width: 0; }
-.admin input[type="datetime-local"] { -webkit-appearance: none; appearance: none; width: 100%; min-height: 46px; }
+/* لوحة التحكم */
+.admin input[type="datetime-local"] { -webkit-appearance: none; appearance: none; }
 
-/* خطوط الهوية: العناوين Arial Black، النص Arial */
-h1, h2 { font-family: "Arial Black", Arial, Tahoma, sans-serif; }
-
-/* ===== هوية DYLLU للوحة التحكم: كبسولة ليمونية بمعيّن برتقالي، بطاقات مدورة، تركيز ليموني ===== */
-.admin h1 { position: relative; display: inline-flex; align-items: center; background: #D0DF00; color: #2B2D2F; border-radius: 9999px; padding: .4rem 1rem; padding-inline-start: 1.8rem; font-size: 15px; line-height: 1.4; }
-.admin h1::before { content: ""; position: absolute; inset-inline-start: .7rem; width: 10px; height: 10px; background: #FF6900; transform: rotate(45deg); }
-.admin h2 { font-family: "Arial Black", Arial, Tahoma, sans-serif; }
-.admin .rounded-2xl { border-radius: 1.5rem; }
-.admin .bg-white.rounded-2xl { box-shadow: 0 6px 22px -14px rgba(43,45,47,.35); }
-.admin input:focus, .admin select:focus, .admin textarea:focus { outline: 2px solid #D0DF00; outline-offset: 0; border-color: #63666A; }
-.admin button, .admin a { transition: transform .12s, opacity .12s, background-color .15s; }
-.admin button:active { transform: scale(.97); }
+@media print { .no-print { display: none !important; } body { background: #fff; } }
+@media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }

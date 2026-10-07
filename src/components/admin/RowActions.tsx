@@ -1,0 +1,17 @@
+"use client";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Icon from "@/components/Icon";
+import { post } from "@/lib/client";
+import { toast } from "@/store/toast";
+// أزرار صف المنتج: تعديل، عرض في المتجر، نسخ
+export default function RowActions({ id, slug }: { id: number; slug: string }) {
+  const r = useRouter();
+  async function dup() { const x = await post("/api/admin/products", { action: "duplicate", id }); if (x.ok && x.data.id) { toast("تم إنشاء نسخة مخفية"); r.push(`/admin/products/${x.data.id}`); } else toast(x.data.error || "تعذر النسخ", { tone: "err" }); }
+  const b = "btn-icon w-9 h-9 text-steel hover:text-ink hover:bg-soft";
+  return (<div className="flex items-center gap-0.5">
+    <Link href={`/admin/products/${id}`} className="btn btn-sm btn-ghost"><Icon n="edit" s={16} />تعديل</Link>
+    <a href={`/products/${slug}`} target="_blank" title="عرض في المتجر" aria-label="عرض في المتجر" className={b}><Icon n="external" s={17} /></a>
+    <button onClick={dup} title="نسخ المنتج" aria-label="نسخ المنتج" className={b}><Icon n="dup" s={17} /></button>
+  </div>);
+}

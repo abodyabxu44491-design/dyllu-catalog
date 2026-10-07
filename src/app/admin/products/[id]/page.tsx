@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import ProductForm from "@/components/admin/ProductForm";
+import { canTranslate } from "@/lib/translate";
 export const dynamic = "force-dynamic";
 export default async function Edit({ params }: { params: { id: string } }) {
   const categories = await db.category.findMany({ orderBy: { sortOrder: "asc" } });
@@ -8,5 +9,5 @@ export default async function Edit({ params }: { params: { id: string } }) {
   const p = params.id === "new" ? null : await db.product.findUnique({ where: { id: Number(params.id) }, include: { images: { orderBy: { sortOrder: "asc" } }, specs: { orderBy: { sortOrder: "asc" } }, features: { orderBy: { sortOrder: "asc" } }, documents: true } });
   if (params.id !== "new" && !p) notFound();
   const initial = p ? { ...p, price: p.price == null ? null : Number(p.price), wholesalePrice: p.wholesalePrice == null ? null : Number(p.wholesalePrice) } : null;
-  return <ProductForm initial={JSON.parse(JSON.stringify(initial))} categories={categories.map((c) => ({ id: c.id, nameAr: c.nameAr }))} />;
+  return <ProductForm key={params.id} ai={canTranslate()} initial={JSON.parse(JSON.stringify(initial))} categories={categories.map((c) => ({ id: c.id, nameAr: c.nameAr }))} />;
 }
