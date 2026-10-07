@@ -1,6 +1,7 @@
 // يعمل تلقائيًا قبل تشغيل الموقع (npm start) على Render أو أي سيرفر:
 // 1) يحدّث جداول قاعدة البيانات حسب prisma/schema.prisma (آمن: يرفض أي تغيير يحذف بيانات)
 // 2) ينشئ حساب الأدمن من ADMIN_EMAIL و ADMIN_PASSWORD إن وُجدا، أو يحدّث كلمة مروره إن تغيّرت
+// 3) يضيف المنتجات الجاهزة الجديدة من prisma/catalog (مرة واحدة، بدون تعديل الموجود)
 // أي فشل هنا يُطبع بوضوح في سجل Render ولا يمنع تشغيل الموقع.
 // --db-only: تحديث الجداول فقط (يُستدعى قبل البناء npm run build حتى تجد الصفحات جداولها في أول نشر)
 import { execSync } from "node:child_process";
@@ -20,20 +21,24 @@ try {
 } catch { log("✗ تعذر تحديث قاعدة البيانات تلقائيًا (راجع السطر أعلاه). الموقع سيعمل بالجداول الحالية"); }
 if (process.argv.includes("--db-only")) process.exit(0);
 
-const email = process.env.ADMIN_EMAIL?.trim().toLowerCase(), pw = process.env.ADMIN_PASSWORD?.trim();
-if (!email || !pw) { log("ℹ ADMIN_EMAIL / ADMIN_PASSWORD غير مضبوطين: لن يُنشأ حساب أدمن (الحسابات الموجودة تبقى كما هي)"); process.exit(0); }
-if (!/^\S+@\S+\.\S+$/.test(email) || pw.length < 8) { log("✗ ADMIN_EMAIL يجب أن يكون بريدًا صحيحًا و ADMIN_PASSWORD 8 أحرف على الأقل"); process.exit(0); }
-
 // نفس صيغة src/lib/password.ts
 const hash = (p) => { const s = randomBytes(16).toString("hex"); return `${s}:${scryptSync(p, s, 64).toString("hex")}`; };
 const same = (p, stored) => { const [s, h] = stored.split(":"); const a = Buffer.from(h ?? "", "hex"), b = scryptSync(p, s ?? "", 64); return a.length === b.length && timingSafeEqual(a, b); };
 
-const { PrismaClient } = await import("@prisma/client");
-const db = new PrismaClient();
-try {
+async function admin(db) {
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase(), pw = process.env.ADMIN_PASSWORD?.trim();
+  if (!email || !pw) return log("ℹ ADMIN_EMAIL / ADMIN_PASSWORD غير مضبوطين: لن يُنشأ حساب أدمن (الحسابات الموجودة تبقى كما هي)");
+  if (!/^\S+@\S+\.\S+$/.test(email) || pw.length < 8) return log("✗ ADMIN_EMAIL يجب أن يكون بريدًا صحيحًا و ADMIN_PASSWORD 8 أحرف على الأقل");
   const u = await db.adminUser.findUnique({ where: { email } });
   if (!u) { await db.adminUser.create({ data: { email, name: "Admin", passwordHash: hash(pw) } }); log(`✓ أُنشئ حساب الأدمن: ${email}`); }
   else if (!same(pw, u.passwordHash)) { await db.adminUser.update({ where: { email }, data: { passwordHash: hash(pw), sessionVersion: { increment: 1 } } }); log(`✓ حُدّثت كلمة مرور الأدمن: ${email}`); }
   else log(`✓ حساب الأدمن جاهز: ${email}`);
-} catch (e) { log(`✗ تعذر تجهيز حساب الأدمن: ${e.message}`); }
-finally { await db.$disconnect(); }
+}
+
+const { PrismaClient } = await import("@prisma/client");
+const { importCatalog } = await import("./import-catalog.mjs");
+const db = new PrismaClient();
+try { await admin(db); } catch (e) { log(`✗ تعذر تجهيز حساب الأدمن: ${e.message}`); }
+// 3) منتجات جاهزة جديدة (prisma/catalog): تُضاف مرة واحدة فقط
+try { await importCatalog(db, log); } catch (e) { log(`✗ تعذر استيراد المنتجات الجاهزة: ${e.message}`); }
+await db.$disconnect();
