@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { db } from "./db";
 import { priceOf } from "./format";
+import { normalizePhone } from "./whatsapp";
 // الواجهة ترسل productId + quantity فقط. السعر دائمًا من قاعدة البيانات، وسعر الجملة يحدده كوكي موقّع من السيرفر.
 export const orderInput = z.object({
-  customer: z.object({ name: z.string().trim().max(80).optional(), phone: z.string().trim().min(8).max(20), company: z.string().trim().max(80).optional(), city: z.string().trim().max(60).optional() }),
+  customer: z.object({ name: z.string().trim().max(80).optional(), phone: z.string().trim().max(20).refine((v) => v.replace(/\D/g, "").length >= 8, "رقم الجوال غير صحيح"), company: z.string().trim().max(80).optional(), city: z.string().trim().max(60).optional() }),
   notes: z.string().max(1000).optional(),
   source: z.string().max(60).optional(),
   repId: z.number().int().optional(),
@@ -23,7 +24,10 @@ export async function createOrder(raw: unknown, ws: { id: number } | null = null
     return { productId: p.id, nameSnapshot: p.nameEn, unitPrice: v, quantity: i.quantity };
   });
   return db.$transaction(async (tx) => {
-    const customer = await tx.customer.create({ data: { ...input.customer, name: input.customer.name || "بدون اسم" } });
+    // نفس رقم الجوال (بأي صيغة: 05.. أو 9665.. أو +966) = نفس العميل؛ تُحدَّث بياناته بالقيم الجديدة غير الفارغة فقط
+    const { name, phone, company, city } = input.customer, phoneKey = normalizePhone(phone);
+    const fresh = Object.fromEntries(Object.entries({ name, phone, company, city }).filter(([, v]) => v));
+    const customer = await tx.customer.upsert({ where: { phoneKey }, update: fresh, create: { ...fresh, phone, phoneKey, name: name || "بدون اسم" } });
     const o = await tx.order.create({ data: { number: crypto.randomUUID(), customerId: customer.id, notes: input.notes, source: input.source, total, hasUnpriced, repId: rep?.id, isWholesale: !!ws, wholesaleCodeId: ws?.id, items: { create: items } } });
     return tx.order.update({ where: { id: o.id }, data: { number: `DY-${10000 + o.id}` }, include: { items: true, customer: true, rep: true } });
   });

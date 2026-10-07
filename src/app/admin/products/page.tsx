@@ -1,11 +1,12 @@
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { pageParam } from "@/lib/format";
 import ProductToggles from "@/components/admin/ProductToggles";
 export const dynamic = "force-dynamic";
 const PER = 20;
 export default async function List({ searchParams }: { searchParams: { q?: string; cat?: string; st?: string; page?: string } }) {
-  const { q, cat, st } = searchParams, page = Math.max(1, Number(searchParams.page ?? 1));
+  const { q, cat, st } = searchParams, page = pageParam(searchParams.page);
   const where: Prisma.ProductWhereInput = { ...(Number.isInteger(Number(cat)) && cat && { categoryId: Number(cat) }), ...(st === "hidden" && { isActive: false }), ...(st === "active" && { isActive: true }), ...(st === "nows" && { wholesalePrice: null }), ...(st === "out" && { inStock: false }),
     ...(q && { OR: [{ nameAr: { contains: q, mode: "insensitive" } }, { nameEn: { contains: q, mode: "insensitive" } }, { sku: { contains: q, mode: "insensitive" } }] }) };
   const [cats, total, ps] = await Promise.all([db.category.findMany({ orderBy: { sortOrder: "asc" } }), db.product.count({ where }),

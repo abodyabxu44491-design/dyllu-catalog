@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { z } from "zod";
 import { db } from "@/lib/db";
 const txt = z.string().max(160).nullish();
@@ -9,6 +10,7 @@ const B = z.object({ id: z.number().optional(), type: z.enum(["IMAGE", "IMAGE_TE
 const date = (v?: string | null) => (v ? new Date(v) : null);
 // POST {action:"move", id, dir:-1|1} للترتيب | POST {…الإعلان} إنشاء/تعديل | DELETE ?id=
 export async function POST(req: Request) {
+  const deny = await denyUnlessAdmin(); if (deny) return deny;
   try {
     const body = await req.json();
     if (body.action === "move") {
@@ -25,6 +27,7 @@ export async function POST(req: Request) {
   } catch (e) { return NextResponse.json({ error: (e as Error).message }, { status: 400 }); }
 }
 export async function DELETE(req: Request) {
+  const deny = await denyUnlessAdmin(); if (deny) return deny;
   await db.banner.delete({ where: { id: Number(new URL(req.url).searchParams.get("id")) } });
   return NextResponse.json({ ok: true });
 }

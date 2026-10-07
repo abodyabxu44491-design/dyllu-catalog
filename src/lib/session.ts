@@ -12,8 +12,11 @@ export async function verifyToken(kind: string, t?: string) {
   return k === kind && Number(exp) > Date.now() && sig === (await hmac(`${k}.${id}.${exp}`)) ? Number(id) : null;
 }
 export const SESSION_COOKIE = "dyllu_admin";
-export async function signSession(userId: number) { const p = `${userId}.${Date.now() + 7 * 864e5}`; return `${p}.${await hmac(p)}`; }
+// الصيغة: userId.sessionVersion.exp.sig — رفع sessionVersion في قاعدة البيانات يُبطل كل جلسات المستخدم (الخروج/تغيير كلمة المرور)
+export async function signSession(userId: number, ver: number) { const p = `${userId}.${ver}.${Date.now() + 7 * 864e5}`; return `${p}.${await hmac(p)}`; }
+// يتحقق من التوقيع والصلاحية فقط (يعمل في middleware). التحقق من وجود المستخدم ونسخة الجلسة في lib/adminAuth.ts
 export async function verifySession(t?: string) {
-  if (!t || !process.env.ADMIN_SESSION_SECRET) return false;
-  const [id, exp, sig] = t.split("."); return Number(exp) > Date.now() && sig === (await hmac(`${id}.${exp}`));
+  if (!t || !process.env.ADMIN_SESSION_SECRET) return null;
+  const [id, ver, exp, sig] = t.split(".");
+  return Number(exp) > Date.now() && sig === (await hmac(`${id}.${ver}.${exp}`)) ? { id: Number(id), ver: Number(ver) } : null;
 }

@@ -1,13 +1,14 @@
 import Link from "next/link";
 import type { OrderStatus, Prisma } from "@prisma/client";
 import { db } from "@/lib/db";
+import { pageParam } from "@/lib/format";
 import { normalizePhone } from "@/lib/whatsapp";
 import StatusSelect from "@/components/admin/StatusSelect";
 import { STATUS_AR, STATUS_CLS, fmtDate, money } from "@/lib/admin/labels";
 export const dynamic = "force-dynamic";
 const PER = 30;
 export default async function Orders({ searchParams }: { searchParams: { status?: string; q?: string; t?: string; page?: string } }) {
-  const { status, q, t } = searchParams, page = Math.max(1, Number(searchParams.page ?? 1));
+  const { status, q, t } = searchParams, page = pageParam(searchParams.page);
   const where: Prisma.OrderWhereInput = { ...(status && status in STATUS_AR && { status: status as OrderStatus }), ...(t === "ws" && { isWholesale: true }), ...(t === "retail" && { isWholesale: false }),
     ...(q && { OR: [{ number: { contains: q, mode: "insensitive" } }, { customer: { name: { contains: q, mode: "insensitive" } } }, { customer: { phone: { contains: q } } }, { source: { contains: q, mode: "insensitive" } }] }) };
   const [total, os, counts] = await Promise.all([db.order.count({ where }), db.order.findMany({ where, include: { customer: true, items: true, rep: true, wholesaleCode: true }, orderBy: { id: "desc" }, skip: (page - 1) * PER, take: PER }), db.order.groupBy({ by: ["status"], _count: true })]);

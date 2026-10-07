@@ -10,6 +10,6 @@ export async function POST(req: Request) {
   const u = await db.adminUser.findUnique({ where: { email: String(email ?? "").trim().toLowerCase() } });
   if (!u || !checkPassword(String(password), u.passwordHash)) return NextResponse.json({ error: "بيانات غير صحيحة" }, { status: 401 });
   const res = NextResponse.json({ ok: true });
-  res.cookies.set(SESSION_COOKIE, await signSession(u.id), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 7 * 86400 });
+  res.cookies.set(SESSION_COOKIE, await signSession(u.id, u.sessionVersion), { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 7 * 86400 });
   return res;
 }
