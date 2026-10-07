@@ -14,7 +14,7 @@ const T = {
   notFound: ["الصفحة غير موجودة", "Page not found"], notFoundSub: ["ربما حُذفت الصفحة أو تغيّر رابطها", "The page may have been removed or its link changed"], goHome: ["العودة للرئيسية", "Back to home"],
   error: ["حدث خطأ غير متوقع", "Something went wrong"], errorSub: ["أعد المحاولة بعد لحظات", "Please try again in a moment"], retry: ["إعادة المحاولة", "Try again"],
   viewAll: ["عرض الكل", "View all"], prev: ["السابق", "Previous"], next: ["التالي", "Next"], close: ["إغلاق", "Close"], filters: ["الفلاتر", "Filters"], apply: ["عرض النتائج", "Show results"],
-  resultsFor: ["نتائج البحث عن", "Results for"],
+  resultsFor: ["نتائج البحث عن", "Results for"], priceList: ["قائمة الأسعار (PDF)", "Price list (PDF)"],
 } as const;
 export type TKey = keyof typeof T;
 export const t = (l: Lang, k: TKey) => T[k][l === "en" ? 1 : 0];

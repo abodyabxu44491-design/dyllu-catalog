@@ -10,11 +10,7 @@ export function buildWhatsAppMessage(o: O, cur = "ريال", hidden = "غير م
   const extra = (o.customer.company ? `\nالشركة: ${o.customer.company}` : "") + (o.customer.city ? `\nالمدينة: ${o.customer.city}` : "") + (o.notes ? `\nملاحظات: ${o.notes}` : "");
   return `${hi}\n${head}${o.isWholesale ? " (طلب جملة)" : ""}\nرقم الطلب: ${o.number}\n\n${lines.join("\n\n")}\n------------------\nالإجمالي: ${Number(o.total)} ${cur}${o.hasUnpriced ? " (+ منتجات بسعر غير محدد)" : ""}\n\nبيانات العميل:\n${who}الجوال: ${o.customer.phone}${extra}${link ? `\n\nملخص الطلب: ${link}` : ""}\n\nشكرًا.`;
 }
-// يحوّل الأرقام المحلية السعودية (05xxxxxxxx أو 5xxxxxxxx أو 00966...) إلى الصيغة الدولية المطلوبة في wa.me
-export function normalizePhone(raw: string) {
-  let d = String(raw ?? "").replace(/\D/g, "");
-  if (d.startsWith("00")) d = d.slice(2);
-  if (/^05\d{8}$/.test(d)) d = "966" + d.slice(1); else if (/^5\d{8}$/.test(d)) d = "966" + d;
-  return d;
-}
+import { normalizePhone } from "./phone";
+// التوحيد في lib/phone.ts (يقبل أي صيغة وحتى الأرقام العربية ٠١٢٣)
+export { normalizePhone };
 export const whatsappUrl = (num: string, msg: string) => `https://wa.me/${normalizePhone(num)}?text=${encodeURIComponent(msg)}`;

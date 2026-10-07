@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { pageParam } from "@/lib/format";
-import { normalizePhone } from "@/lib/whatsapp";
+import { telHref, waHref } from "@/lib/phone";
+import Linkify from "@/components/Linkify";
 import { orderWhere, type OrderFilters } from "@/lib/admin/orders";
 import StatusSelect from "@/components/admin/StatusSelect";
 import { AEmpty, APager, Badge, PageHead } from "@/components/admin/ui";
@@ -44,17 +45,17 @@ export default async function Orders({ searchParams }: { searchParams: OrderFilt
               <tbody className="divide-y divide-line">{o.items.map((x) => <tr key={x.id}><td className="py-2" dir="ltr" style={{ textAlign: "start" }}>{x.nameSnapshot}</td><td className="text-center">{x.quantity}</td><td className="text-end text-steel">{x.unitPrice == null ? "غير محدد" : money(x.unitPrice)}</td><td className="text-end font-bold">{x.unitPrice == null ? "—" : money(Number(x.unitPrice) * x.quantity)}</td></tr>)}</tbody></table></div>
             <dl className="rounded-xl bg-soft p-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-1.5 content-start">
               <dt className="text-steel">العميل</dt><dd className="font-bold">{o.customer.name}</dd>
-              <dt className="text-steel">الجوال</dt><dd className="font-bold" dir="ltr" style={{ textAlign: "start" }}>{o.customer.phone}</dd>
+              <dt className="text-steel">الجوال</dt><dd><Linkify text={o.customer.phone} /></dd>
               {o.customer.company && <><dt className="text-steel">الشركة</dt><dd>{o.customer.company}</dd></>}
               {o.customer.city && <><dt className="text-steel">المدينة</dt><dd>{o.customer.city}</dd></>}
               <dt className="text-steel">المندوب</dt><dd>{o.rep ? `${o.rep.name} · ${o.rep.location}` : "—"}</dd>
               {o.source && <><dt className="text-steel">مصدر QR</dt><dd dir="ltr" style={{ textAlign: "start" }}>{o.source}</dd></>}
               {o.wholesaleCode && <><dt className="text-steel">كود الجملة</dt><dd>{o.wholesaleCode.name}</dd></>}
             </dl></div>
-          {o.notes && <p className="rounded-xl border border-line p-3"><b>ملاحظات العميل:</b> {o.notes}</p>}
+          {o.notes && <p className="rounded-xl border border-line p-3 leading-7"><b>ملاحظات العميل:</b> <Linkify text={o.notes} /></p>}
           <div className="flex flex-wrap gap-2 items-center"><StatusSelect id={o.id} status={o.status} />
-            <a className="btn btn-sm h-10 btn-lime" target="_blank" rel="noopener noreferrer" href={`https://wa.me/${normalizePhone(o.customer.phone)}?text=${encodeURIComponent(`السلام عليكم ${o.customer.name !== "بدون اسم" ? o.customer.name : ""}، بخصوص طلبكم ${o.number} من DYLLU`)}`}><Icon n="whatsapp" s={16} />واتساب العميل</a>
-            <a className="btn btn-sm h-10 btn-ghost" href={`tel:${o.customer.phone}`}><Icon n="phone" s={16} />اتصال</a>
+            <a className="btn btn-sm h-10 btn-lime" target="_blank" rel="noopener noreferrer" href={waHref(o.customer.phone, `السلام عليكم ${o.customer.name !== "بدون اسم" ? o.customer.name : ""}، بخصوص طلبكم ${o.number} من DYLLU`)}><Icon n="whatsapp" s={16} />واتساب العميل</a>
+            <a className="btn btn-sm h-10 btn-ghost" href={telHref(o.customer.phone)}><Icon n="phone" s={16} />اتصال</a>
             <Link className="btn btn-sm h-10 btn-ghost" target="_blank" href={`/order/${o.token}`}><Icon n="print" s={16} />الفاتورة / PDF</Link></div>
         </div></details>); })}</div>}
     <APager page={page} pages={pages} href={(n) => href({ page: String(n) })} />

@@ -5,6 +5,7 @@ import Icon from "@/components/Icon";
 import { Empty } from "@/components/ui";
 import { useCart } from "@/store/cart";
 import { useLang } from "@/lib/useLang";
+import { toAsciiDigits } from "@/lib/phone";
 type Item = { id: number; slug: string; sku: string | null; inStock: boolean; nameAr: string; nameEn: string; allowCart: boolean; image: string | null; price: number | null };
 type Rep = { id: number; name: string; location: string; photo: string | null };
 const D = {
@@ -43,7 +44,7 @@ export default function CartPage() {
   const rows = lines.map((l) => ({ l, p: items.find((i) => i.id === l.productId) })).filter((r): r is { l: (typeof lines)[number]; p: Item } => !!r.p);
   const total = rows.reduce((t, r) => t + (r.p.price ?? 0) * r.l.quantity, 0), qty = rows.reduce((t, r) => t + r.l.quantity, 0), unpriced = rows.some((r) => r.p.price == null);
   const nm = (p: Item) => (en ? p.nameEn : p.nameAr), money = (n: number) => `${n.toLocaleString("en-US")} ${d.cur}`;
-  const phoneOk = f.phone.replace(/\D/g, "").length >= 8;
+  const phoneOk = toAsciiDigits(f.phone).replace(/\D/g, "").length >= 8;
   function next() { if (!phoneOk) return setErr(d.err); if (!rows.length) return setErr(d.errItems); setErr(""); reps.length ? setStep(3) : send(); }
   // اختيار المندوب = إنشاء الطلب (السعر من السيرفر) ثم فتح واتساب المندوب برسالة جاهزة
   async function send(repId?: number) {
@@ -93,7 +94,7 @@ export default function CartPage() {
           <div className="flex justify-between text-sm pt-1"><Link href="/products" className="inline-flex items-center gap-1 font-bold text-steel hover:text-ink"><Icon n="chev" s={16} className="rotate-180 rtl:rotate-0" />{d.more}</Link><button className="text-accent font-bold" onClick={() => confirm(d.confirmClear) && clear()}>{d.clear}</button></div></>}
         {step === 2 && <div className="card p-4 sm:p-6 space-y-4">
           <div><h2 className="text-lg">{d.info}</h2><p className="text-sm text-steel mt-1">{d.infoSub}</p></div>
-          <Label t={d.phone}><input className={`field ${err && !phoneOk ? "border-accent ring-4 ring-accent/15" : ""}`} placeholder={d.phoneHint} inputMode="tel" autoComplete="tel" dir="ltr" value={f.phone} onChange={(e) => { setF({ ...f, phone: e.target.value }); setErr(""); }} onKeyDown={(e) => e.key === "Enter" && next()} /></Label>
+          <Label t={d.phone}><input className={`field ${err && !phoneOk ? "border-accent ring-4 ring-accent/15" : ""}`} placeholder={d.phoneHint} inputMode="tel" autoComplete="tel" dir="ltr" value={f.phone} onChange={(e) => { setF({ ...f, phone: toAsciiDigits(e.target.value) }); setErr(""); }} onKeyDown={(e) => e.key === "Enter" && next()} /></Label>
           <label className="flex items-start gap-3 rounded-2xl border border-line p-3 cursor-pointer hover:bg-soft"><input type="checkbox" className="mt-1 w-5 h-5 accent-ink" checked={extra} onChange={(e) => setExtra(e.target.checked)} /><span><b className="block text-sm">{d.who}</b><small className="text-steel">{d.whoSub}</small></span></label>
           {extra && <div className="grid sm:grid-cols-2 gap-3"><Label t={d.person}><input className="field" autoComplete="name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Label><Label t={d.company}><input className="field" autoComplete="organization" value={f.company} onChange={(e) => setF({ ...f, company: e.target.value })} /></Label></div>}
           <Label t={d.city} opt={d.optional}><input className="field" autoComplete="address-level2" value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} /></Label>

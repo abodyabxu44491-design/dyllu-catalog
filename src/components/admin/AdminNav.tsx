@@ -6,7 +6,7 @@ import Icon, { type IconName } from "@/components/Icon";
 type Item = [string, string, IconName];
 const GROUPS: [string, Item[]][] = [
   ["", [["/admin", "لوحة المعلومات", "dash"]]],
-  ["المبيعات", [["/admin/orders", "الطلبات", "orders"], ["/admin/reps", "المناديب", "users"], ["/admin/codes", "أكواد الجملة", "key"]]],
+  ["المبيعات", [["/admin/orders", "الطلبات", "orders"], ["/admin/customers", "العملاء", "user"], ["/admin/reps", "المناديب", "users"], ["/admin/codes", "أكواد الجملة", "key"]]],
   ["الكتالوج", [["/admin/products", "المنتجات", "box"], ["/admin/categories", "التصنيفات", "grid"], ["/admin/banners", "الإعلانات", "megaphone"]]],
   ["النظام", [["/admin/settings", "الإعدادات", "settings"], ["/admin/qr", "رموز QR", "qr"]]],
 ];

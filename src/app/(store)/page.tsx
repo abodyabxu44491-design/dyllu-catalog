@@ -8,6 +8,7 @@ import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
 import BannerCarousel from "@/components/BannerCarousel";
 import SearchBox from "@/components/SearchBox";
+import RecentlyViewed from "@/components/RecentlyViewed";
 import Icon, { type IconName } from "@/components/Icon";
 import { SectionHead } from "@/components/ui";
 export const dynamic = "force-dynamic";
@@ -63,6 +64,8 @@ export default async function Home() {
       <div className="-mx-4 px-4 flex gap-3 overflow-x-auto snap-x snap-mandatory no-scrollbar sm:mx-0 sm:px-0 sm:grid sm:grid-cols-3 lg:grid-cols-4 sm:gap-4 lg:gap-5 sm:overflow-visible">
         {latest.map((p) => <div key={p.id} className="snap-start shrink-0 w-[46%] xs:w-[40%] sm:w-auto flex"><div className="w-full flex [&>article]:w-full"><ProductCard p={p} s={s} ws={ws} /></div></div>)}</div>
     </section>}
+
+    <RecentlyViewed cur={cur} hidden={hidden} />
 
     {/* شريط الهوية: DYLLU, Discover your Power */}
     <section className="relative overflow-hidden rounded-3xl bg-ink text-white">

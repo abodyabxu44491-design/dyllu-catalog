@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { db } from "./db";
 import { priceOf } from "./format";
-import { normalizePhone } from "./whatsapp";
+import { normalizePhone, toAsciiDigits } from "./phone";
 // الواجهة ترسل productId + quantity فقط. السعر دائمًا من قاعدة البيانات، وسعر الجملة يحدده كوكي موقّع من السيرفر.
 export const orderInput = z.object({
-  customer: z.object({ name: z.string().trim().max(80).optional(), phone: z.string().trim().max(20).refine((v) => v.replace(/\D/g, "").length >= 8, "رقم الجوال غير صحيح"), company: z.string().trim().max(80).optional(), city: z.string().trim().max(60).optional() }),
+  customer: z.object({ name: z.string().trim().max(80).optional(), phone: z.string().trim().max(24).transform(toAsciiDigits).refine((v) => v.replace(/\D/g, "").length >= 8, "رقم الجوال غير صحيح"), company: z.string().trim().max(80).optional(), city: z.string().trim().max(60).optional() }),
   notes: z.string().max(1000).optional(),
   source: z.string().max(60).optional(),
   repId: z.number().int().optional(),
@@ -21,7 +21,7 @@ export async function createOrder(raw: unknown, ws: { id: number } | null = null
   const items = input.items.map((i) => {
     const p = map.get(i.productId)!, v = priceOf(p, !!ws);
     if (v != null) total += v * i.quantity; else hasUnpriced = true;
-    return { productId: p.id, nameSnapshot: p.nameEn, unitPrice: v, quantity: i.quantity };
+    return { productId: p.id, nameSnapshot: p.nameEn || p.nameAr, unitPrice: v, quantity: i.quantity };
   });
   return db.$transaction(async (tx) => {
     // نفس رقم الجوال (بأي صيغة: 05.. أو 9665.. أو +966) = نفس العميل؛ تُحدَّث بياناته بالقيم الجديدة غير الفارغة فقط

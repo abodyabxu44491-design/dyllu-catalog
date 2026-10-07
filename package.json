@@ -15,25 +15,26 @@
   "setup": "npm run check && prisma generate && prisma db push && tsx prisma/seed.ts"
  },
  "dependencies": {
+  "@anthropic-ai/sdk": "^0.131.0",
+  "@aws-sdk/client-s3": "^3.600.0",
+  "@prisma/client": "^5.20.0",
   "next": "^14.2.0",
+  "qrcode": "^1.5.4",
   "react": "^18.3.0",
   "react-dom": "^18.3.0",
-  "@prisma/client": "^5.20.0",
   "zod": "^3.23.0",
-  "zustand": "^4.5.0",
-  "qrcode": "^1.5.4",
-  "@aws-sdk/client-s3": "^3.600.0"
+  "zustand": "^4.5.0"
  },
  "devDependencies": {
-  "typescript": "^5.5.0",
   "@types/node": "^20",
+  "@types/qrcode": "^1.5.5",
   "@types/react": "^18",
+  "autoprefixer": "^10",
+  "postcss": "^8",
   "prisma": "^5.20.0",
   "tailwindcss": "^3.4.0",
-  "postcss": "^8",
-  "autoprefixer": "^10",
   "tsx": "^4.19.0",
-  "@types/qrcode": "^1.5.5"
+  "typescript": "^5.5.0"
  },
  "engines": {
   "node": ">=18.17"

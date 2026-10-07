@@ -12,5 +12,6 @@ for (const l of readFileSync(".env", "utf8").split(/\r?\n/)) { const m = l.match
 env.NEXT_PUBLIC_SITE_URL ? ok("NEXT_PUBLIC_SITE_URL موجود") : no("NEXT_PUBLIC_SITE_URL فارغ");
 if (env.S3_BUCKET) ["S3_KEY", "S3_SECRET", "S3_PUBLIC_URL"].forEach((k) => (env[k] ? ok(k) : no(`${k} مطلوب لأن S3_BUCKET مضبوط`)));
 else ok("التخزين: محلي (public/uploads)");
+ok(env.ANTHROPIC_API_KEY ? "الترجمة التلقائية: مفعّلة (ANTHROPIC_API_KEY)" : "الترجمة التلقائية: غير مفعّلة (اختياري: أضف ANTHROPIC_API_KEY)");
 console.log(out.join("\n")); console.log(bad ? `\n${bad} مشكلة تحتاج إصلاحًا قبل التشغيل.` : "\nالإعدادات سليمة.");
 process.exit(bad ? 1 : 0);

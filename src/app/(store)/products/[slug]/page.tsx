@@ -6,11 +6,13 @@ import { getSettings } from "@/lib/settings";
 import { isWsPrice, priceLabel, priceOf } from "@/lib/format";
 import { getWholesale } from "@/lib/wholesale";
 import { cardInclude } from "@/lib/catalog";
-import { normalizePhone, whatsappUrl } from "@/lib/whatsapp";
+import { isPhone, telHref, waHref } from "@/lib/phone";
+import Linkify from "@/components/Linkify";
 import { getLang, pick, t } from "@/lib/lang";
 import ProductCard from "@/components/ProductCard";
 import ProductGallery from "@/components/ProductGallery";
 import ShareButtons from "@/components/ShareButtons";
+import RecentlyViewed from "@/components/RecentlyViewed";
 import AddToCart from "@/components/AddToCart";
 import Icon from "@/components/Icon";
 import { Crumbs, SectionHead } from "@/components/ui";
@@ -29,7 +31,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const related = await db.product.findMany({ where: { categoryId: p.categoryId, isActive: true, id: { not: p.id } }, include: cardInclude, orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }], take: 4 });
   const name = pick(L, p.nameAr, p.nameEn), other = en ? p.nameAr : p.nameEn, price = priceLabel(p, s, L, ws), priced = priceOf(p, ws) != null;
   const desc = pick(L, p.descriptionAr, p.descriptionEn), cat = p.category, catName = pick(L, cat.nameAr, cat.nameEn), base = process.env.NEXT_PUBLIC_SITE_URL;
-  const wa = s["whatsapp.number"], askUrl = /\d{8,}/.test(normalizePhone(wa)) && !/X/i.test(wa) ? whatsappUrl(wa, `${en ? "Hello, I'd like to ask about" : "السلام عليكم، أرغب في الاستفسار عن"}: ${p.nameEn}${p.sku ? ` (${p.sku})` : ""}${base ? `\n${base}/products/${p.slug}` : ""}`) : undefined;
+  const wa = s["whatsapp.number"], askUrl = isPhone(wa) ? waHref(wa, `${en ? "Hello, I'd like to ask about" : "السلام عليكم، أرغب في الاستفسار عن"}: ${p.nameEn || p.nameAr}${p.sku ? ` (${p.sku})` : ""}${base ? `\n${base}/products/${p.slug}` : ""}`) : undefined;
+  const call = isPhone(s["contact.phone"]) ? s["contact.phone"] : isPhone(wa) ? wa : "";
   return (<div className="wrap pt-4 md:pt-8">
     <div className="flex items-center justify-between gap-3 mb-4 md:mb-6">
       <Link href={`/categories/${cat.slug}`} className="sm:hidden inline-flex items-center gap-1 text-sm font-bold text-steel"><Icon n="chev" s={18} className="rotate-180 rtl:rotate-0" />{catName}</Link>
@@ -54,12 +57,12 @@ export default async function ProductPage({ params }: { params: { slug: string }
           <div className="hidden md:block">{p.allowCart ? <AddToCart productId={p.id} name={name} full /> : <p className="text-steel font-bold">{t(L, "contactToOrder")}</p>}</div>
         </div>
         {p.features.length > 0 && <ul className="grid sm:grid-cols-2 gap-2">{p.features.slice(0, 6).map((f) => <li key={f.id} className="flex gap-2.5 items-start text-sm"><span className="mt-0.5 bg-lime rounded-full w-5 h-5 grid place-items-center shrink-0"><Icon n="check" s={12} stroke={3} /></span>{pick(L, f.textAr, f.textEn)}</li>)}</ul>}
-        <ShareButtons title={name} askUrl={askUrl} />
+        <ShareButtons title={name} askUrl={askUrl} callUrl={call ? telHref(call) : undefined} />
       </div>
     </div>
 
     <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 mt-10 md:mt-14 items-start">
-      {desc && <Sec title={t(L, "description")} className={p.specs.length ? "" : "lg:col-span-2"}><p className="p-4 md:p-6 leading-8 text-ink/80 whitespace-pre-line">{desc}</p></Sec>}
+      {desc && <Sec title={t(L, "description")} className={p.specs.length ? "" : "lg:col-span-2"}><p className="p-4 md:p-6 leading-8 text-ink/80 whitespace-pre-line"><Linkify text={desc} /></p></Sec>}
       {p.specs.length > 0 && <Sec title={t(L, "specs")} className={desc ? "" : "lg:col-span-2"}><table className="w-full text-sm md:text-base"><tbody>{p.specs.map((x, i) => <tr key={x.id} className={i % 2 ? "" : "bg-soft"}><th scope="row" className="p-3 md:px-5 text-steel font-normal text-start w-[42%]">{pick(L, x.nameAr, x.nameEn)}</th><td className="p-3 md:px-5 font-bold" dir="ltr" style={{ textAlign: "start" }}>{x.value}</td></tr>)}</tbody></table></Sec>}
       {p.features.length > 6 && <Sec title={t(L, "features")} className="lg:col-span-2"><ul className="grid md:grid-cols-2">{p.features.map((f) => <li key={f.id} className="flex gap-2.5 p-3 md:px-5 border-b border-line text-sm"><span className="mt-0.5 bg-lime rounded-full w-5 h-5 grid place-items-center shrink-0"><Icon n="check" s={12} stroke={3} /></span>{pick(L, f.textAr, f.textEn)}</li>)}</ul></Sec>}
       {p.videoUrl && <Sec title={t(L, "video")}>{/\.(mp4|webm)(\?|$)/i.test(p.videoUrl) ? <video src={p.videoUrl} controls playsInline preload="metadata" className="w-full bg-ink aspect-video" /> : <a href={p.videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 font-bold hover:bg-soft"><span className="w-11 h-11 rounded-full bg-lime grid place-items-center"><Icon n="play" s={18} /></span>{t(L, "watchVideo")}<Icon n="external" s={16} className="ms-auto text-steel" /></a>}</Sec>}
@@ -68,6 +71,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
     {related.length > 0 && <section className="mt-12 md:mt-16 space-y-4 md:space-y-6"><SectionHead title={t(L, "related")} href={`/categories/${cat.slug}`} more={t(L, "viewAll")} />
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">{related.map((r) => <ProductCard key={r.id} p={r} s={s} ws={ws} />)}</div></section>}
+
+    <div className="mt-12 md:mt-16"><RecentlyViewed track={p.id} exclude={p.id} cur={en ? s["currency.en"] || "SAR" : s["currency.ar"]} hidden={en ? "Contact us" : s["price.hiddenLabel.ar"]} /></div>
 
     {/* شريط الشراء الثابت (جوال/تابلت) */}
     <div className="h-24 md:hidden" aria-hidden />

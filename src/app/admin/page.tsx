@@ -24,7 +24,7 @@ export default async function Dash() {
   const series = Array.from({ length: DAYS }, (_, i) => { const d = new Date(from.getTime() + i * 864e5); return { d, n: recent.filter((o) => o.createdAt >= d && o.createdAt < new Date(d.getTime() + 864e5)).length }; });
   const maxDay = Math.max(1, ...series.map((x) => x.n)), sum14 = series.reduce((a, b) => a + b.n, 0), ticks = [maxDay, Math.round(maxDay / 2), 0].filter((v, i, a) => a.indexOf(v) === i);
   const hour = now.getHours(), hello = hour < 12 ? "صباح الخير" : "مساء الخير";
-  const quick: [string, string, IconName, string][] = [["/admin/products/new", "منتج جديد", "box", "btn-lime"], ["/admin/banners", "إعلان", "megaphone", "btn-ghost"], ["/admin/codes", "كود جملة", "key", "btn-ghost"], ["/admin/qr", "رمز QR", "qr", "btn-ghost"]];
+  const quick: [string, string, IconName, string][] = [["/admin/products/new", "منتج جديد", "box", "btn-lime"], ["/admin/banners", "إعلان", "megaphone", "btn-ghost"], ["/admin/codes", "كود جملة", "key", "btn-ghost"], ["/admin/qr", "رمز QR", "qr", "btn-ghost"], ["/catalog", "قائمة الأسعار PDF", "doc", "btn-ghost"]];
   const alerts: [boolean, string, string][] = [[oNew > 0, `${oNew} طلب جديد بانتظار المتابعة`, "/admin/orders?status=NEW"], [outStock > 0, `${outStock} منتج ظاهر لكنه غير متوفر`, "/admin/products?st=out"], [noWs > 0 && codes > 0, `${noWs} منتج بلا سعر جملة (عملاء الجملة يرون السعر العادي)`, "/admin/products?st=nows"], [pAll === 0, "لم تضف أي منتج بعد", "/admin/products/new"]];
   return (<div className="space-y-5 md:space-y-6">
     <div className="flex flex-wrap items-end justify-between gap-3">

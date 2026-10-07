@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { z } from "zod";
 import { db } from "@/lib/db";
+import { fillPairs } from "@/lib/translate";
 const txt = z.string().max(160).nullish();
 const B = z.object({ id: z.number().optional(), type: z.enum(["IMAGE", "IMAGE_TEXT"]), image: z.string().min(1, "ارفع صورة الإعلان"),
   titleAr: txt, titleEn: txt, subtitleAr: txt, subtitleEn: txt, buttonAr: z.string().max(30).nullish(), buttonEn: z.string().max(30).nullish(),
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
       await db.$transaction(all.map((b, k) => db.banner.update({ where: { id: b.id }, data: { sortOrder: k } })));
       return NextResponse.json({ ok: true });
     }
-    const { id, startsAt, endsAt, ...d } = B.parse(body), data = { ...d, startsAt: date(startsAt), endsAt: date(endsAt) };
+    const parsed = B.parse(body), { id, startsAt, endsAt, ...d } = parsed.type === "IMAGE_TEXT" ? await fillPairs(parsed, [["titleAr", "titleEn"], ["subtitleAr", "subtitleEn"], ["buttonAr", "buttonEn"]]) : parsed, data = { ...d, startsAt: date(startsAt), endsAt: date(endsAt) };
     if (id) return NextResponse.json(await db.banner.update({ where: { id }, data }));
     const max = await db.banner.aggregate({ _max: { sortOrder: true } });
     return NextResponse.json(await db.banner.create({ data: { ...data, sortOrder: (max._max.sortOrder ?? -1) + 1 } }));

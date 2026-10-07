@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { getLang, pick, t } from "@/lib/lang";
 import ProductBrowser, { type BrowseParams } from "@/components/ProductBrowser";
 import { Crumbs } from "@/components/ui";
+import Linkify from "@/components/Linkify";
 export const dynamic = "force-dynamic";
 const find = (slug: string) => db.category.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true } });
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
@@ -23,7 +24,7 @@ export default async function CategoryPage({ params, searchParams }: { params: {
         <i className="block w-12 h-1.5 bg-accent rounded mb-3" />
         <h1 className="text-2xl md:text-4xl">{name}</h1>
         {sub && <p className="text-lime font-bold mt-1 md:text-lg">{sub}</p>}
-        {cat.descriptionAr && !en && <p className="text-sm md:text-base text-white/80 mt-2 max-w-2xl leading-7">{cat.descriptionAr}</p>}
+        {cat.descriptionAr && !en && <p className="text-sm md:text-base text-white/80 mt-2 max-w-2xl leading-7 [&_a]:text-white"><Linkify text={cat.descriptionAr} /></p>}
       </div>
     </section>
     <ProductBrowser sp={searchParams} category={{ id: cat.id, slug: cat.slug }} />

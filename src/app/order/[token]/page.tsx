@@ -7,6 +7,7 @@ import { getLang } from "@/lib/lang";
 import { buildWhatsAppMessage, whatsappUrl } from "@/lib/whatsapp";
 import PrintButton from "@/components/PrintButton";
 import Icon from "@/components/Icon";
+import Linkify from "@/components/Linkify";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { robots: { index: false } };
 // الرابط يعتمد token عشوائي (لا يمكن تخمينه) وليس رقم الطلب. رسالة واتساب للشركة تبقى بالعربية.
@@ -39,7 +40,7 @@ export default async function OrderPage({ params }: { params: { token: string } 
             <tbody>{o.items.map((x) => <tr key={x.id} className="border-b border-line"><td className="py-3 font-bold" dir="ltr" style={{ textAlign: "start" }}>{x.nameSnapshot}</td><td className="text-center">{x.quantity}</td><td className="text-end text-steel">{x.unitPrice == null ? "—" : money(Number(x.unitPrice))}</td><td className="text-end font-bold">{x.unitPrice == null ? hidden : money(Number(x.unitPrice) * x.quantity)}</td></tr>)}</tbody>
           </table></div>
           <div className="flex justify-between items-end gap-4 rounded-2xl bg-ink text-white p-4 md:p-5"><span className="font-bold">{en ? "Total" : "الإجمالي"}</span><div className="text-end"><b className="font-display text-2xl md:text-3xl text-lime">{money(Number(o.total))}</b>{o.hasUnpriced && <small className="block text-white/70 text-xs">{en ? "+ unpriced items" : "+ منتجات بسعر غير محدد"}</small>}</div></div>
-          {o.notes && <p className="text-sm"><b>{en ? "Notes" : "ملاحظات"}:</b> {o.notes}</p>}
+          {o.notes && <p className="text-sm leading-7"><b>{en ? "Notes" : "ملاحظات"}:</b> <Linkify text={o.notes} wa={false} /></p>}
           <div className="flex flex-col sm:flex-row gap-2 no-print"><a href={wa} className="btn btn-lg btn-lime flex-1"><Icon n="whatsapp" s={20} />{en ? "Send order via WhatsApp" : "أرسل الطلب عبر واتساب"}</a><PrintButton /></div>
           <p className="text-xs text-steel no-print flex items-start gap-2"><Icon n="info" s={16} className="mt-0.5" />{en ? "The order is not sent to the company until you press the WhatsApp button and send the message." : "لم يُرسل الطلب للشركة حتى تضغط زر واتساب وترسل الرسالة."}</p>
           <Link href="/" className="no-print inline-flex items-center gap-1 text-sm font-bold text-steel hover:text-ink"><Icon n="home" s={16} />{en ? "Back to catalog" : "العودة للكتالوج"}</Link>

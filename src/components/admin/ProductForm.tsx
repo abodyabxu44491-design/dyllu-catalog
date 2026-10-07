@@ -11,10 +11,24 @@ import Switch from "./Switch";
 const blank = { nameAr: "", nameEn: "", sku: "", descriptionAr: "", descriptionEn: "", price: null, wholesalePrice: null, videoUrl: "", showPrice: true, isActive: true, allowCart: true, inStock: true, isFeatured: false, sortOrder: 0, images: [], specs: [], features: [], documents: [] };
 const IMG = "image/jpeg,image/png,image/webp,image/gif";
 // نموذج المنتج: كمبيوتر = عمودان (المحتوى | النشر والأسعار والتصنيف) · جوال = عمود واحد. شريط حفظ ثابت وتنبيه عند ترك تعديلات غير محفوظة
-export default function ProductForm({ initial, categories }: { initial: any; categories: { id: number; nameAr: string }[] }) {
+export default function ProductForm({ initial, categories, ai = false }: { initial: any; categories: { id: number; nameAr: string }[]; ai?: boolean }) {
   const r = useRouter(), start = useRef(JSON.stringify(initial ?? { ...blank, categoryId: categories[0]?.id }));
   const [p, setP] = useState<any>(() => JSON.parse(start.current));
-  const [err, setErr] = useState(""), [busy, setBusy] = useState(false), [ups, setUps] = useState(0), [drag, setDrag] = useState(false);
+  const [err, setErr] = useState(""), [busy, setBusy] = useState(false), [ups, setUps] = useState(0), [drag, setDrag] = useState(false), [tr, setTr] = useState(false);
+  // ترجمة تلقائية للحقول الفارغة (الاسم، الوصف، المميزات، أسماء المواصفات) في الاتجاهين، ليراجعها المدير قبل الحفظ
+  async function autoTranslate() {
+    const toEn: Record<string, string> = {}, toAr: Record<string, string> = {}, add = (a: string, e: string, ka: string, ke: string) => { if (a?.trim() && !e?.trim()) toEn[ke] = a; else if (e?.trim() && !a?.trim()) toAr[ka] = e; };
+    add(p.nameAr, p.nameEn, "nameAr", "nameEn"); add(p.descriptionAr ?? "", p.descriptionEn ?? "", "descriptionAr", "descriptionEn");
+    p.features.forEach((f: any, i: number) => add(f.textAr, f.textEn, `f${i}.textAr`, `f${i}.textEn`)); p.specs.forEach((x: any, i: number) => add(x.nameAr, x.nameEn, `s${i}.nameAr`, `s${i}.nameEn`));
+    if (!Object.keys(toEn).length && !Object.keys(toAr).length) return toast("كل الحقول مترجمة بالفعل");
+    setTr(true); const x = await post("/api/admin/translate", { toEn, toAr }); setTr(false);
+    if (!x.ok) return toast(x.data.error || "تعذرت الترجمة", { tone: "err" });
+    const t = x.data as Record<string, string>;
+    setP((o: any) => ({ ...o, ...Object.fromEntries(["nameAr", "nameEn", "descriptionAr", "descriptionEn"].filter((k) => t[k]).map((k) => [k, t[k]])),
+      features: o.features.map((f: any, i: number) => ({ ...f, textAr: t[`f${i}.textAr`] ?? f.textAr, textEn: t[`f${i}.textEn`] ?? f.textEn })),
+      specs: o.specs.map((s: any, i: number) => ({ ...s, nameAr: t[`s${i}.nameAr`] ?? s.nameAr, nameEn: t[`s${i}.nameEn`] ?? s.nameEn })) }));
+    toast(`تمت ترجمة ${Object.keys(t).length} حقل، راجعها ثم احفظ`);
+  }
   const dirty = JSON.stringify(p) !== start.current;
   useEffect(() => { const f = (e: BeforeUnloadEvent) => { if (dirty) { e.preventDefault(); e.returnValue = ""; } }; addEventListener("beforeunload", f); return () => removeEventListener("beforeunload", f); }, [dirty]);
   const set = (k: string, v: any) => setP((o: any) => ({ ...o, [k]: v }));
@@ -29,12 +43,16 @@ export default function ProductForm({ initial, categories }: { initial: any; cat
   async function save() {
     setErr("");
     if (!categories.length) return setErr("أضف تصنيفًا أولًا من صفحة التصنيفات ثم أضف المنتج");
-    if (!p.nameAr.trim() || !p.nameEn.trim()) return setErr("اكتب اسم المنتج بالعربية والإنجليزية");
+    if (!p.nameAr.trim() && !p.nameEn.trim()) return setErr("اكتب اسم المنتج");
     setBusy(true);
     const x = await post("/api/admin/products", { ...p, categoryId: Number(p.categoryId), price: num(p.price), wholesalePrice: num(p.wholesalePrice), sortOrder: Number(p.sortOrder) || 0 }); setBusy(false);
     if (!x.ok) return setErr(x.data.error?.includes("[") ? "تحقق من الاسم العربي والإنجليزي والتصنيف" : x.data.error);
-    start.current = JSON.stringify(p); toast("تم حفظ المنتج");
-    if (x.data.id && !p.id) { start.current = ""; r.replace(`/admin/products/${x.data.id}`); } else r.refresh();
+    toast("تم حفظ المنتج");
+    if (x.data.id && !p.id) { start.current = ""; r.replace(`/admin/products/${x.data.id}`); return; }
+    // السيرفر قد يضيف الترجمات الناقصة؛ نعرضها مباشرة في النموذج
+    const filled = { ...p, nameAr: x.data.nameAr ?? p.nameAr, nameEn: x.data.nameEn ?? p.nameEn, descriptionAr: x.data.descriptionAr ?? p.descriptionAr, descriptionEn: x.data.descriptionEn ?? p.descriptionEn,
+      features: x.data.features ?? p.features, specs: x.data.specs ?? p.specs };
+    start.current = JSON.stringify(filled); setP(filled); r.refresh();
   }
   async function remove() { if (!confirm("حذف المنتج نهائيًا؟ لا يمكن التراجع.")) return; const x = await fetch(`/api/admin/products?id=${p.id}`, { method: "DELETE" }); if (x.ok) { start.current = JSON.stringify(p); toast("تم حذف المنتج"); r.push("/admin/products"); } else setErr((await x.json()).error); }
   const rowBtn = "btn-icon w-10 h-10 text-steel hover:text-accent hover:bg-accent/5 shrink-0";
@@ -42,10 +60,13 @@ export default function ProductForm({ initial, categories }: { initial: any; cat
     <PageHead title={p.id ? "تعديل منتج" : "إضافة منتج"} back={["/admin/products", "المنتجات"]}>{p.id && p.slug && <a href={`/products/${p.slug}`} target="_blank" className="btn btn-md btn-ghost"><Icon n="external" s={18} />عرض في المتجر</a>}</PageHead>
     <div className="grid lg:grid-cols-[1fr_320px] gap-4 md:gap-5 items-start">
       <div className="space-y-4 md:space-y-5 min-w-0">
-        <Card title="البيانات الأساسية"><div className="space-y-3">
-          <div className="grid sm:grid-cols-2 gap-3"><Field label="الاسم بالعربية *"><input className="field" value={p.nameAr} onChange={(e) => set("nameAr", e.target.value)} /></Field><Field label="Name (English) *"><input className="field" dir="ltr" value={p.nameEn} onChange={(e) => set("nameEn", e.target.value)} /></Field></div>
+        <Card title="البيانات الأساسية" desc={ai ? "اكتب بالعربية فقط؛ الحقول الإنجليزية الفارغة تُترجم تلقائيًا عند الحفظ." : undefined}
+          action={<button type="button" onClick={autoTranslate} disabled={!ai || tr} title={ai ? "" : "أضف ANTHROPIC_API_KEY في .env لتفعيل الترجمة"} className="btn btn-sm btn-ghost"><Icon n="globe" s={16} />{tr ? "جارٍ الترجمة..." : "ترجمة تلقائية"}</button>}>
+          {!ai && <p className="mb-3 flex items-start gap-2 rounded-xl bg-soft p-3 text-xs text-steel leading-5"><Icon n="info" s={16} className="mt-0.5" />الترجمة التلقائية غير مفعّلة. أضف <code dir="ltr">ANTHROPIC_API_KEY</code> في ملف <code>.env</code> لتفعيلها. الحقول الإنجليزية اختيارية، وإن تُركت فارغة يظهر النص العربي.</p>}
+          <div className="space-y-3">
+          <div className="grid sm:grid-cols-2 gap-3"><Field label="الاسم بالعربية *"><input className="field" value={p.nameAr} onChange={(e) => set("nameAr", e.target.value)} /></Field><Field label={`Name (English)${ai ? " · تلقائي" : ""}`}><input className="field" dir="ltr" placeholder={ai ? "يُترجم تلقائيًا إن تُرك فارغًا" : ""} value={p.nameEn} onChange={(e) => set("nameEn", e.target.value)} /></Field></div>
           <Field label="الوصف (عربي)"><textarea rows={4} className="field" value={p.descriptionAr ?? ""} onChange={(e) => set("descriptionAr", e.target.value)} /></Field>
-          <Field label="Description (English)"><textarea rows={4} dir="ltr" className="field" value={p.descriptionEn ?? ""} onChange={(e) => set("descriptionEn", e.target.value)} /></Field></div></Card>
+          <Field label={`Description (English)${ai ? " · تلقائي" : ""}`}><textarea rows={4} dir="ltr" className="field" placeholder={ai ? "يُترجم تلقائيًا إن تُرك فارغًا" : ""} value={p.descriptionEn ?? ""} onChange={(e) => set("descriptionEn", e.target.value)} /></Field></div></Card>
 
         <Card title="الصور" desc="الصورة الأولى هي الرئيسية في البطاقات. اسحب الصور هنا أو اضغط للرفع (JPG / PNG / WEBP حتى 8MB).">
           <div className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-5 gap-3">
@@ -67,12 +88,12 @@ export default function ProductForm({ initial, categories }: { initial: any; cat
 
         <Card title="المميزات" desc="نقاط قصيرة تظهر بجانب السعر في صفحة المنتج." action={<button className="btn btn-sm btn-ghost" onClick={() => set("features", [...p.features, { textAr: "", textEn: "" }])}><Icon n="plus" s={16} />ميزة</button>}>
           {p.features.length === 0 ? <p className="text-sm text-steel">لا توجد مميزات. اضغط «ميزة» للإضافة.</p> : <div className="space-y-2">{p.features.map((x: any, n: number) => (<div key={n} className="flex gap-2 items-start">
-            <div className="flex-1 grid sm:grid-cols-2 gap-2"><input className="field h-11" placeholder="الميزة بالعربية" value={x.textAr} onChange={(e) => setList("features", n, "textAr", e.target.value)} /><input className="field h-11" dir="ltr" placeholder="Feature in English" value={x.textEn} onChange={(e) => setList("features", n, "textEn", e.target.value)} /></div>
+            <div className="flex-1 grid sm:grid-cols-2 gap-2"><input className="field h-11" placeholder="الميزة بالعربية" value={x.textAr} onChange={(e) => setList("features", n, "textAr", e.target.value)} /><input className="field h-11" dir="ltr" placeholder={ai ? "English (تلقائي)" : "English (اختياري)"} value={x.textEn} onChange={(e) => setList("features", n, "textEn", e.target.value)} /></div>
             <button aria-label="حذف" onClick={() => del("features", n)} className={rowBtn}><Icon n="trash" s={18} /></button></div>))}</div>}</Card>
 
         <Card title="المواصفات" desc="أي مواصفة تناسب المنتج: القوة، السرعة، السعة، الوزن..." action={<button className="btn btn-sm btn-ghost" onClick={() => set("specs", [...p.specs, { nameAr: "", nameEn: "", value: "" }])}><Icon n="plus" s={16} />مواصفة</button>}>
           {p.specs.length === 0 ? <p className="text-sm text-steel">لا توجد مواصفات. اضغط «مواصفة» للإضافة.</p> : <div className="space-y-2">{p.specs.map((x: any, n: number) => (<div key={n} className="flex gap-2 items-start rounded-xl sm:rounded-none bg-soft sm:bg-transparent p-2 sm:p-0">
-            <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-2"><input className="field h-11" placeholder="الاسم (عربي)" value={x.nameAr} onChange={(e) => setList("specs", n, "nameAr", e.target.value)} /><input className="field h-11" dir="ltr" placeholder="Name" value={x.nameEn} onChange={(e) => setList("specs", n, "nameEn", e.target.value)} /><input className="field h-11 col-span-2 sm:col-span-1" dir="ltr" placeholder="Value: 20V" value={x.value} onChange={(e) => setList("specs", n, "value", e.target.value)} /></div>
+            <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 gap-2"><input className="field h-11" placeholder="الاسم (عربي)" value={x.nameAr} onChange={(e) => setList("specs", n, "nameAr", e.target.value)} /><input className="field h-11" dir="ltr" placeholder={ai ? "Name (تلقائي)" : "Name"} value={x.nameEn} onChange={(e) => setList("specs", n, "nameEn", e.target.value)} /><input className="field h-11 col-span-2 sm:col-span-1" dir="ltr" placeholder="Value: 20V" value={x.value} onChange={(e) => setList("specs", n, "value", e.target.value)} /></div>
             <div className="flex flex-col sm:flex-row"><button aria-label="أعلى" onClick={() => move("specs", n, -1)} className="btn-icon w-9 h-10 text-steel hover:text-ink"><Icon n="arrowUp" s={16} /></button><button aria-label="حذف" onClick={() => del("specs", n)} className={rowBtn}><Icon n="trash" s={18} /></button></div></div>))}</div>}</Card>
 
         <Card title="ملفات PDF" desc="كتالوج أو دليل استخدام يظهر للعميل للتحميل.">
@@ -102,7 +123,7 @@ export default function ProductForm({ initial, categories }: { initial: any; cat
       <div className="card shadow-lift p-3 flex items-center gap-3">
         <span className={`hidden sm:flex items-center gap-2 text-sm font-bold flex-1 ${err ? "text-accent" : dirty ? "text-accent" : "text-steel"}`}><Icon n={err ? "alert" : dirty ? "info" : "check"} s={18} />{err || (dirty ? "لديك تعديلات غير محفوظة" : "كل التعديلات محفوظة")}</span>
         {err && <span className="sm:hidden text-accent text-xs font-bold flex-1">{err}</span>}
-        <button disabled={busy || ups > 0} onClick={save} className="btn btn-lg btn-lime flex-1 sm:flex-none sm:min-w-[180px]">{busy ? "جارٍ الحفظ..." : <><Icon n="check" s={20} />حفظ المنتج</>}</button>
+        <button disabled={busy || ups > 0} onClick={save} className="btn btn-lg btn-lime flex-1 sm:flex-none sm:min-w-[180px]">{busy ? (ai ? "جارٍ الحفظ والترجمة..." : "جارٍ الحفظ...") : <><Icon n="check" s={20} />حفظ المنتج</>}</button>
       </div></div>
   </div>);
 }
