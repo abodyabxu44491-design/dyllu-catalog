@@ -1,43 +1,44 @@
 import Anthropic from "@anthropic-ai/sdk";
-// ترجمة تلقائية بين العربية والإنجليزية عبر Claude. تعمل فقط إذا ضُبط ANTHROPIC_API_KEY في .env،
-// وأي فشل (لا يوجد مفتاح، انقطاع، رفض) يرجع بدون ترجمة ولا يمنع الحفظ أبدًا.
-export const canTranslate = () => !!(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
-const SYSTEM = `You translate catalog text for DYLLU, a Saudi company selling professional power tools and equipment.
-- Translate each value into the requested language. Arabic output: clear Modern Standard Arabic as used in Saudi retail. English output: concise, natural retail English.
+import { arToEnMany, hasArabic, titleCase } from "./translateCore.mjs";
+// الإدارة تكتب بالعربية فقط، والنسخة الإنجليزية تُولَّد تلقائيًا عند الحفظ (بدون أي إعداد أو مفتاح).
+// المحرك: ترجمة مجانية (lib/translateCore.mjs). إن ضُبط ANTHROPIC_API_KEY تُستخدم Claude لجودة أعلى، ويُرجع للمجاني عند أي فشل.
+// أي فشل لا يمنع الحفظ أبدًا: تبقى الإنجليزية السابقة، وإن لم توجد يظهر النص العربي للزائر.
+const hasClaude = () => !!(process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN);
+const SYSTEM = `You translate Arabic catalog text into English for DYLLU, a Saudi company selling professional power tools and equipment.
+- Concise, natural retail English. Product and category names in Title Case, short like a catalog title.
 - Keep model numbers, SKUs, units and measurements (20V, 4.0Ah, 115mm, RPM, kg), and brand names (DYLLU) exactly as written.
-- Product names stay short like a catalog title; do not add words that are not in the source.
 - Return every key you receive, with only the translated text as its value.`;
 let client: Anthropic | null = null;
-// texts: { مفتاح: نص } ← نفس المفاتيح مترجمة. المفاتيح الفارغة تُتجاهل
-export async function translate(texts: Record<string, string>, to: "en" | "ar"): Promise<Record<string, string>> {
-  const entries = Object.entries(texts).map(([k, v]) => [k, v.trim()] as const).filter(([, v]) => v);
-  if (!entries.length || !canTranslate()) return {};
-  // مفاتيح آمنة للمخطط (k0, k1, ...) ثم نعيدها لأسمائها الأصلية
-  const ids = entries.map((_, i) => `k${i}`), input = Object.fromEntries(entries.map(([, v], i) => [ids[i], v]));
+async function claude(texts: string[]): Promise<(string | null)[] | null> {
+  if (!hasClaude() || !texts.length) return null;
+  const ids = texts.map((_, i) => `k${i}`);
   try {
     client ??= new Anthropic({ timeout: 45_000, maxRetries: 1 });
     const res = await client.beta.messages.create({
-      model: "claude-opus-5-5",
-      max_tokens: 16000,
-      betas: ["server-side-fallback-2026-07-01"],
-      fallbacks: "default",
+      model: "claude-opus-5-5", max_tokens: 16000, betas: ["server-side-fallback-2026-07-01"], fallbacks: "default",
       output_config: { effort: "low", format: { type: "json_schema", schema: { type: "object", properties: Object.fromEntries(ids.map((id) => [id, { type: "string" }])), required: ids, additionalProperties: false } } },
-      system: SYSTEM,
-      messages: [{ role: "user", content: `Translate into ${to === "en" ? "English" : "Arabic"}:\n${JSON.stringify(input)}` }],
+      system: SYSTEM, messages: [{ role: "user", content: `Translate into English:\n${JSON.stringify(Object.fromEntries(ids.map((id, i) => [id, texts[i]])))}` }],
     });
-    if (res.stop_reason === "refusal" || res.stop_reason === "max_tokens") return {};
+    if (res.stop_reason === "refusal" || res.stop_reason === "max_tokens") return null;
     const text = res.content.find((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")?.text;
     const out = text ? (JSON.parse(text) as Record<string, unknown>) : {};
-    return Object.fromEntries(entries.flatMap(([k], i) => (typeof out[ids[i]] === "string" && (out[ids[i]] as string).trim() ? [[k, (out[ids[i]] as string).trim()]] : [])));
-  } catch (e) {
-    console.error("[translate]", e instanceof Anthropic.APIError ? `${e.status} ${e.message}` : (e as Error).message);
-    return {};
+    return ids.map((id) => (typeof out[id] === "string" && (out[id] as string).trim() ? (out[id] as string).trim() : null));
+  } catch (e) { console.error("[translate]", (e as Error).message); return null; }
+}
+
+// مهمة ترجمة: النص العربي الحالي + (اختياريًا) العربي والإنجليزي المحفوظين سابقًا
+export type Job = { ar?: string | null; prevAr?: string | null; prevEn?: string | null; title?: boolean };
+// يرجع الإنجليزية لكل مهمة: "" إن كان العربي فارغًا، الإنجليزية السابقة إن لم يتغير العربي، وإلا ترجمة جديدة.
+// عند فشل الترجمة: الإنجليزية السابقة إن وُجدت، وإلا "" (فيظهر العربي للزائر الإنجليزي)
+export async function englishFor(jobs: Job[]): Promise<string[]> {
+  const out = jobs.map((j) => { const ar = (j.ar ?? "").trim(); if (!ar) return ""; if (!hasArabic(ar)) return ar; if (j.prevEn?.trim() && (j.prevAr ?? "").trim() === ar) return j.prevEn.trim(); return null; });
+  const need = out.flatMap((v, i) => (v === null ? [i] : []));
+  if (need.length) {
+    const texts = need.map((i) => (jobs[i].ar ?? "").trim());
+    const viaClaude = await claude(texts), free = viaClaude && viaClaude.every(Boolean) ? null : await arToEnMany(texts);
+    need.forEach((i, k) => { const t = viaClaude?.[k] ?? free?.[k] ?? null; out[i] = t ? (jobs[i].title ? titleCase(t) : t) : (jobs[i].prevEn ?? "").trim(); });
   }
+  return out as string[];
 }
-// يملأ الحقل الفارغ من كل زوج (عربي/إنجليزي) بترجمة الحقل الآخر. pairs: [مفتاح العربي، مفتاح الإنجليزي]
-export async function fillPairs<T extends Record<string, unknown>>(obj: T, pairs: [keyof T & string, keyof T & string][]): Promise<T> {
-  const toEn: Record<string, string> = {}, toAr: Record<string, string> = {}, s = (v: unknown) => (typeof v === "string" ? v.trim() : "");
-  for (const [ar, en] of pairs) { if (s(obj[ar]) && !s(obj[en])) toEn[en] = s(obj[ar]); else if (s(obj[en]) && !s(obj[ar])) toAr[ar] = s(obj[en]); }
-  const [a, b] = await Promise.all([translate(toEn, "en"), translate(toAr, "ar")]);
-  return { ...obj, ...a, ...b };
-}
+// ترجمة نص واحد (للنصوص الحرة)
+export const toEnglish = async (ar: string, title = false) => (await englishFor([{ ar, title }]))[0];

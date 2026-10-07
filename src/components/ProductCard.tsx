@@ -6,7 +6,7 @@ import { getLang, pick, t } from "@/lib/lang";
 type P = { id: number; slug: string; sku?: string | null; nameAr: string; nameEn: string; price: unknown; wholesalePrice?: unknown; showPrice: boolean; allowCart: boolean; inStock?: boolean; isFeatured?: boolean; images: { url: string }[] };
 // بطاقة منتج موحّدة: صورة مربعة، شارات (جملة / غير متوفر)، الاسم باللغتين، السعر، وزر إضافة سريع
 export default function ProductCard({ p, s, ws = false }: { p: P; s: Record<string, string>; ws?: boolean }) {
-  const L = getLang(), en = L === "en", name = pick(L, p.nameAr, p.nameEn), other = (en ? p.nameAr : p.nameEn) === name ? "" : en ? p.nameAr : p.nameEn, priced = priceOf(p, ws) != null;
+  const L = getLang(), en = L === "en", name = pick(L, p.nameAr, p.nameEn), other = en || p.nameEn === name ? "" : p.nameEn, priced = priceOf(p, ws) != null;
   return (
     <article className="group relative flex flex-col bg-white rounded-2xl border border-line overflow-hidden transition hover:shadow-lift hover:-translate-y-0.5 hover:border-transparent">
       <Link href={`/products/${p.slug}`} className="flex flex-col flex-1" aria-label={name}>

@@ -15,7 +15,8 @@
   "setup": "npm run check && prisma generate && prisma db push && tsx prisma/seed.ts",
   "start:only": "next start",
   "build:only": "next build",
-  "catalog:import": "node scripts/import-catalog.mjs"
+  "catalog:import": "node scripts/import-catalog.mjs",
+  "english:backfill": "node scripts/backfill-english.mjs"
  },
  "dependencies": {
   "@anthropic-ai/sdk": "^0.131.0",

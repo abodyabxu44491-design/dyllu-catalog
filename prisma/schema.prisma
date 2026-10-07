@@ -21,6 +21,7 @@ model Category {
   nameAr String
   nameEn String
   descriptionAr String?
+  descriptionEn String? // يُترجم تلقائيًا من العربي
   subtitleAr String?
   subtitleEn String?
   image String?
@@ -73,6 +74,7 @@ model ProductSpec {
   nameAr String
   nameEn String
   value String
+  valueEn String? // ترجمة القيمة إن كانت عربية
   sortOrder Int @default(0)
 }
 model ProductFeature {
@@ -88,6 +90,7 @@ model ProductDocument {
   productId Int
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   title String
+  titleEn String?
   url String
 }
 model Customer {

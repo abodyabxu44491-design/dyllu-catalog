@@ -2,6 +2,7 @@
 // 1) يحدّث جداول قاعدة البيانات حسب prisma/schema.prisma (آمن: يرفض أي تغيير يحذف بيانات)
 // 2) ينشئ حساب الأدمن من ADMIN_EMAIL و ADMIN_PASSWORD إن وُجدا، أو يحدّث كلمة مروره إن تغيّرت
 // 3) يضيف المنتجات الجاهزة الجديدة من prisma/catalog (مرة واحدة، بدون تعديل الموجود)
+// 4) يترجم النصوص العربية التي ليس لها نسخة إنجليزية بعد
 // أي فشل هنا يُطبع بوضوح في سجل Render ولا يمنع تشغيل الموقع.
 // --db-only: تحديث الجداول فقط (يُستدعى قبل البناء npm run build حتى تجد الصفحات جداولها في أول نشر)
 import { execSync } from "node:child_process";
@@ -48,8 +49,11 @@ async function admin(db) {
 
 const { PrismaClient } = await import("@prisma/client");
 const { importCatalog } = await import("./import-catalog.mjs");
+const { backfillEnglish } = await import("./backfill-english.mjs");
 const db = new PrismaClient();
 try { await admin(db); } catch (e) { log(`✗ تعذر تجهيز حساب الأدمن: ${e.message}`); }
 // 3) منتجات جاهزة جديدة (prisma/catalog): تُضاف مرة واحدة فقط
 try { await importCatalog(db, log); } catch (e) { log(`✗ تعذر استيراد المنتجات الجاهزة: ${e.message}`); }
+// 4) النسخة الإنجليزية الناقصة تُترجم تلقائيًا من العربي
+try { await backfillEnglish(db, log); } catch (e) { log(`✗ تعذرت ترجمة النصوص الناقصة: ${e.message}`); }
 await db.$disconnect();

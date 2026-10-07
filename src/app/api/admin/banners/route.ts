@@ -3,11 +3,11 @@ import { errMsg } from "@/lib/apiError";
 import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { z } from "zod";
 import { db } from "@/lib/db";
-import { fillPairs } from "@/lib/translate";
+import { englishFor } from "@/lib/translate";
 const txt = z.string().max(160).nullish();
 const B = z.object({ id: z.number().optional(), type: z.enum(["IMAGE", "IMAGE_TEXT", "PRODUCT"]), image: z.string().default(""),
   productId: z.number().int().nullish(), template: z.enum(["spotlight", "lime", "clean", "offer", "split"]).default("spotlight"), showPrice: z.boolean().default(true),
-  titleAr: txt, titleEn: txt, subtitleAr: txt, subtitleEn: txt, buttonAr: z.string().max(30).nullish(), buttonEn: z.string().max(30).nullish(), badgeAr: z.string().max(30).nullish(), badgeEn: z.string().max(30).nullish(),
+  titleAr: txt, subtitleAr: txt, buttonAr: z.string().max(30).nullish(), badgeAr: z.string().max(30).nullish(),
   linkUrl: z.string().nullish().refine((v) => !v || v.startsWith("/") || v.startsWith("https://"), "الرابط يبدأ بـ / أو https://"),
   seconds: z.number().int().min(2).max(30), startsAt: z.string().nullish(), endsAt: z.string().nullish(), isActive: z.boolean() })
   .superRefine((b, ctx) => {
@@ -29,9 +29,12 @@ export async function POST(req: Request) {
     }
     const r = B.safeParse(body);
     if (!r.success) return NextResponse.json({ error: r.error.issues[0]?.message ?? "تحقق من بيانات الإعلان" }, { status: 400 });
-    // إعلان المنتج يفتح صفحة المنتج دائمًا (الرابط يُحسب وقت العرض)، والنصوص الإنجليزية الفارغة تُترجم تلقائيًا
+    // إعلان المنتج يفتح صفحة المنتج دائمًا (الرابط يُحسب وقت العرض)، والإنجليزية تُولَّد من العربي تلقائيًا
     const parsed = { ...r.data, ...(r.data.type === "PRODUCT" ? { linkUrl: null } : { productId: null }) };
-    const { id, startsAt, endsAt, ...d } = parsed.type === "IMAGE" ? parsed : await fillPairs(parsed, [["titleAr", "titleEn"], ["subtitleAr", "subtitleEn"], ["buttonAr", "buttonEn"], ["badgeAr", "badgeEn"]]), data = { ...d, startsAt: date(startsAt), endsAt: date(endsAt) };
+    const prev = parsed.id ? await db.banner.findUnique({ where: { id: parsed.id } }) : null;
+    const keys = ["title", "subtitle", "button", "badge"] as const;
+    const en = await englishFor(keys.map((k) => ({ ar: parsed[`${k}Ar`], prevAr: prev?.[`${k}Ar`], prevEn: prev?.[`${k}En`] })));
+    const { id, startsAt, endsAt, ...d } = { ...parsed, ...Object.fromEntries(keys.map((k, i) => [`${k}En`, en[i] || null])) }, data = { ...d, startsAt: date(startsAt), endsAt: date(endsAt) };
     if (id) return NextResponse.json(await db.banner.update({ where: { id }, data }));
     const max = await db.banner.aggregate({ _max: { sortOrder: true } });
     return NextResponse.json(await db.banner.create({ data: { ...data, sortOrder: (max._max.sortOrder ?? -1) + 1 } }));
