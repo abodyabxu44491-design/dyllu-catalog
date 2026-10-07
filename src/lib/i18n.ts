@@ -18,6 +18,7 @@ const T = {
 } as const;
 export type TKey = keyof typeof T;
 export const t = (l: Lang, k: TKey) => T[k][l === "en" ? 1 : 0];
-export const pick = (l: Lang, ar?: string | null, en?: string | null) => (l === "en" && en ? en : ar ?? "");
+// نص باللغة المطلوبة، وإن كان فارغًا فباللغة الأخرى (منتج اسمه بالإنجليزية فقط يظهر للزائر العربي بدل أن يبقى بلا اسم)
+export const pick = (l: Lang, ar?: string | null, en?: string | null) => (l === "en" ? en || ar : ar || en) || "";
 // نص قابل للتعديل من الإعدادات: المفتاح k له نسختان k.ar و k.en (الإنجليزية تعود للعربية إن كانت فارغة)
 export const txt = (s: Record<string, string>, l: Lang, k: string) => (l === "en" ? s[`${k}.en`] || s[`${k}.ar`] : s[`${k}.ar`]) ?? "";

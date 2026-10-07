@@ -20,8 +20,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 // الحقول 16px تمنع التكبير التلقائي على الجوال، ويبقى تكبير الصور بالإصبعين متاحًا
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: brand.lime };
-// يعمل قبل رسم الصفحة: شاشة البداية مرة واحدة لكل جلسة، والتقاط حدث تثبيت التطبيق مبكرًا قبل تحميل React
-const BOOT = `try{var d=document.documentElement;if(sessionStorage.getItem("dy-splash")||matchMedia("(prefers-reduced-motion: reduce)").matches)d.classList.add("no-splash");else sessionStorage.setItem("dy-splash","1")}catch(e){}addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__bip=e;dispatchEvent(new Event("dy-bip"))});addEventListener("appinstalled",function(){window.__bip=null;dispatchEvent(new Event("dy-bip"))});`;
+// يعمل قبل رسم الصفحة: شاشة البداية مرة واحدة لكل جلسة (وليس في صفحات المستندات: الفاتورة وقائمة الأسعار)، والتقاط حدث تثبيت التطبيق مبكرًا قبل تحميل React
+const BOOT = `try{var d=document.documentElement;var pa=location.pathname;if(pa.indexOf("/order/")===0||pa.indexOf("/catalog")===0||sessionStorage.getItem("dy-splash")||matchMedia("(prefers-reduced-motion: reduce)").matches)d.classList.add("no-splash");else sessionStorage.setItem("dy-splash","1")}catch(e){}addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__bip=e;dispatchEvent(new Event("dy-bip"))});addEventListener("appinstalled",function(){window.__bip=null;dispatchEvent(new Event("dy-bip"))});`;
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const l = getLang();
   return (<html lang={l} dir={l === "en" ? "ltr" : "rtl"} suppressHydrationWarning><head><script dangerouslySetInnerHTML={{ __html: BOOT }} /></head>

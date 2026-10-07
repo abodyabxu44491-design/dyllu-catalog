@@ -72,7 +72,7 @@ export default async function OrderPage({ params }: { params: { token: string } 
           </section>
 
           {o.notes && <p className="text-sm leading-7 rounded-2xl border border-line p-4"><b>{en ? "Notes" : "ملاحظات"}:</b> <Linkify text={o.notes} wa={false} /></p>}
-          <div className="flex flex-col sm:flex-row gap-2 no-print"><a href={wa} className="btn btn-lg btn-lime flex-1"><Icon n="whatsapp" s={20} />{en ? "Send order via WhatsApp" : "أرسل الطلب عبر واتساب"}</a><PrintButton /></div>
+          <div className="flex flex-col sm:flex-row gap-2 no-print"><a href={wa} className="btn btn-lg btn-lime sm:flex-1"><Icon n="whatsapp" s={20} />{en ? "Send order via WhatsApp" : "أرسل الطلب عبر واتساب"}</a><PrintButton /></div>
           <p className="text-xs text-steel leading-6 border-t border-line pt-4">{en ? "This is a proforma invoice. The order is confirmed after our team contacts you. Prices may change without notice." : "هذه فاتورة مبدئية، ويُؤكَّد الطلب بعد تواصل فريقنا معك. الأسعار قابلة للتغيير دون إشعار مسبق."}</p>
         </div>
         <div className="bg-lime px-5 md:px-10 py-2 text-end shadow-[0_-3px_0_theme(colors.accent)]"><b className="text-steel text-xs" dir="ltr">DYLLU, Discover your Power</b></div>

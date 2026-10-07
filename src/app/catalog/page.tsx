@@ -22,7 +22,7 @@ export default async function Catalog({ searchParams }: { searchParams: { cat?: 
   return (<main className="min-h-screen bg-soft print:bg-white py-6 print:py-0 px-4 print:px-0">
     <div className="no-print max-w-4xl mx-auto mb-4 flex flex-wrap items-center gap-2">
       <Link href="/" className="btn btn-md btn-ghost"><Icon n="chev" s={16} className="rotate-180 rtl:rotate-0" />{en ? "Back to catalog" : "العودة للمتجر"}</Link>
-      <SortSelect label={en ? "Category" : "التصنيف"} value={searchParams.cat ?? ""} options={[{ v: "", label: en ? "All categories" : "كل التصنيفات", href: href({ cat: undefined }) }, ...all.map((c) => ({ v: c.slug, label: pick(L, c.nameAr, c.nameEn), href: href({ cat: c.slug }) }))]} />
+      <SortSelect icon="grid" label={en ? "Category" : "التصنيف"} value={searchParams.cat ?? ""} options={[{ v: "", label: en ? "All categories" : "كل التصنيفات", href: href({ cat: undefined }) }, ...all.map((c) => ({ v: c.slug, label: pick(L, c.nameAr, c.nameEn), href: href({ cat: c.slug }) }))]} />
       <Link href={href({ img: imgs ? "0" : undefined })} className="btn btn-md btn-ghost"><Icon n={imgs ? "eyeOff" : "image"} s={18} />{imgs ? (en ? "Hide images" : "بدون صور") : (en ? "Show images" : "مع الصور")}</Link>
       <div className="ms-auto w-full sm:w-auto"><PrintButton /></div>
     </div>
