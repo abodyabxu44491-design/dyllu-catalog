@@ -59,6 +59,8 @@
 @keyframes rise { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
 .animate-pop { animation: pop .35s ease-out; }
 .animate-rise { animation: rise .25s ease-out both; }
+.animate-shake { animation: shake .4s ease-out; }
+@keyframes shake { 20%, 60% { transform: translateX(-7px); } 40%, 80% { transform: translateX(7px); } }
 /* النوافذ: خلفية تتلاشى + صندوق يظهر بنعومة من المنتصف */
 .dy-modal-bg { animation: m-fade .2s ease-out both; }
 .dy-modal-box { animation: m-pop .32s cubic-bezier(.2,1.2,.35,1) both; }
