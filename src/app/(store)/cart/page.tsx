@@ -26,7 +26,10 @@ export default function CartPage() {
   const lines = ready ? stored : []; // قبل التحميل على المتصفح نعرض سلة فارغة كي يطابق HTML السيرفر (تجنب خطأ hydration)
   const key = lines.map((l) => l.productId).join(",");
   useEffect(() => setReady(true), []);
-  useEffect(() => { fetch("/api/reps").then((r) => r.json()).then((x) => Array.isArray(x) && setReps(x)).catch(() => {}); }, []);
+  // رابط المندوب الخاص (?rep=ID): مندوبه يظهر أولًا ومميزًا في خطوة اختيار المندوب
+  const [mine, setMine] = useState(0);
+  useEffect(() => { let m = 0; try { m = Number(localStorage.getItem("dyllu-rep")) || 0; } catch { /* لا شيء */ } setMine(m);
+    fetch("/api/reps").then((r) => r.json()).then((x: Rep[]) => Array.isArray(x) && setReps(m ? [...x].sort((a, b) => Number(b.id === m) - Number(a.id === m)) : x)).catch(() => {}); }, []);
   // نحفظ بيانات العميل على جهازه فقط لتسهيل الطلب القادم
   useEffect(() => { try { const v = JSON.parse(localStorage.getItem("dyllu-customer") ?? "null"); if (v) setF((o) => ({ ...o, ...v, notes: "" })); } catch { /* لا شيء */ } }, []);
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [step]);
@@ -106,9 +109,9 @@ export default function CartPage() {
         </div>}
         {step === 3 && <div className="space-y-4">
           <div className="card p-4 sm:p-6"><h2 className="text-lg">{d.pick}</h2><p className="text-sm text-steel mt-1">{d.pickSub}</p></div>
-          <div className="grid sm:grid-cols-2 gap-3">{reps.map((r) => (<button key={r.id} disabled={busy} onClick={() => send(r.id)} className="group card p-4 flex items-center gap-3 text-start transition hover:shadow-lift hover:border-transparent disabled:opacity-60">
+          <div className="grid sm:grid-cols-2 gap-3">{reps.map((r) => (<button key={r.id} disabled={busy} onClick={() => send(r.id)} className={`group card p-4 flex items-center gap-3 text-start transition hover:shadow-lift hover:border-transparent disabled:opacity-60 ${r.id === mine ? "sm:col-span-2 ring-2 ring-lime border-transparent" : ""}`}>
             <span className="w-14 h-14 rounded-full bg-ink text-lime grid place-items-center font-extrabold text-xl overflow-hidden shrink-0">{r.photo ? <img src={r.photo} alt="" className="w-full h-full object-cover" /> : r.name[0]}</span>
-            <span className="flex-1 min-w-0"><b className="block">{r.name}</b><small className="text-steel inline-flex items-center gap-1"><Icon n="pin" s={14} />{r.location}</small></span>
+            <span className="flex-1 min-w-0">{r.id === mine && <small className="inline-block mb-1 rounded-md bg-lime px-2 py-0.5 text-[11px] font-extrabold">{en ? "Your representative" : "مندوبك"}</small>}<b className="block">{r.name}</b><small className="text-steel inline-flex items-center gap-1"><Icon n="pin" s={14} />{r.location}</small></span>
             <span className="btn btn-sm btn-lime group-hover:bg-lime-dark"><Icon n="whatsapp" s={16} />{busy ? "..." : d.via}</span></button>))}</div>
           {err && <p className="text-accent font-bold text-sm">{err}</p>}
           <button onClick={() => setStep(2)} className="btn btn-md btn-ghost"><Icon n="chev" s={16} className="rotate-180 rtl:rotate-0" />{d.back}</button>

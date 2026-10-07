@@ -166,6 +166,19 @@ model Rep {
   sortOrder Int @default(0)
   isActive Boolean @default(true)
   orders Order[]
+  account RepAccount?
+}
+
+// حساب دخول المندوب (/rep): الدخول برقم جواله وكلمة مرور يضعها المدير. منفصل عن Rep حتى لا تُقرأ كلمة المرور مع بيانات المندوب
+model RepAccount {
+  id Int @id @default(autoincrement())
+  repId Int @unique
+  rep Rep @relation(fields: [repId], references: [id], onDelete: Cascade)
+  passwordHash String
+  isActive Boolean @default(true)
+  sessionVersion Int @default(0) // يُرفع عند تغيير كلمة المرور أو الإيقاف لإبطال جلساته
+  lastLoginAt DateTime?
+  createdAt DateTime @default(now())
 }
 
 // إعلانات الرئيسية: سلايدر يقلب كل N ثانية (الافتراضي 5). نوعان: صورة فقط، أو صورة مع نص وزر
