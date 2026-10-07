@@ -28,14 +28,17 @@ export const viewport: Viewport = { width: "device-width", initialScale: 1, view
 // يعمل قبل رسم الصفحة: شاشة البداية مرة واحدة لكل جلسة للعملاء (وليس في لوحة التحكم ولا صفحات المستندات: الفاتورة وقائمة الأسعار)، والتقاط حدث تثبيت التطبيق مبكرًا قبل تحميل React
 const BOOT = `try{var d=document.documentElement;var pa=location.pathname;if(pa.indexOf("/order/")===0||pa.indexOf("/catalog")===0||pa.indexOf("/admin")===0||pa.indexOf("/rep")===0||sessionStorage.getItem("dy-splash")||matchMedia("(prefers-reduced-motion: reduce)").matches)d.classList.add("no-splash");else sessionStorage.setItem("dy-splash","1")}catch(e){}addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__bip=e;dispatchEvent(new Event("dy-bip"))});addEventListener("appinstalled",function(){window.__bip=null;dispatchEvent(new Event("dy-bip"))});`;
 // مواضع حروف الشعار داخل الكبسولة (٪ من عرض الشعار الأصلي 600px): D Y L L U
+// زوايا شرارات لحظة الهبوط
+const SPARKS = [0, 30, 150, 180, 210, 330, 60, 120, 240, 300];
 const SPLASH: [number, number][] = [[12.67, 16.67], [29.33, 16], [46.17, 13.17], [59.33, 11.67], [71, 16.17]];
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const l = getLang();
   return (<html lang={l} dir={l === "en" ? "ltr" : "rtl"} className={`${ar.variable} ${ard.variable}`} suppressHydrationWarning><head><script dangerouslySetInnerHTML={{ __html: BOOT }} /></head>
     <body>
-      {/* شاشة البداية: حروف الشعار تتجمع بحركة قوية وتختفي خلال ~1.5 ثانية (CSS فقط، لا تؤخر تحميل الصفحة) */}
+      {/* شاشة البداية: حروف الشعار تتجمع بحركة قوية وتختفي خلال ~2.8 ثانية (CSS فقط، لا تؤخر تحميل الصفحة) */}
       <div id="splash" aria-hidden="true"><div className="s-stage">
-        <div className="s-logo"><span className="s-wave" /><span className="s-pill" />{SPLASH.map(([l, w], i) => <img key={i} src={`/brand/splash/l${i + 1}.png`} alt="" className="s-l" fetchPriority="high" style={{ ["--i" as string]: i, left: `${l}%`, width: `${w}%` }} />)}</div>
-        <div className="s-tag" dir="ltr"><i />Discover <b>your Power</b></div></div><span className="s-bar" /></div>
+        <div className="s-logo">{SPARKS.map((a, i) => <span key={a} className="s-sp" style={{ ["--a" as string]: `${a}deg` }} />)}<span className="s-wave" />
+          <svg className="s-draw" viewBox="0 0 600 197" preserveAspectRatio="none"><rect x="4" y="4" width="592" height="189" rx="94.5" pathLength={1} /></svg>
+          <span className="s-pill" />{SPLASH.map(([l, w], i) => <img key={i} src={`/brand/splash/l${i + 1}.png`} alt="" className="s-l" fetchPriority="high" style={{ ["--i" as string]: i, left: `${l}%`, width: `${w}%` }} />)}</div></div></div>
       <Providers lang={l}>{children}</Providers><SourceCapture /></body></html>);
 }
