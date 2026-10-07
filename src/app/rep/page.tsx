@@ -7,6 +7,7 @@ import { STATUS_AR, STATUS_CLS, money } from "@/lib/admin/labels";
 import { Badge, Card, Stat } from "@/components/admin/ui";
 import CopyLink from "@/components/CopyLink";
 import Icon from "@/components/Icon";
+import { siteUrl } from "@/lib/siteUrl";
 export const dynamic = "force-dynamic";
 // الرئيسية: أرقام المندوب + رابطه الخاص (أي طلب من الرابط يذهب له) + آخر الطلبات
 export default async function RepHome() {
@@ -17,7 +18,7 @@ export default async function RepHome() {
     db.order.aggregate({ where: { ...mine, status: { not: "CANCELLED" } }, _count: true, _sum: { total: true } }),
     db.order.groupBy({ by: ["customerId"], where: mine }).then((r) => r.length),
     db.order.findMany({ where: mine, include: { customer: { select: { name: true, phone: true } } }, orderBy: { id: "desc" }, take: 5 })]);
-  const base = process.env.NEXT_PUBLIC_SITE_URL ?? "", link = `${base}/?rep=${rep.id}`;
+  const base = siteUrl(), link = `${base}/?rep=${rep.id}`;
   const qr = await QRCode.toString(link, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: brand.ink, light: "#0000" } });
   const share = `https://wa.me/?text=${encodeURIComponent(`تصفّح كتالوج DYLLU واطلب مباشرة، وطلبك يوصلني:\n${link}`)}`;
   return (<div className="space-y-5 md:space-y-6">

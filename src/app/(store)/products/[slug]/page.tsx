@@ -17,6 +17,7 @@ import RecentlyViewed from "@/components/RecentlyViewed";
 import AddToCart from "@/components/AddToCart";
 import Icon from "@/components/Icon";
 import { Crumbs, SectionHead } from "@/components/ui";
+import { siteUrl } from "@/lib/siteUrl";
 export const dynamic = "force-dynamic";
 // cache: العنوان (generateMetadata) والصفحة يشتركان في استعلام واحد
 const find = cache((slug: string) => db.product.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true }, include: { images: { orderBy: { sortOrder: "asc" } }, specs: { orderBy: { sortOrder: "asc" } }, features: { orderBy: { sortOrder: "asc" } }, documents: true, category: true } }));
@@ -32,7 +33,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const L = getLang(), en = L === "en", ws = !!(await getWholesale());
   const related = await db.product.findMany({ where: { categoryId: p.categoryId, isActive: true, id: { not: p.id } }, include: cardInclude, orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }], take: 4 });
   const name = pick(L, p.nameAr, p.nameEn), other = (en ? p.nameAr : p.nameEn) === name ? "" : en ? p.nameAr : p.nameEn, price = priceLabel(p, s, L, ws), priced = priceOf(p, ws) != null;
-  const desc = pick(L, p.descriptionAr, p.descriptionEn), cat = p.category, catName = pick(L, cat.nameAr, cat.nameEn), base = process.env.NEXT_PUBLIC_SITE_URL;
+  const desc = pick(L, p.descriptionAr, p.descriptionEn), cat = p.category, catName = pick(L, cat.nameAr, cat.nameEn), base = siteUrl();
   const wa = s["whatsapp.number"], askUrl = isPhone(wa) ? waHref(wa, `${en ? "Hello, I'd like to ask about" : "السلام عليكم، أرغب في الاستفسار عن"}: ${p.nameEn || p.nameAr}${p.sku ? ` (${p.sku})` : ""}${base ? `\n${base}/products/${p.slug}` : ""}`) : undefined;
   const call = isPhone(s["contact.phone"]) ? s["contact.phone"] : isPhone(wa) ? wa : "";
   return (<div className="wrap pt-4 md:pt-8">

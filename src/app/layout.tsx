@@ -6,12 +6,13 @@ import { getLang, txt } from "@/lib/lang";
 import { getSettings } from "@/lib/settings";
 import { brand } from "@/config/brand";
 import { Cairo, IBM_Plex_Sans_Arabic } from "next/font/google";
+import { siteUrl } from "@/lib/siteUrl";
 // خطوط عربية حديثة (تُحمَّل من الموقع نفسه وقت البناء): Plex للنصوص و Cairo للعناوين. مقيدة بالحروف العربية فقط،
 // فالإنجليزية تبقى Arial / Arial Black كما في دليل الهوية
 const ar = IBM_Plex_Sans_Arabic({ subsets: ["arabic"], weight: ["400", "500", "600", "700"], variable: "--font-ar", display: "swap", fallback: [], adjustFontFallback: false });
 const ard = Cairo({ subsets: ["arabic"], weight: ["700", "800", "900"], variable: "--font-ard", display: "swap", fallback: [], adjustFontFallback: false });
 export async function generateMetadata(): Promise<Metadata> {
-  const s = await getSettings(), L = getLang(), name = s["site.name"] || "DYLLU", base = process.env.NEXT_PUBLIC_SITE_URL;
+  const s = await getSettings(), L = getLang(), name = s["site.name"] || "DYLLU", base = siteUrl();
   return {
     metadataBase: base ? new URL(base) : undefined,
     title: { default: `${name} | ${txt(s, L, "footer.text")}`, template: `%s | ${name}` },

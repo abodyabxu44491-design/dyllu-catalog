@@ -34,7 +34,6 @@ export default async function Home() {
   });
   const wa = s["whatsapp.number"], waOk = isPhone(wa);
   const tiles: [string, string, string, IconName, boolean][] = [
-    ["/catalog", en ? "Price list" : "قائمة الأسعار", en ? "Print or save as PDF" : "اطبعها أو احفظها PDF", "doc", false],
     ["/categories", en ? "All categories" : "كل التصنيفات", en ? "Browse by department" : "تصفح حسب القسم", "grid", false],
     ...(waOk ? [[waHref(wa, en ? "Hello" : "السلام عليكم"), en ? "Talk to us" : "تواصل معنا", en ? "WhatsApp, we reply fast" : "واتساب، نرد بسرعة", "whatsapp", true] as [string, string, string, IconName, boolean]] : [])];
   const grid = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5";
@@ -89,7 +88,7 @@ export default async function Home() {
         </div>
         <i aria-hidden className="absolute inset-x-0 bottom-0 h-1.5 bg-lime shadow-[0_-2px_0_theme(colors.accent)]" />
       </div>
-      <div className="grid sm:grid-cols-3 lg:grid-cols-1 gap-3 sm:gap-4">{tiles.map(([href, t, sub, i, ext]) => (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 content-center">{tiles.map(([href, t, sub, i, ext]) => (
         <Link key={t} href={href} {...(ext && { target: "_blank", rel: "noopener noreferrer" })} className="group flex items-center gap-4 rounded-3xl bg-soft hover:bg-lime/30 p-4 md:p-5 transition">
           <span className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl grid place-items-center shrink-0 transition group-hover:scale-105 ${i === "whatsapp" ? "bg-[#1FA855] text-white" : "bg-white text-ink shadow-card"}`}><Icon n={i} s={24} /></span>
           <span className="min-w-0 flex-1"><b className="block font-display text-base md:text-lg leading-tight">{t}</b><small className="block text-xs md:text-sm text-steel mt-0.5">{sub}</small></span>

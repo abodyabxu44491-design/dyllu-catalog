@@ -12,6 +12,7 @@ import PrintButton from "@/components/PrintButton";
 import CopyLink from "@/components/CopyLink";
 import Icon from "@/components/Icon";
 import Linkify from "@/components/Linkify";
+import { siteUrl } from "@/lib/siteUrl";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = { robots: { index: false } };
 const STATUS: Record<string, [string, string, string]> = { NEW: ["قيد المراجعة", "Under review", "bg-accent/10 text-accent"], CONTACTED: ["تم التواصل", "Contacted", "bg-ink/10 text-ink"], CONFIRMED: ["مؤكد", "Confirmed", "bg-lime text-ink"], COMPLETED: ["مكتمل", "Completed", "bg-ink text-lime"], CANCELLED: ["ملغي", "Cancelled", "bg-soft text-steel"] };
@@ -20,7 +21,7 @@ export default async function OrderPage({ params }: { params: { token: string } 
   const [s, o] = await Promise.all([getSettings(), db.order.findUnique({ where: { token: params.token }, include: { items: { orderBy: { id: "asc" } }, customer: true, rep: true, store: true } })]);
   if (!o) notFound();
   const en = getLang() === "en", cur = en ? s["currency.en"] || "SAR" : s["currency.ar"], hidden = en ? "On request" : s["price.hiddenLabel.ar"];
-  const money = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${cur}`, base = process.env.NEXT_PUBLIC_SITE_URL, link = base ? `${base}/order/${o.token}` : "";
+  const money = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${cur}`, base = siteUrl(), link = base ? `${base}/order/${o.token}` : "";
   const wa = whatsappUrl(o.rep?.phone ?? s["whatsapp.number"], buildWhatsAppMessage(o, s["currency.ar"], s["price.hiddenLabel.ar"], link || undefined));
   const qr = link ? await QRCode.toString(link, { type: "svg", margin: 0, color: { dark: brand.ink, light: "#0000" } }) : "";
   const pcs = o.items.reduce((n, i) => n + i.quantity, 0), st = STATUS[o.status], hasName = o.customer.name && o.customer.name !== "بدون اسم";

@@ -18,7 +18,7 @@ export default async function SiteFooter() {
       <div className="col-span-2 lg:col-span-1 space-y-4"><span className="inline-block bg-white rounded-2xl p-2.5"><img src="/brand/logo-badge.png" alt={name} className="h-16 w-auto" /></span>
         <p className="text-white/70 text-sm leading-7 max-w-xs">{txt(s, L, "footer.text")}</p>
         {socials.length > 0 && <div className="flex gap-2">{socials.map(([k, label, f]) => <a key={k} href={url(s[k], f)} target="_blank" rel="noopener noreferrer" className="btn btn-sm bg-white/10 text-white hover:bg-lime hover:text-ink">{label}</a>)}</div>}</div>
-      <Col title={t(L, "quickLinks")}><Item href="/">{t(L, "home")}</Item><Item href="/products">{t(L, "all")}</Item><Item href="/products?featured=1">{txt(s, L, "home.featured")}</Item><Item href="/categories">{t(L, "categories")}</Item><Item href="/cart">{t(L, "cart")}</Item><Item href="/catalog" icon="doc">{t(L, "priceList")}</Item></Col>
+      <Col title={t(L, "quickLinks")}><Item href="/">{t(L, "home")}</Item><Item href="/products">{t(L, "all")}</Item><Item href="/products?featured=1">{txt(s, L, "home.featured")}</Item><Item href="/categories">{t(L, "categories")}</Item><Item href="/cart">{t(L, "cart")}</Item></Col>
       {cats.length > 0 && <Col title={t(L, "categories")}>{cats.map((c) => <Item key={c.slug} href={`/categories/${c.slug}`}>{pick(L, c.nameAr, c.nameEn)}</Item>)}</Col>}
       {(hasWa || call || s["contact.email"] || txt(s, L, "contact.address")) && <div className="col-span-2 sm:col-span-1"><Col title={t(L, "contact")}>
         {hasWa && <Item href={waHref(wa)} icon="whatsapp" ext>{L === "en" ? "WhatsApp" : "واتساب"} · <span dir="ltr">{prettyPhone(wa)}</span></Item>}
