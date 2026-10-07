@@ -7,6 +7,6 @@ export async function middleware(req: NextRequest) {
   const rep = p.startsWith("/rep") || p.startsWith("/api/rep");
   const ok = rep ? await verifyRepSession(req.cookies.get(REP_COOKIE)?.value) : await verifySession(req.cookies.get(SESSION_COOKIE)?.value);
   if (ok) return NextResponse.next();
-  return api ? NextResponse.json({ error: "unauthorized" }, { status: 401 }) : NextResponse.redirect(new URL(rep ? "/rep-login" : "/admin-login", req.url));
+  return api ? NextResponse.json({ error: "unauthorized" }, { status: 401 }) : NextResponse.redirect(new URL(rep ? "/rep-login" : `/admin-login${p === "/admin" ? "" : `?next=${encodeURIComponent(p + req.nextUrl.search)}`}`, req.url));
 }
 export const config = { matcher: ["/admin/:path*", "/api/admin/:path*", "/rep", "/rep/:path*", "/api/rep/:path*"] };

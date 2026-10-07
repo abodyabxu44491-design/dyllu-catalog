@@ -15,10 +15,21 @@ try { for (const l of readFileSync(".env", "utf8").split(/\r?\n/)) { const m = l
 if (!process.env.DATABASE_URL) { log("✗ DATABASE_URL غير مضبوط: أضفه في Environment على Render"); process.exit(0); }
 if (!process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_SESSION_SECRET.length < 32) log("✗ ADMIN_SESSION_SECRET فارغ أو قصير (32 حرفًا على الأقل): تسجيل دخول الأدمن لن يعمل بدونه");
 
-try {
-  execSync("npx prisma db push --skip-generate", { stdio: "inherit" });
-  log("✓ قاعدة البيانات محدّثة");
-} catch { log("✗ تعذر تحديث قاعدة البيانات تلقائيًا (راجع السطر أعلاه). الموقع سيعمل بالجداول الحالية"); }
+// prisma db push يرفض أحيانًا تغييرًا آمنًا بتحذير «فقد بيانات» (مثل قيد unique على عمود جديد فارغ).
+// عندها نحسب أوامر SQL المطلوبة بالضبط وننفذها فقط إن كانت إضافات (أعمدة/جداول/فهارس) بدون أي حذف لبيانات.
+const DESTRUCTIVE = /\bDROP\s+(TABLE|COLUMN|SCHEMA|TYPE|VALUE)\b|\bTRUNCATE\b|\bDELETE\s+FROM\b|\bALTER\s+COLUMN\s+"[^"]+"\s+(SET\s+DATA\s+)?TYPE\b|\bRENAME\b/i;
+function syncDb() {
+  try { execSync("npx prisma db push --skip-generate", { stdio: "pipe" }); return log("✓ قاعدة البيانات محدّثة"); }
+  catch (e) { const out = `${e.stdout ?? ""}${e.stderr ?? ""}`; if (!/accept-data-loss/.test(out)) { console.log(out); return log("✗ تعذر تحديث قاعدة البيانات تلقائيًا (راجع السطر أعلاه). الموقع سيعمل بالجداول الحالية"); } }
+  let sql = "";
+  try { sql = execSync('npx prisma migrate diff --from-url "$DATABASE_URL" --to-schema-datamodel prisma/schema.prisma --script', { stdio: ["ignore", "pipe", "pipe"] }).toString(); }
+  catch (e) { console.log(`${e.stderr ?? ""}`); return log("✗ تعذر حساب تحديث قاعدة البيانات"); }
+  const body = sql.split("\n").filter((l) => !l.trim().startsWith("--")).join("\n");
+  if (DESTRUCTIVE.test(body)) { console.log(sql); return log("✗ التحديث المطلوب يحذف بيانات، لم يُنفَّذ تلقائيًا. راجع الأوامر أعلاه وطبّقها يدويًا بعد أخذ نسخة احتياطية"); }
+  try { execSync("npx prisma db execute --stdin --schema prisma/schema.prisma", { input: sql, stdio: ["pipe", "pipe", "pipe"] }); log("✓ قاعدة البيانات محدّثة (أعمدة وجداول جديدة فقط، بدون حذف أي بيانات)"); }
+  catch (e) { console.log(`${e.stdout ?? ""}${e.stderr ?? ""}`); log("✗ تعذر تطبيق تحديث قاعدة البيانات (راجع السطر أعلاه)"); }
+}
+syncDb();
 if (process.argv.includes("--db-only")) process.exit(0);
 
 // نفس صيغة src/lib/password.ts
