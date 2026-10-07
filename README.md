@@ -130,11 +130,12 @@ npm start        # المنفذ 3000 (غيّره بـ PORT=8080 npm start)
 ```
 - `npm run build` و `npm start` يحدّثان جداول قاعدة البيانات تلقائيًا، و `npm start` ينشئ حساب الأدمن من `ADMIN_EMAIL` و `ADMIN_PASSWORD` (أو يحدّث كلمة المرور إن غيّرتها). لا حاجة لتنفيذ أوامر يدوية على السيرفر.
 - فحص الصحة: `/api/health`.
+- روابط رموز QR والفواتير والمشاركة تؤخذ تلقائيًا من الدومين الذي يُفتح عليه الموقع، فتطابق رابط الكتالوج دائمًا (`NEXT_PUBLIC_SITE_URL` اختياري).
 - **Vercel:** أضف متغيرات `.env` من Environment Variables، وأنشئ حساب الأدمن مرة من جهازك: `npm run db:seed`.
 
 ### النشر على Render
 **موقع جديد:** Render ← New ← Blueprint ← اختر هذا المستودع. ملف `render.yaml` ينشئ الموقع وقاعدة بيانات PostgreSQL ومفتاح الجلسات تلقائيًا. بعدها من صفحة الموقع ← Environment أكمل:
-`NEXT_PUBLIC_SITE_URL` (رابط موقعك على Render مثل `https://dyllu-catalog.onrender.com`)، `ADMIN_EMAIL`، `ADMIN_PASSWORD`، و `ANTHROPIC_API_KEY` (اختياري للترجمة).
+`ADMIN_EMAIL`، `ADMIN_PASSWORD`، و `ANTHROPIC_API_KEY` (اختياري للترجمة).
 
 **موقع موجود على Render:** من Settings تأكد من:
 | الإعداد | القيمة |
@@ -144,7 +145,7 @@ npm start        # المنفذ 3000 (غيّره بـ PORT=8080 npm start)
 | Start Command | `npm start` |
 | Health Check Path | `/api/health` |
 
-ومن Environment تأكد من وجود: `DATABASE_URL` (Internal Database URL من صفحة قاعدة البيانات)، `ADMIN_SESSION_SECRET` (32 حرفًا أو أكثر)، `NEXT_PUBLIC_SITE_URL`، `ADMIN_EMAIL`، `ADMIN_PASSWORD`. ثم Manual Deploy ← Deploy latest commit.
+ومن Environment تأكد من وجود: `DATABASE_URL` (Internal Database URL من صفحة قاعدة البيانات)، `ADMIN_SESSION_SECRET` (32 حرفًا أو أكثر)، `ADMIN_EMAIL`، `ADMIN_PASSWORD`. ثم Manual Deploy ← Deploy latest commit.
 في سجل التشغيل (Logs) يظهر: `[DYLLU] ✓ أُنشئ حساب الأدمن` أو `✓ حساب الأدمن جاهز`، وبعدها سجّل الدخول من `/admin-login` بنفس البريد وكلمة المرور.
 - الخطة المجانية في Render تُنيم الموقع بعد 15 دقيقة بلا زيارات، فأول فتح بعدها يأخذ 30–60 ثانية. وقاعدة البيانات المجانية تنتهي بعد 30 يومًا: للاستخدام الفعلي اختر خطة مدفوعة لقاعدة البيانات.
 - حدّ المحاولات (تسجيل الدخول، كود الجملة، الطلبات) محفوظ في ذاكرة السيرفر، أي لكل نسخة تعمل على حدة.
