@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getWholesale } from "@/lib/wholesale";
 import { pageParam } from "@/lib/format";
-import { cardInclude, orderByFor, searchWhere } from "@/lib/catalog";
+import { cardInclude, getNavCategories, orderByFor, searchWhere } from "@/lib/catalog";
 import { getLang, pick, t, txt } from "@/lib/lang";
 import ProductCard from "./ProductCard";
 import Pager from "./Pager";
@@ -24,7 +24,7 @@ export default async function ProductBrowser({ sp, category }: { sp: BrowseParam
   const common: Prisma.ProductWhereInput = { isActive: true, ...(featured && !category && { isFeatured: true }), ...(stock && { inStock: true }), ...searchWhere(q) };
   const where: Prisma.ProductWhereInput = { ...common, ...(category && { categoryId: category.id }) };
   const [s, cats, counts, total, products] = await Promise.all([getSettings(),
-    db.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, slug: true, nameAr: true, nameEn: true } }),
+    getNavCategories(),
     db.product.groupBy({ by: ["categoryId"], where: common, _count: true }),
     db.product.count({ where }),
     db.product.findMany({ where, include: cardInclude, orderBy: orderByFor(sort, en), skip: (page - 1) * PER, take: PER })]);

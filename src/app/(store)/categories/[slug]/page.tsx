@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getLang, pick, t } from "@/lib/lang";
@@ -6,7 +7,8 @@ import ProductBrowser, { type BrowseParams } from "@/components/ProductBrowser";
 import { Crumbs } from "@/components/ui";
 import Linkify from "@/components/Linkify";
 export const dynamic = "force-dynamic";
-const find = (slug: string) => db.category.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true } });
+// cache: العنوان (generateMetadata) والصفحة يشتركان في استعلام واحد
+const find = cache((slug: string) => db.category.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true } }));
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const c = await find(params.slug), L = getLang();
   return c ? { title: pick(L, c.nameAr, c.nameEn), description: pick(L, c.subtitleAr, c.subtitleEn) || c.descriptionAr || undefined, openGraph: { images: c.image ? [c.image] : [] } } : {};

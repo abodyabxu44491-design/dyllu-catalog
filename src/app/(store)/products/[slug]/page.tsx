@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -17,7 +18,8 @@ import AddToCart from "@/components/AddToCart";
 import Icon from "@/components/Icon";
 import { Crumbs, SectionHead } from "@/components/ui";
 export const dynamic = "force-dynamic";
-const find = (slug: string) => db.product.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true }, include: { images: { orderBy: { sortOrder: "asc" } }, specs: { orderBy: { sortOrder: "asc" } }, features: { orderBy: { sortOrder: "asc" } }, documents: true, category: true } });
+// cache: العنوان (generateMetadata) والصفحة يشتركان في استعلام واحد
+const find = cache((slug: string) => db.product.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true }, include: { images: { orderBy: { sortOrder: "asc" } }, specs: { orderBy: { sortOrder: "asc" } }, features: { orderBy: { sortOrder: "asc" } }, documents: true, category: true } }));
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const p = await find(params.slug), L = getLang();
   return p ? { title: pick(L, p.nameAr, p.nameEn), description: (pick(L, p.descriptionAr, p.descriptionEn) || p.nameEn).slice(0, 160), openGraph: { title: pick(L, p.nameAr, p.nameEn), images: p.images[0] ? [p.images[0].url] : [] } } : {};

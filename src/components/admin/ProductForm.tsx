@@ -102,7 +102,7 @@ export default function ProductForm({ initial, categories, ai = false, defaultCa
           <Field label="الوصف (عربي)"><textarea rows={4} className="field" value={p.descriptionAr ?? ""} onChange={(e) => set("descriptionAr", e.target.value)} /></Field>
           <Field label={`Description (English)${ai ? " · تلقائي" : ""}`}><textarea rows={4} dir="ltr" className="field" placeholder={ai ? "يُترجم تلقائيًا إن تُرك فارغًا" : ""} value={p.descriptionEn ?? ""} onChange={(e) => set("descriptionEn", e.target.value)} /></Field></div></Card>
 
-        <Card title="الصور" desc="الصورة الأولى هي الرئيسية. اسحب الصور هنا، أو اضغط للرفع، أو الصق صورة (Ctrl+V). JPG / PNG / WEBP حتى 8MB.">
+        <Card title="الصور" desc="الصورة الأولى هي الرئيسية. اسحب الصور هنا، أو اضغط للرفع، أو الصق صورة (Ctrl+V). JPG / PNG / WEBP حتى 15MB، وتُضغط تلقائيًا لتفتح بسرعة.">
           <div className="grid grid-cols-3 sm:grid-cols-4 xl:grid-cols-5 gap-3">
             {p.images.map((x: any, n: number) => (<div key={x.url + n} className={`group relative rounded-2xl bg-soft overflow-hidden border-2 ${n === 0 ? "border-lime" : "border-transparent"}`}>
               <img src={x.url} className="w-full aspect-square object-contain" alt="" />

@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getNavCategories } from "@/lib/catalog";
 import { getSettings } from "@/lib/settings";
 import { getLang, txt } from "@/lib/lang";
 import { getWholesale } from "@/lib/wholesale";
@@ -12,7 +12,7 @@ import MobileSearch from "./MobileSearch";
 import InstallApp from "./InstallApp";
 // هيدر ثابت: الشعار (3 ضغطات متتالية = كود الجملة) + روابط (كمبيوتر) + بحث فوري + اللغة + السلة، وشريط الهوية أسفله
 export default async function SiteHeader() {
-  const [s, ws, cats] = await Promise.all([getSettings(), getWholesale(), db.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { slug: true, nameAr: true, nameEn: true, image: true } })]);
+  const [s, ws, cats] = await Promise.all([getSettings(), getWholesale(), getNavCategories()]);
   const L = getLang(), en = L === "en", cur = en ? s["currency.en"] || "SAR" : s["currency.ar"], hidden = en ? "Contact us" : s["price.hiddenLabel.ar"], ph = txt(s, L, "search.ph");
   return (<div className="sticky top-0 z-40 no-print">{ws && <WsBar name={ws.name} />}
     <header className="bg-white/95 backdrop-blur">
