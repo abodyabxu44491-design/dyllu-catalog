@@ -93,3 +93,20 @@
   .ad-sku { display: none; }
   .adt-title { font-size: 6.4cqw; } .adt-sub { font-size: 3.4cqw; }
 }
+
+/* شاشة البداية (مرة لكل جلسة): الشعار يظهر بنبضة، شريط برتقالي يمتد، ثم تتلاشى الشاشة بالكامل */
+#splash { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; background: #D0DF00; animation: splash-out .4s ease-in .95s forwards; }
+#splash .s-in { position: relative; display: flex; flex-direction: column; align-items: center; gap: 18px; }
+#splash .s-badge { width: 132px; height: auto; animation: splash-pop .7s cubic-bezier(.2,1.5,.4,1) both; filter: drop-shadow(0 14px 22px rgba(43,45,47,.25)); }
+#splash .s-ring { position: absolute; top: 62px; left: 50%; width: 180px; height: 180px; margin: -90px 0 0 -90px; border-radius: 9999px; border: 3px solid rgba(255,255,255,.7); animation: splash-ring .9s ease-out .15s both; }
+#splash .s-mark { width: 132px; height: auto; animation: splash-up .45s ease-out .35s both; }
+#splash .s-bar { width: 132px; height: 4px; border-radius: 9999px; background: rgba(43,45,47,.15); overflow: hidden; }
+#splash .s-bar i { display: block; height: 100%; width: 100%; background: #FF6900; transform-origin: right; animation: splash-bar .8s ease-in-out .1s both; }
+[dir="ltr"] #splash .s-bar i { transform-origin: left; }
+.no-splash #splash { display: none; }
+@keyframes splash-pop { from { opacity: 0; transform: scale(.6) rotate(-8deg); } to { opacity: 1; transform: none; } }
+@keyframes splash-ring { from { opacity: .9; transform: scale(.5); } to { opacity: 0; transform: scale(1.5); } }
+@keyframes splash-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes splash-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes splash-out { to { opacity: 0; visibility: hidden; transform: scale(1.04); } }
+@media print { #splash { display: none; } }
