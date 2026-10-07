@@ -3,6 +3,8 @@ import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { db } from "@/lib/db";
 import { isPhone, normalizePhone } from "@/lib/phone";
 import { englishFor } from "@/lib/translate";
+// الحفظ يشمل الترجمة التلقائية (ورفع الصور يشمل الضغط): مهلة أطول على الاستضافات السحابية
+export const maxDuration = 30;
 const PHONES = ["whatsapp.number", "contact.phone"], NOT_PAIRS = ["price.hiddenLabel", "currency"];
 export async function PUT(req: Request) {
   const deny = await denyUnlessAdmin(); if (deny) return deny;

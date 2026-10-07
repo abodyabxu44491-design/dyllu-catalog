@@ -4,7 +4,8 @@
 // 3) يضيف المنتجات الجاهزة الجديدة من prisma/catalog (مرة واحدة، بدون تعديل الموجود)
 // 4) يترجم النصوص العربية التي ليس لها نسخة إنجليزية بعد
 // أي فشل هنا يُطبع بوضوح في سجل Render ولا يمنع تشغيل الموقع.
-// --db-only: تحديث الجداول فقط (يُستدعى قبل البناء npm run build حتى تجد الصفحات جداولها في أول نشر)
+// يُستدعى قبل البناء (npm run build) وقبل التشغيل (npm start): على Vercel لا يوجد أمر تشغيل، فيكفي البناء. كل الخطوات آمنة للتكرار
+// --db-only: تحديث الجداول فقط
 import { execSync } from "node:child_process";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 

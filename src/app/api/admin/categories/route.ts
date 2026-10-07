@@ -4,6 +4,8 @@ import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { englishFor } from "@/lib/translate";
+// الحفظ يشمل الترجمة التلقائية (ورفع الصور يشمل الضغط): مهلة أطول على الاستضافات السحابية
+export const maxDuration = 30;
 const C = z.object({ id: z.number().optional(), slug: z.string().optional(), nameAr: z.string().trim().min(1, "اكتب اسم التصنيف"), descriptionAr: z.string().nullish(), subtitleAr: z.string().nullish(), image: z.string().nullish(), sortOrder: z.number().int(), isActive: z.boolean() });
 export async function POST(req: Request) {
   const deny = await denyUnlessAdmin(); if (deny) return deny;

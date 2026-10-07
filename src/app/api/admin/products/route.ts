@@ -4,6 +4,8 @@ import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { db } from "@/lib/db";
 import { searchWhere } from "@/lib/catalog";
 import { duplicateProduct, saveProduct } from "@/lib/admin/products";
+// الحفظ يشمل الترجمة التلقائية (ورفع الصور يشمل الضغط): مهلة أطول على الاستضافات السحابية
+export const maxDuration = 30;
 // POST {id?, ...حقول المنتج} إنشاء/تعديل | POST {action:"duplicate", id} نسخ منتج (مخفي) | PATCH {id, isActive|inStock|isFeatured|showPrice|allowCart} تبديل سريع | DELETE ?id=
 export async function POST(req: Request) {
   const deny = await denyUnlessAdmin(); if (deny) return deny;

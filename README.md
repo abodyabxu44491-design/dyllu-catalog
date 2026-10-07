@@ -130,7 +130,7 @@ npm start        # المنفذ 3000 (غيّره بـ PORT=8080 npm start)
 - `npm run build` و `npm start` يحدّثان جداول قاعدة البيانات تلقائيًا، و `npm start` ينشئ حساب الأدمن من `ADMIN_EMAIL` و `ADMIN_PASSWORD` (أو يحدّث كلمة المرور إن غيّرتها). لا حاجة لتنفيذ أوامر يدوية على السيرفر.
 - فحص الصحة: `/api/health`.
 - روابط رموز QR والفواتير والمشاركة تؤخذ تلقائيًا من الدومين الذي يُفتح عليه الموقع، فتطابق رابط الكتالوج دائمًا (`NEXT_PUBLIC_SITE_URL` اختياري).
-- **Vercel:** أضف متغيرات `.env` من Environment Variables، وأنشئ حساب الأدمن مرة من جهازك: `npm run db:seed`.
+- **Vercel:** استورد المستودع من vercel.com/new، وأضف في Environment Variables: `DATABASE_URL` (رابط Neon)، `ADMIN_SESSION_SECRET`، `ADMIN_EMAIL`، `ADMIN_PASSWORD`. البناء (`npm run build`) يحدّث الجداول وينشئ حساب الأدمن ويضيف المنتجات الجاهزة ويكمل الترجمة تلقائيًا. الصور تُصغَّر في المتصفح قبل الرفع (حد الطلب في Vercel ‎4.5MB)، وملفات PDF حتى 4MB.
 
 ### النشر على Render
 **موقع جديد:** Render ← New ← Blueprint ← اختر هذا المستودع. ملف `render.yaml` ينشئ الموقع وقاعدة بيانات PostgreSQL ومفتاح الجلسات تلقائيًا. بعدها من صفحة الموقع ← Environment أكمل:

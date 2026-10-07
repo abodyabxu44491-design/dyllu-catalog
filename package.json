@@ -3,7 +3,7 @@
  "private": true,
  "scripts": {
   "dev": "next dev",
-  "build": "node scripts/prestart.mjs --db-only && next build",
+  "build": "node scripts/prestart.mjs && next build",
   "start": "node scripts/prestart.mjs && next start",
   "db:push": "prisma db push",
   "db:seed": "tsx prisma/seed.ts",

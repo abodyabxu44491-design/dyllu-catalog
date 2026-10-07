@@ -4,6 +4,8 @@ import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { englishFor } from "@/lib/translate";
+// الحفظ يشمل الترجمة التلقائية (ورفع الصور يشمل الضغط): مهلة أطول على الاستضافات السحابية
+export const maxDuration = 30;
 const txt = z.string().max(160).nullish();
 const B = z.object({ id: z.number().optional(), type: z.enum(["IMAGE", "IMAGE_TEXT", "PRODUCT"]), image: z.string().default(""),
   productId: z.number().int().nullish(), template: z.enum(["spotlight", "lime", "clean", "offer", "split"]).default("spotlight"), showPrice: z.boolean().default(true),
