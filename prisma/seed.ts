@@ -15,7 +15,7 @@ try {
 
 const db = new PrismaClient();
 async function main() {
-  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase(), pw = process.env.ADMIN_PASSWORD;
+  const email = process.env.ADMIN_EMAIL?.trim().toLowerCase(), pw = process.env.ADMIN_PASSWORD?.trim();
   if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL غير مضبوط في .env");
   if (!email || !/^\S+@\S+\.\S+$/.test(email)) throw new Error("ADMIN_EMAIL مطلوب في .env وبصيغة بريد صحيحة");
   if (!pw || pw.length < 8) throw new Error("ADMIN_PASSWORD مطلوب في .env (8 أحرف على الأقل)");

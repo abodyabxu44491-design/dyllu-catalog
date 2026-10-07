@@ -1,14 +1,14 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "./Icon";
+import Modal from "./Modal";
 import { useLang } from "@/lib/useLang";
 // الشعار: ضغطة واحدة = الرئيسية. 3 ضغطات متتالية (كل واحدة خلال ~0.4 ثانية من السابقة) = نافذة كود الدخول.
 // لا يوجد أي زر أو نص في الواجهة يدل على وجودها، فالجملة تبقى مخفية عن عامة العملاء.
 export default function LogoTap({ children }: { children: React.ReactNode }) {
   const r = useRouter(), en = useLang() === "en", n = useRef(0), t = useRef<ReturnType<typeof setTimeout>>();
   const [open, setOpen] = useState(false), [code, setCode] = useState(""), [err, setErr] = useState(""), [busy, setBusy] = useState(false);
-  useEffect(() => { if (!open) return; const f = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false); addEventListener("keydown", f); return () => removeEventListener("keydown", f); }, [open]);
   function tap(e: React.MouseEvent) {
     e.preventDefault(); n.current++; clearTimeout(t.current);
     if (n.current >= 3) { n.current = 0; setCode(""); setErr(""); setOpen(true); return; }
@@ -24,13 +24,13 @@ export default function LogoTap({ children }: { children: React.ReactNode }) {
   }
   return (<>
     <a href="/" onClick={tap} aria-label="DYLLU" className="shrink-0" style={{ touchAction: "manipulation", WebkitUserSelect: "none", userSelect: "none" }}>{children}</a>
-    {open && <div className="fixed inset-0 z-[90] bg-ink/60 backdrop-blur-sm grid place-items-center p-6" onClick={() => setOpen(false)}>
-      <div role="dialog" aria-modal="true" className="animate-rise bg-white rounded-3xl w-full max-w-xs overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="dy-stripe" /><div className="p-5 space-y-3">
-          <b className="flex items-center gap-2 text-lg"><Icon n="key" s={20} className="text-accent" />{en ? "Access code" : "كود الدخول"}</b>
-          <input autoFocus dir="ltr" maxLength={14} value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} onKeyDown={(e) => e.key === "Enter" && code.length >= 4 && go()} placeholder="DY-XXXXXX" className="field text-center text-lg tracking-widest font-bold" />
-          {err && <p className="text-accent text-sm font-bold">{err}</p>}
-          <button disabled={busy || code.length < 4} onClick={go} className="btn btn-lg btn-lime w-full">{busy ? "..." : en ? "Enter" : "دخول"}</button>
-        </div></div></div>}
+    <Modal open={open} onClose={() => setOpen(false)} icon="key" title={en ? "Access code" : "كود الدخول"} sub={en ? "Enter the code you received from DYLLU" : "أدخل الكود الذي وصلك من DYLLU"} closeLabel={en ? "Close" : "إغلاق"}>
+      <form className="space-y-3" onSubmit={(e) => { e.preventDefault(); if (code.length >= 4) go(); }}>
+        <input autoFocus dir="ltr" maxLength={14} aria-label={en ? "Access code" : "كود الدخول"} autoComplete="off" autoCapitalize="characters" spellCheck={false} value={code} onChange={(e) => { setCode(e.target.value.toUpperCase()); setErr(""); }} placeholder="DY-XXXXXX"
+          className={`field h-14 text-center text-xl tracking-[.25em] font-extrabold placeholder:tracking-[.2em] placeholder:font-bold ${err ? "border-accent ring-4 ring-accent/15" : ""}`} />
+        {err && <p role="alert" className="flex items-center gap-1.5 text-accent text-sm font-bold"><Icon n="alert" s={16} />{err}</p>}
+        <button disabled={busy || code.length < 4} className="btn btn-lg btn-lime w-full">{busy ? <span className="w-5 h-5 rounded-full border-2 border-ink/30 border-t-ink animate-spin" /> : <><Icon n="check" s={18} stroke={2.6} />{en ? "Enter" : "دخول"}</>}</button>
+      </form>
+    </Modal>
   </>);
 }

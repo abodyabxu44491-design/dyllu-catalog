@@ -18,8 +18,8 @@ export default function Login() {
         <div className="lg:hidden dy-stripe -mx-6 -mt-6 mb-4" />
         <img src="/brand/logo-wordmark.png" alt="DYLLU" className="h-11 w-auto lg:hidden mx-auto" />
         <div><h1 className="dy-tab">لوحة التحكم</h1><p className="text-sm text-steel mt-3">سجّل الدخول للمتابعة</p></div>
-        <label className="block space-y-1.5"><span className="text-sm font-bold">البريد الإلكتروني</span><input className="field" type="email" dir="ltr" autoComplete="username" required value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></label>
-        <label className="block space-y-1.5"><span className="text-sm font-bold">كلمة المرور</span><span className="relative block"><input className="field pe-12" type={show ? "text" : "password"} dir="ltr" autoComplete="current-password" required value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
+        <label className="block space-y-1.5"><span className="text-sm font-bold">البريد الإلكتروني</span><input className="field" type="email" dir="ltr" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={f.email} onChange={(e) => setF({ ...f, email: e.target.value })} /></label>
+        <label className="block space-y-1.5"><span className="text-sm font-bold">كلمة المرور</span><span className="relative block"><input className="field pe-12" type={show ? "text" : "password"} dir="ltr" autoComplete="current-password" autoCapitalize="none" autoCorrect="off" spellCheck={false} required value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
           <button type="button" aria-label={show ? "إخفاء" : "إظهار"} onClick={() => setShow(!show)} className="absolute end-1 top-1 btn-icon w-10 h-10 text-steel hover:text-ink"><Icon n={show ? "eyeOff" : "eye"} s={20} /></button></span></label>
         {err && <p className="flex items-center gap-2 text-accent font-bold text-sm bg-accent/10 rounded-xl p-3"><Icon n="alert" s={16} />{err}</p>}
         <button disabled={busy} className="btn btn-lg btn-lime w-full">{busy ? "..." : "دخول"}</button>

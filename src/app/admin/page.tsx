@@ -13,12 +13,13 @@ export default async function Dash() {
     db.order.count({ where: { createdAt: { gte: day } } }), db.order.count({ where: { createdAt: { gte: month } } }), db.order.count({ where: { status: "NEW" } }),
     db.order.count({ where: { createdAt: { gte: month }, isWholesale: true } }), db.order.aggregate({ _sum: { total: true }, where: { createdAt: { gte: month }, ...live } }),
     db.wholesaleCode.count({ where: { isActive: true } }), db.rep.count({ where: { isActive: true } }), db.product.count({ where: { isActive: true, wholesalePrice: null } }), db.product.count({ where: { isActive: true, inStock: false } }),
-    db.order.groupBy({ by: ["status"], _count: true }), db.order.groupBy({ by: ["source"], _count: true, where: { source: { not: null } }, orderBy: { _count: { source: "desc" } }, take: 6 }),
+    db.order.groupBy({ by: ["status"], _count: true }), db.order.groupBy({ by: ["storeId"], _count: true, where: { storeId: { not: null } }, orderBy: { _count: { storeId: "desc" } }, take: 6 }),
     db.orderItem.groupBy({ by: ["productId"], _sum: { quantity: true }, where: { order: { createdAt: { gte: d30 }, ...live } }, orderBy: { _sum: { quantity: "desc" } }, take: 5 }),
     db.order.findMany({ include: { customer: true, rep: true }, orderBy: { id: "desc" }, take: 6 }),
     db.order.findMany({ where: { createdAt: { gte: from } }, select: { createdAt: true } }),
   ]);
   const names = new Map((await db.product.findMany({ where: { id: { in: top.map((t) => t.productId) } }, select: { id: true, nameAr: true } })).map((p) => [p.id, p.nameAr]));
+  const storeNames = new Map((await db.store.findMany({ where: { id: { in: bySrc.map((x) => x.storeId!) } }, select: { id: true, name: true } })).map((x) => [x.id, x.name]));
   const maxTop = Math.max(1, ...top.map((t) => t._sum.quantity ?? 0)), stat = (s: string) => byStatus.find((x) => x.status === s)?._count ?? 0;
   // الطلبات اليومية لآخر 14 يومًا
   const series = Array.from({ length: DAYS }, (_, i) => { const d = new Date(from.getTime() + i * 864e5); return { d, n: recent.filter((o) => o.createdAt >= d && o.createdAt < new Date(d.getTime() + 864e5)).length }; });
@@ -59,7 +60,7 @@ export default async function Dash() {
 
     <div className="grid lg:grid-cols-3 gap-4 md:gap-5">
       <Card title="الأكثر طلبًا" desc="آخر 30 يومًا · بالكمية">{top.length === 0 ? <p className="text-steel text-sm py-6 text-center">لا توجد بيانات بعد.</p> : <div className="space-y-3">{top.map((t) => <div key={t.productId} className="group" title={`${names.get(t.productId)}: ${t._sum.quantity}`}><div className="flex justify-between gap-2 text-sm mb-1"><span className="truncate">{names.get(t.productId)}</span><b>{t._sum.quantity}</b></div><div className="h-2 bg-soft rounded-full"><div className="h-2 bg-steel group-hover:bg-ink rounded-full transition-colors" style={{ width: `${((t._sum.quantity ?? 0) / maxTop) * 100}%` }} /></div></div>)}</div>}</Card>
-      <Card title="مصادر الطلبات (QR)" desc="من أين جاء العملاء">{bySrc.length === 0 ? <p className="text-steel text-sm py-6 text-center">أضف ?src=اسم_المحل لرمز QR لتتبع المصدر.</p> : <div className="divide-y divide-line text-sm">{bySrc.map((x) => <div key={x.source} className="flex justify-between py-2"><span dir="ltr">{x.source}</span><b>{x._count}</b></div>)}</div>}</Card>
+      <Card title="الطلبات حسب المحل" desc="من رموز QR" action={<a href="/admin/qr" className="text-sm font-bold text-steel hover:text-ink">المحلات</a>}>{bySrc.length === 0 ? <p className="text-steel text-sm py-6 text-center">أضف محلاتك من صفحة رموز QR لتعرف من أين يأتي كل عميل.</p> : <div className="divide-y divide-line text-sm">{bySrc.map((x) => <a key={x.storeId} href={`/admin/orders?store=${x.storeId}`} className="flex justify-between py-2 hover:text-accent"><span>{storeNames.get(x.storeId!) ?? "—"}</span><b>{x._count}</b></a>)}</div>}</Card>
       <Card title="نظرة على الكتالوج"><div className="grid grid-cols-2 gap-2 text-sm">{([["المنتجات", pAll, `${pOn} ظاهر`, "/admin/products"], ["التصنيفات", cats, "", "/admin/categories"], ["أكواد الجملة", codes, "فعّال", "/admin/codes"], ["المناديب", reps, "فعّال", "/admin/reps"]] as const).map(([l, n, sub, h]) => <Link key={l} href={h} className="rounded-xl bg-soft p-3 hover:bg-line"><small className="block text-xs text-steel font-bold">{l}</small><b className="font-display text-xl">{n}</b>{sub && <small className="text-xs text-steel ms-1">{sub}</small>}</Link>)}</div></Card>
     </div>
 

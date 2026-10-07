@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { getNavCategories } from "@/lib/catalog";
 import { getSettings } from "@/lib/settings";
 import { getLang, pick, t, txt } from "@/lib/lang";
 import { isPhone, prettyPhone, telHref, waHref } from "@/lib/phone";
@@ -8,7 +8,7 @@ const SOCIAL: [string, string, (h: string) => string][] = [["social.instagram", 
 const url = (v: string, f: (h: string) => string) => (/^https?:\/\//.test(v) ? v : f(v.replace(/^@/, "")));
 // التذييل: الشعار والوصف، روابط سريعة، التصنيفات، التواصل، ثم شريط الهوية (ليموني بخط برتقالي وشعار DYLLU, Discover your Power)
 export default async function SiteFooter() {
-  const [s, cats] = await Promise.all([getSettings(), db.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, take: 8, select: { slug: true, nameAr: true, nameEn: true } })]);
+  const [s, cats] = await Promise.all([getSettings(), getNavCategories().then((c) => c.slice(0, 8))]);
   const L = getLang(), name = s["site.name"] || "DYLLU", wa = s["whatsapp.number"], hasWa = isPhone(wa), call = isPhone(s["contact.phone"]) ? s["contact.phone"] : hasWa ? wa : "";
   const Col = ({ title, children }: { title: string; children: React.ReactNode }) => <div><b className="block text-white font-display mb-4">{title}</b><ul className="space-y-2.5 text-sm">{children}</ul></div>;
   const Item = ({ href, icon, children, ext }: { href: string; icon?: IconName; children: React.ReactNode; ext?: boolean }) => <li><a href={href} {...(ext && { target: "_blank", rel: "noopener noreferrer" })} className="inline-flex items-center gap-2 text-white/70 hover:text-lime transition">{icon && <Icon n={icon} s={16} />}{children}</a></li>;

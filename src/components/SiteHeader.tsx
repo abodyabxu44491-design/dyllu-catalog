@@ -1,4 +1,4 @@
-import { db } from "@/lib/db";
+import { getNavCategories } from "@/lib/catalog";
 import { getSettings } from "@/lib/settings";
 import { getLang, txt } from "@/lib/lang";
 import { getWholesale } from "@/lib/wholesale";
@@ -9,9 +9,10 @@ import WsBar from "./WsBar";
 import HeaderNav from "./HeaderNav";
 import SearchBox from "./SearchBox";
 import MobileSearch from "./MobileSearch";
+import InstallApp from "./InstallApp";
 // هيدر ثابت: الشعار (3 ضغطات متتالية = كود الجملة) + روابط (كمبيوتر) + بحث فوري + اللغة + السلة، وشريط الهوية أسفله
 export default async function SiteHeader() {
-  const [s, ws, cats] = await Promise.all([getSettings(), getWholesale(), db.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { slug: true, nameAr: true, nameEn: true, image: true } })]);
+  const [s, ws, cats] = await Promise.all([getSettings(), getWholesale(), getNavCategories()]);
   const L = getLang(), en = L === "en", cur = en ? s["currency.en"] || "SAR" : s["currency.ar"], hidden = en ? "Contact us" : s["price.hiddenLabel.ar"], ph = txt(s, L, "search.ph");
   return (<div className="sticky top-0 z-40 no-print">{ws && <WsBar name={ws.name} />}
     <header className="bg-white/95 backdrop-blur">
@@ -19,7 +20,7 @@ export default async function SiteHeader() {
         <LogoTap><img src={s["logo.url"] || "/brand/logo-wordmark.png"} alt={s["site.name"] || "DYLLU"} className="h-9 md:h-11 w-auto max-w-[150px] object-contain" /></LogoTap>
         <HeaderNav cats={cats} />
         <div className="hidden md:block flex-1 max-w-xl ms-auto"><SearchBox placeholder={ph} cur={cur} hidden={hidden} /></div>
-        <div className="flex items-center gap-2 ms-auto md:ms-0"><MobileSearch placeholder={ph} cur={cur} hidden={hidden} cats={cats} /><LangToggle /><CartButton /></div>
+        <div className="flex items-center gap-2 ms-auto md:ms-0"><InstallApp en={en} /><MobileSearch placeholder={ph} cur={cur} hidden={hidden} cats={cats} /><LangToggle /><CartButton /></div>
       </div>
       <div className="h-[3px] bg-lime shadow-[0_1px_0_theme(colors.accent)]" />
     </header></div>);

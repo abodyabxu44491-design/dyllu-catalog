@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
@@ -17,7 +18,8 @@ import AddToCart from "@/components/AddToCart";
 import Icon from "@/components/Icon";
 import { Crumbs, SectionHead } from "@/components/ui";
 export const dynamic = "force-dynamic";
-const find = (slug: string) => db.product.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true }, include: { images: { orderBy: { sortOrder: "asc" } }, specs: { orderBy: { sortOrder: "asc" } }, features: { orderBy: { sortOrder: "asc" } }, documents: true, category: true } });
+// cache: العنوان (generateMetadata) والصفحة يشتركان في استعلام واحد
+const find = cache((slug: string) => db.product.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true }, include: { images: { orderBy: { sortOrder: "asc" } }, specs: { orderBy: { sortOrder: "asc" } }, features: { orderBy: { sortOrder: "asc" } }, documents: true, category: true } }));
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const p = await find(params.slug), L = getLang();
   return p ? { title: pick(L, p.nameAr, p.nameEn), description: (pick(L, p.descriptionAr, p.descriptionEn) || p.nameEn).slice(0, 160), openGraph: { title: pick(L, p.nameAr, p.nameEn), images: p.images[0] ? [p.images[0].url] : [] } } : {};
@@ -29,7 +31,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   if (!p) notFound();
   const L = getLang(), en = L === "en", ws = !!(await getWholesale());
   const related = await db.product.findMany({ where: { categoryId: p.categoryId, isActive: true, id: { not: p.id } }, include: cardInclude, orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }], take: 4 });
-  const name = pick(L, p.nameAr, p.nameEn), other = en ? p.nameAr : p.nameEn, price = priceLabel(p, s, L, ws), priced = priceOf(p, ws) != null;
+  const name = pick(L, p.nameAr, p.nameEn), other = (en ? p.nameAr : p.nameEn) === name ? "" : en ? p.nameAr : p.nameEn, price = priceLabel(p, s, L, ws), priced = priceOf(p, ws) != null;
   const desc = pick(L, p.descriptionAr, p.descriptionEn), cat = p.category, catName = pick(L, cat.nameAr, cat.nameEn), base = process.env.NEXT_PUBLIC_SITE_URL;
   const wa = s["whatsapp.number"], askUrl = isPhone(wa) ? waHref(wa, `${en ? "Hello, I'd like to ask about" : "السلام عليكم، أرغب في الاستفسار عن"}: ${p.nameEn || p.nameAr}${p.sku ? ` (${p.sku})` : ""}${base ? `\n${base}/products/${p.slug}` : ""}`) : undefined;
   const call = isPhone(s["contact.phone"]) ? s["contact.phone"] : isPhone(wa) ? wa : "";
@@ -45,7 +47,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
         <div className="space-y-2">
           <div className="flex items-center gap-2 text-xs font-extrabold tracking-widest text-accent" dir="ltr" style={{ justifyContent: "flex-start" }}>DYLLU{p.sku && <span className="text-steel">· {p.sku}</span>}</div>
           <h1 className="text-2xl md:text-3xl lg:text-4xl leading-tight">{name}</h1>
-          <p className="text-steel md:text-lg" dir={en ? "rtl" : "ltr"} style={{ textAlign: "start" }}>{other}</p>
+          {other && <p className="text-steel md:text-lg" dir={en ? "rtl" : "ltr"} style={{ textAlign: "start" }}>{other}</p>}
           <div className="flex flex-wrap gap-2 pt-1 text-xs font-bold">
             <Link href={`/categories/${cat.slug}`} className="inline-flex items-center gap-1 bg-soft rounded-full px-3 py-1.5 hover:bg-line"><Icon n="grid" s={14} />{catName}</Link>
             <span className={`rounded-full px-3 py-1.5 inline-flex items-center gap-1 ${p.inStock ? "bg-lime/25 text-[#586000]" : "bg-accent/10 text-accent"}`}><Icon n={p.inStock ? "check" : "clock"} s={14} />{p.inStock ? t(L, "inStock") : t(L, "outOfStock")}</span>

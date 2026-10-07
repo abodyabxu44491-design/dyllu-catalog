@@ -1,3 +1,5 @@
+import { cache } from "react";
+import { db } from "./db";
 import type { Prisma } from "@prisma/client";
 // استعلامات الكتالوج المشتركة بين الصفحات والـ API: البحث (الاسم عربي/إنجليزي + رقم الموديل) والترتيب
 export function searchWhere(q?: string | null): Prisma.ProductWhereInput {
@@ -13,3 +15,5 @@ export function orderByFor(sort?: string, en = false): Prisma.ProductOrderByWith
   return [o, { id: "asc" }];
 }
 export const cardInclude = { images: { orderBy: { sortOrder: "asc" as const }, take: 1 } };
+// التصنيفات الظاهرة للتنقل (الهيدر، التذييل، شرائح الفلاتر): استعلام واحد لكل طلب
+export const getNavCategories = cache(() => db.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { id: true, slug: true, nameAr: true, nameEn: true, image: true } }));

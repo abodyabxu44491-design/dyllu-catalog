@@ -52,6 +52,7 @@ model Product {
   features ProductFeature[]
   documents ProductDocument[]
   items OrderItem[]
+  banners Banner[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   @@index([categoryId, isActive])
@@ -115,10 +116,13 @@ model Order {
   wholesaleCode WholesaleCode? @relation(fields: [wholesaleCodeId], references: [id])
   repId Int?
   rep Rep? @relation(fields: [repId], references: [id])
+  storeId Int? // المحل الذي جاء منه العميل (رمز QR)
+  store Store? @relation(fields: [storeId], references: [id])
   items OrderItem[]
   createdAt DateTime @default(now())
   @@index([createdAt])
   @@index([status])
+  @@index([storeId])
 }
 model OrderItem {
   id Int @id @default(autoincrement())
@@ -127,6 +131,7 @@ model OrderItem {
   productId Int
   product Product @relation(fields: [productId], references: [id])
   nameSnapshot String
+  skuSnapshot String?
   unitPrice Decimal? @db.Decimal(10,2)
   quantity Int
 }
@@ -167,11 +172,18 @@ model Rep {
 enum BannerType {
   IMAGE
   IMAGE_TEXT
+  PRODUCT // إعلان منتج: تصميم جاهز يُولَّد من بيانات المنتج ويفتح صفحته عند الضغط
 }
 model Banner {
   id Int @id @default(autoincrement())
   type BannerType @default(IMAGE_TEXT)
-  image String
+  image String @default("")
+  productId Int?
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  template String @default("spotlight") // قالب تصميم إعلان المنتج
+  badgeAr String? // شارة العرض مثل «خصم 20%»
+  badgeEn String?
+  showPrice Boolean @default(true)
   titleAr String?
   titleEn String?
   subtitleAr String?
@@ -184,5 +196,29 @@ model Banner {
   endsAt DateTime?
   sortOrder Int @default(0)
   isActive Boolean @default(true)
+  createdAt DateTime @default(now())
+}
+
+// المحلات: لكل محل رمز QR خاص (?src=code) يُحفظ هنا، ويُنسب له كل عميل وطلب جاء منه
+model Store {
+  id Int @id @default(autoincrement())
+  name String
+  code String @unique
+  city String?
+  notes String?
+  scans Int @default(0)
+  isActive Boolean @default(true)
+  orders Order[]
+  createdAt DateTime @default(now())
+}
+
+// الصور والملفات المرفوعة تُحفظ في قاعدة البيانات (إن لم يُضبط S3)، فتبقى بعد إعادة النشر على Render/Vercel
+// وتُعرض من /uploads/<name>. الصور مضغوطة WebP (عادة 100–300KB)
+model Upload {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique
+  type      String
+  size      Int
+  data      Bytes
   createdAt DateTime @default(now())
 }

@@ -4,5 +4,5 @@ import { saveUpload } from "@/lib/storage";
 export async function POST(req: Request) {
   const deny = await denyUnlessAdmin(); if (deny) return deny;
   try { const f = (await req.formData()).get("file"); return NextResponse.json({ url: await saveUpload(f as File) }); }
-  catch (e) { return NextResponse.json({ error: (e as Error).message }, { status: 400 }); }
+  catch (e) { return NextResponse.json({ error: /[\u0600-\u06FF]/.test((e as Error).message) ? (e as Error).message : "تعذر رفع الملف، حاول مرة أخرى" }, { status: 400 }); }
 }

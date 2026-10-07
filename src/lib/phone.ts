@@ -10,7 +10,8 @@ export function normalizePhone(raw: string) {
   return d;
 }
 // رقم صالح للاتصال وواتساب: 8–15 رقمًا بعد التوحيد (وليس رقمًا تجريبيًا مثل 9665XXXXXXXX)
-export const isPhone = (raw?: string | null) => !!raw && !/x/i.test(raw) && /^\d{8,15}$/.test(normalizePhone(raw));
+// رقم محلي يبدأ بصفر لم يتحول لصيغة دولية = ناقص أو زائد (مثل 05512345)، وجوال سعودي يجب أن يكون 9 أرقام بعد 966
+export const isPhone = (raw?: string | null) => { if (!raw || /x/i.test(raw)) return false; const d = normalizePhone(raw); return /^\d{8,15}$/.test(d) && !/^0[1-9]/.test(d) && !(/^9665/.test(d) && d.length !== 12); };
 export const isMobileSA = (raw: string) => /^9665\d{8}$/.test(normalizePhone(raw));
 // عرض مقروء: ‎+966 55 123 4567 (السعودي) أو + والرقم كما هو لغيره
 export function prettyPhone(raw: string) {

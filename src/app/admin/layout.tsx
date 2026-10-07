@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import AdminNav from "@/components/admin/AdminNav";
 import { currentAdmin } from "@/lib/adminAuth";
 import { db } from "@/lib/db";
-export const metadata = { title: "لوحة التحكم", robots: { index: false } };
+export const metadata = { title: "لوحة التحكم", robots: { index: false }, manifest: "/admin-manifest.webmanifest", appleWebApp: { capable: true, title: "DYLLU Admin" } };
 export const dynamic = "force-dynamic";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await currentAdmin();

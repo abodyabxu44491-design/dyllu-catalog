@@ -3,6 +3,8 @@ import Link from "next/link";
 import Icon from "./Icon";
 import { LangContext } from "@/lib/useLang";
 import { useToast } from "@/store/toast";
+import { answer, useConfirm } from "@/store/confirm";
+import Modal from "./Modal";
 import type { Lang } from "@/lib/lang";
 function Toaster() {
   const { items, drop } = useToast();
@@ -14,6 +16,15 @@ function Toaster() {
       <button aria-label="close" onClick={() => drop(t.id)} className="btn-icon w-8 h-8 text-white/70 hover:text-white"><Icon n="close" s={16} /></button></div>))}
   </div>);
 }
+function ConfirmHost() {
+  const q = useConfirm((s) => s.q);
+  return (<Modal open={!!q} onClose={() => answer(false)} icon={q?.danger ? "trash" : "info"} title={q?.title} sub={q?.body}>
+    <div className="flex flex-col-reverse sm:flex-row gap-2 pt-1">
+      <button onClick={() => answer(false)} className="btn btn-lg btn-ghost sm:flex-1">{q?.cancel ?? "إلغاء"}</button>
+      <button autoFocus onClick={() => answer(true)} className={`btn btn-lg sm:flex-1 ${q?.danger ? "bg-accent text-white hover:bg-accent/90" : "btn-lime"}`}>{q?.ok ?? "تأكيد"}</button>
+    </div>
+  </Modal>);
+}
 export default function Providers({ lang, children }: { lang: Lang; children: React.ReactNode }) {
-  return <LangContext.Provider value={lang}>{children}<Toaster /></LangContext.Provider>;
+  return <LangContext.Provider value={lang}>{children}<Toaster /><ConfirmHost /></LangContext.Provider>;
 }
