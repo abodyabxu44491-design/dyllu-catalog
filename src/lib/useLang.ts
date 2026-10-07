@@ -1,4 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
-// لغة الواجهة في المكونات التفاعلية (الكوكي lang يضبطه زر اللغة)
-export function useLang() { const [l, setL] = useState("ar"); useEffect(() => setL(document.cookie.includes("lang=en") ? "en" : "ar"), []); return l; }
+import { createContext, useContext } from "react";
+import type { Lang } from "./lang";
+// لغة الواجهة في المكونات التفاعلية: تأتي من السيرفر عبر Providers في layout، فلا يوجد وميض بين العربية والإنجليزية
+export const LangContext = createContext<Lang>("ar");
+export const useLang = () => useContext(LangContext);

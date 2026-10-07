@@ -1,18 +1,26 @@
-import Link from "next/link";
+import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { getLang } from "@/lib/lang";
+import { getLang, txt } from "@/lib/lang";
 import { getWholesale } from "@/lib/wholesale";
-import Icon from "./Icon";
 import LangToggle from "./LangToggle";
 import CartButton from "./CartButton";
 import LogoTap from "./LogoTap";
 import WsBar from "./WsBar";
-// هيدر ثابت: الشعار (3 ضغطات متتالية = كود الجملة) + اللغة + السلة. شريط الهوية الثلاثي أسفله.
-export default async function SiteHeader({ back }: { back?: string }) {
-  const [s, ws] = await Promise.all([getSettings(), getWholesale()]), L = getLang();
-  return (<div className="sticky top-0 z-40">{ws && <WsBar name={ws.name} />}
-    <header className="relative bg-white h-16 px-4 flex items-center justify-between after:absolute after:inset-x-0 after:bottom-0 after:h-[3px] after:bg-gradient-to-r after:from-lime after:via-accent after:to-steel">
-      {back ? <Link href={back} className="font-bold text-steel"><span className="inline-flex items-center gap-1"><Icon n="chev" s={18} className="rotate-180 rtl:rotate-0" />{L === "en" ? "Back" : "رجوع"}</span></Link>
-        : <LogoTap><span className="flex items-center gap-2.5"><img src={s["logo.url"] || "/brand/logo-wordmark.png"} alt={s["site.name"] || "DYLLU"} className="h-9 w-auto max-w-[150px] object-contain" /></span></LogoTap>}
-      <div className="flex items-center gap-2"><LangToggle lang={L} /><CartButton lang={L} ws={!!ws} /></div></header></div>);
+import HeaderNav from "./HeaderNav";
+import SearchBox from "./SearchBox";
+import MobileSearch from "./MobileSearch";
+// هيدر ثابت: الشعار (3 ضغطات متتالية = كود الجملة) + روابط (كمبيوتر) + بحث فوري + اللغة + السلة، وشريط الهوية أسفله
+export default async function SiteHeader() {
+  const [s, ws, cats] = await Promise.all([getSettings(), getWholesale(), db.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, select: { slug: true, nameAr: true, nameEn: true, image: true } })]);
+  const L = getLang(), en = L === "en", cur = en ? s["currency.en"] || "SAR" : s["currency.ar"], hidden = en ? "Contact us" : s["price.hiddenLabel.ar"], ph = txt(s, L, "search.ph");
+  return (<div className="sticky top-0 z-40 no-print">{ws && <WsBar name={ws.name} />}
+    <header className="bg-white/95 backdrop-blur">
+      <div className="wrap flex items-center gap-2 sm:gap-4 h-16 md:h-[76px]">
+        <LogoTap><img src={s["logo.url"] || "/brand/logo-wordmark.png"} alt={s["site.name"] || "DYLLU"} className="h-9 md:h-11 w-auto max-w-[150px] object-contain" /></LogoTap>
+        <HeaderNav cats={cats} />
+        <div className="hidden md:block flex-1 max-w-xl ms-auto"><SearchBox placeholder={ph} cur={cur} hidden={hidden} /></div>
+        <div className="flex items-center gap-2 ms-auto md:ms-0"><MobileSearch placeholder={ph} cur={cur} hidden={hidden} cats={cats} /><LangToggle /><CartButton /></div>
+      </div>
+      <div className="h-[3px] bg-lime shadow-[0_1px_0_theme(colors.accent)]" />
+    </header></div>);
 }

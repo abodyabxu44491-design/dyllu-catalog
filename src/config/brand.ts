@@ -1,5 +1,6 @@
-// الهوية البصرية: تعديل الألوان من هنا فقط. الشعار والنصوص تُعدَّل من لوحة التحكم (جدول Setting).
-export const brand = { lime: "#D0DF00", ink: "#2B2D2F", gray: "#63666A", accent: "#FF6900", soft: "#F4F5F5" }; // Pantone 389C / Cool Gray 10C / 1505C
+// الهوية البصرية (دليل DYLLU VI): تعديل الألوان من هنا فقط. الشعار والنصوص تُعدَّل من لوحة التحكم (جدول Setting).
+// Pantone 389C = lime · Pantone 1505C = accent (برتقالي) · Pantone Cool Gray 10C = gray. ink و soft و line مشتقة للنصوص والخلفيات.
+export const brand = { lime: "#D0DF00", limeDark: "#B4C100", ink: "#2B2D2F", gray: "#63666A", accent: "#FF6900", soft: "#F4F5F5", line: "#E6E7E8" };
 export const defaultSettings: Record<string, string> = {
   "home.title.ar": "أدوات ومعدات DYLLU احترافية لكل استخدام",
   "home.title.en": "Professional DYLLU tools for every job",
@@ -10,6 +11,7 @@ export const defaultSettings: Record<string, string> = {
   "home.cta.en": "Browse products",
   "home.cats.ar": "التصنيفات", "home.cats.en": "Categories",
   "home.featured.ar": "المنتجات المميزة", "home.featured.en": "Featured",
+  "home.new.ar": "وصل حديثًا", "home.new.en": "New arrivals",
   // روابط الأقسام: كل رابط يذهب مباشرة إلى وجهته (بدون صفحة وسيطة)
   "home.allCats.ar": "عرض كل التصنيفات", "home.allCats.en": "View all categories",
   "home.allProducts.ar": "عرض كل المنتجات", "home.allProducts.en": "View all products",
@@ -18,11 +20,14 @@ export const defaultSettings: Record<string, string> = {
   "home.step1.ar": "اختر المنتجات", "home.step1.en": "Pick products",
   "home.step2.ar": "أضف إلى السلة", "home.step2.en": "Add to cart",
   "home.step3.ar": "اختر مندوبك", "home.step3.en": "Choose your rep",
-  "search.ph.ar": "ابحث", "search.ph.en": "Search",
+  "search.ph.ar": "ابحث باسم المنتج أو رقم الموديل", "search.ph.en": "Search by product name or model",
   "footer.text.en": "Professional tools & equipment",
   "footer.tagline.ar": "DYLLU, Discover your Power", "footer.tagline.en": "DYLLU, Discover your Power",
   "home.cta.ar": "استعرض المنتجات",
   "whatsapp.number": "9665XXXXXXXX",
+  "contact.email": "",
+  "contact.address.ar": "", "contact.address.en": "",
+  "social.instagram": "", "social.x": "", "social.tiktok": "", "social.snapchat": "",
   "logo.url": "",
   "site.name": "DYLLU",
   "price.hiddenLabel.ar": "تواصل معنا",

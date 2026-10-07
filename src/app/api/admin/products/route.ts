@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
 import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { db } from "@/lib/db";
-import { saveProduct } from "@/lib/admin/products";
-// POST {id?, ...حقول المنتج} إنشاء/تعديل | PATCH {id, isActive|inStock|isFeatured|showPrice|allowCart} تبديل سريع | DELETE ?id=
+import { duplicateProduct, saveProduct } from "@/lib/admin/products";
+// POST {id?, ...حقول المنتج} إنشاء/تعديل | POST {action:"duplicate", id} نسخ منتج (مخفي) | PATCH {id, isActive|inStock|isFeatured|showPrice|allowCart} تبديل سريع | DELETE ?id=
 export async function POST(req: Request) {
   const deny = await denyUnlessAdmin(); if (deny) return deny;
-  try { const b = await req.json(); return NextResponse.json(await saveProduct(b.id ?? null, b)); }
+  try { const b = await req.json(); if (b.action === "duplicate") return NextResponse.json(await duplicateProduct(Number(b.id))); return NextResponse.json(await saveProduct(b.id ?? null, b)); }
   catch (e) { return NextResponse.json({ error: (e as { code?: string }).code === "P2002" ? "رمز SKU أو الرابط مستخدم لمنتج آخر" : (e as Error).message }, { status: 400 }); }
 }
 const FLAGS = ["isActive", "inStock", "isFeatured", "showPrice", "allowCart"];

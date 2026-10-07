@@ -1,0 +1,23 @@
+// نصوص الواجهة الثابتة (تعمل في السيرفر والمتصفح): أضف مفتاحًا جديدًا هنا بالعربية والإنجليزية
+export type Lang = "ar" | "en";
+const T = {
+  home: ["الرئيسية", "Home"], products: ["المنتجات", "Products"], categories: ["التصنيفات", "Categories"], cart: ["السلة", "Cart"], search: ["بحث", "Search"],
+  all: ["كل المنتجات", "All products"], features: ["المميزات", "Features"], specs: ["المواصفات", "Specifications"], description: ["الوصف", "Description"], video: ["فيديو", "Video"], files: ["الملفات", "Files"],
+  back: ["رجوع", "Back"], browse: ["استعرض المنتجات", "Browse products"], searchPh: ["ابحث عن منتج...", "Search products..."],
+  sort: ["الترتيب", "Sort"], sortDefault: ["الافتراضي", "Recommended"], sortNew: ["الأحدث", "Newest"], sortLow: ["السعر: من الأقل", "Price: low to high"], sortHigh: ["السعر: من الأعلى", "Price: high to low"], sortName: ["الاسم", "Name"],
+  inStockOnly: ["المتوفر فقط", "In stock only"], productsCount: ["منتج", "products"], noResults: ["لا توجد منتجات مطابقة", "No matching products"], noResultsSub: ["جرّب كلمة أخرى أو تصفح التصنيفات", "Try another keyword or browse categories"], clearFilters: ["مسح الفلاتر", "Clear filters"],
+  inStock: ["متوفر", "In stock"], outOfStock: ["غير متوفر حاليًا", "Currently unavailable"], featured: ["مميز", "Featured"], wholesale: ["سعر جملة", "Wholesale"], wholesaleAcc: ["حساب جملة", "Wholesale account"], logout: ["خروج", "Sign out"],
+  add: ["أضف", "Add"], addToCart: ["إضافة إلى السلة", "Add to cart"], added: ["تمت الإضافة", "Added"], addedToCart: ["أُضيف إلى السلة", "Added to cart"], viewCart: ["عرض السلة", "View cart"], qty: ["الكمية", "Qty"],
+  price: ["السعر", "Price"], contactToOrder: ["تواصل معنا للطلب", "Contact us to order"], share: ["مشاركة", "Share"], copyLink: ["نسخ الرابط", "Copy link"], copied: ["تم نسخ الرابط", "Link copied"], related: ["منتجات مشابهة", "Related products"], photos: ["صور", "photos"], watchVideo: ["شاهد الفيديو", "Watch video"],
+  sku: ["رقم الموديل", "Model"], category: ["التصنيف", "Category"], askWhatsapp: ["استفسر عبر واتساب", "Ask on WhatsApp"],
+  menu: ["القائمة", "Menu"], contact: ["تواصل معنا", "Contact us"], quickLinks: ["روابط سريعة", "Quick links"], rights: ["جميع الحقوق محفوظة", "All rights reserved"],
+  notFound: ["الصفحة غير موجودة", "Page not found"], notFoundSub: ["ربما حُذفت الصفحة أو تغيّر رابطها", "The page may have been removed or its link changed"], goHome: ["العودة للرئيسية", "Back to home"],
+  error: ["حدث خطأ غير متوقع", "Something went wrong"], errorSub: ["أعد المحاولة بعد لحظات", "Please try again in a moment"], retry: ["إعادة المحاولة", "Try again"],
+  viewAll: ["عرض الكل", "View all"], prev: ["السابق", "Previous"], next: ["التالي", "Next"], close: ["إغلاق", "Close"], filters: ["الفلاتر", "Filters"], apply: ["عرض النتائج", "Show results"],
+  resultsFor: ["نتائج البحث عن", "Results for"],
+} as const;
+export type TKey = keyof typeof T;
+export const t = (l: Lang, k: TKey) => T[k][l === "en" ? 1 : 0];
+export const pick = (l: Lang, ar?: string | null, en?: string | null) => (l === "en" && en ? en : ar ?? "");
+// نص قابل للتعديل من الإعدادات: المفتاح k له نسختان k.ar و k.en (الإنجليزية تعود للعربية إن كانت فارغة)
+export const txt = (s: Record<string, string>, l: Lang, k: string) => (l === "en" ? s[`${k}.en`] || s[`${k}.ar`] : s[`${k}.ar`]) ?? "";

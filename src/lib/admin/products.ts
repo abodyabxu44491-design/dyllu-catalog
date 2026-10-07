@@ -11,3 +11,11 @@ export async function saveProduct(id: number | null, raw: unknown) {
   const [, , , , p] = await db.$transaction([db.productImage.deleteMany(w), db.productSpec.deleteMany(w), db.productFeature.deleteMany(w), db.productDocument.deleteMany(w), db.product.update({ where: { id }, data: { ...data, ...nested } })]);
   return p;
 }
+// نسخة من منتج بكل صوره ومواصفاته (تُنشأ مخفية وبدون SKU حتى تُراجع)
+export async function duplicateProduct(id: number) {
+  const p = await db.product.findUniqueOrThrow({ where: { id }, include: { images: true, specs: true, features: true, documents: true } });
+  const { id: _id, slug: _s, sku: _k, createdAt: _c, updatedAt: _u, images, specs, features, documents, ...d } = p;
+  const strip = <T extends { id: number; productId: number }>(a: T[]) => a.map(({ id: _a, productId: _b, ...x }) => x);
+  return db.product.create({ data: { ...d, nameAr: `${p.nameAr} (نسخة)`, nameEn: `${p.nameEn} (copy)`, isActive: false, isFeatured: false, slug: `${p.slug}-copy-${Date.now().toString(36)}`,
+    images: { create: strip(images) }, specs: { create: strip(specs) }, features: { create: strip(features) }, documents: { create: strip(documents) } } });
+}

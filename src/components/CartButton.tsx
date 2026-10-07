@@ -1,13 +1,14 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
 import Icon from "./Icon";
-import { useCart } from "@/store/cart";
-// زر السلة الثابت في الهيدر: يفتح صفحة السلة الكاملة /cart (عدّاد الكمية فوقه)
-export default function CartButton({ lang }: { lang: string; ws?: boolean }) {
-  const lines = useCart((s) => s.lines), [m, setM] = useState(false);
-  useEffect(() => setM(true), []);
-  const count = m ? lines.reduce((n, l) => n + l.quantity, 0) : 0;
-  return (<Link href="/cart" aria-label={lang === "en" ? "Cart" : "السلة"} className="relative w-11 h-11 rounded-2xl bg-lime text-ink grid place-items-center"><Icon n="cart" s={22} />
-    {count > 0 && <span className="absolute -top-2 -end-2 min-w-[21px] h-[21px] rounded-full bg-accent text-white text-xs font-extrabold grid place-items-center border-2 border-white px-1">{count}</span>}</Link>);
+import { useCartCount } from "@/store/cart";
+import { useLang } from "@/lib/useLang";
+import { t } from "@/lib/i18n";
+// زر السلة في الهيدر: يفتح صفحة السلة (العدّاد ينبض عند كل إضافة)
+export default function CartButton() {
+  const L = useLang(), count = useCartCount();
+  return (<Link href="/cart" aria-label={`${t(L, "cart")} (${count})`} className="relative btn-icon w-11 h-11 bg-lime text-ink hover:bg-lime-dark">
+    <Icon n="cart" s={22} />
+    {count > 0 && <span key={count} className="animate-pop absolute -top-1.5 -end-1.5 min-w-[22px] h-[22px] rounded-full bg-accent text-white text-xs font-extrabold grid place-items-center border-2 border-white px-1">{count > 99 ? "99+" : count}</span>}
+  </Link>);
 }
