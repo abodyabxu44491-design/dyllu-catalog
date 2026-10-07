@@ -10,10 +10,10 @@ type Item = { id: number; slug: string; sku: string | null; inStock: boolean; na
 type Rep = { id: number; name: string; location: string; photo: string | null };
 const D = {
   ar: { title: "سلة الطلب", empty: "السلة فارغة", emptySub: "أضف منتجات وستظهر هنا", browse: "استعرض المنتجات", s1: "المراجعة", s2: "البيانات", s3: "المندوب", count: "عدد القطع", items: "المنتجات", total: "الإجمالي", unp: "+ منتجات بسعر غير محدد (يُحدد سعرها عند التواصل)", co: "إتمام الطلب", clear: "تفريغ السلة", more: "متابعة التصفح", contact: "تواصل معنا", cur: "ريال", each: "للقطعة", summary: "ملخص الطلب", remove: "حذف", out: "غير متوفر حاليًا",
-    info: "بيانات التواصل", infoSub: "نحتاج رقم جوالك فقط للتواصل معك بخصوص الطلب", edit: "تعديل", phone: "رقم الجوال", phoneHint: "مثال: 05XXXXXXXX", city: "المدينة", notes: "ملاحظات", optional: "اختياري", who: "إضافة اسم الشخص أو الشركة", whoSub: "اختياري، يمكنك تركه فارغًا", person: "اسم الشخص", company: "اسم الشركة", next: "اختيار المندوب", sendNow: "إرسال الطلب عبر واتساب",
+    info: "بيانات التواصل", infoSub: "نحتاج اسمك ورقم جوالك للتواصل معك بخصوص الطلب", name: "الاسم", nameHint: "الاسم الكامل", company: "اسم الشركة", errName: "اكتب اسمك", edit: "تعديل", phone: "رقم الجوال", phoneHint: "مثال: 05XXXXXXXX", city: "المدينة", notes: "ملاحظات", optional: "اختياري", next: "اختيار المندوب", sendNow: "إرسال الطلب عبر واتساب",
     pick: "اختر المندوب", pickSub: "اضغط على المندوب وسيُفتح واتساب برسالة طلبك جاهزة للإرسال", via: "أرسل الطلب", back: "رجوع", err: "تحقق من رقم الجوال (8 أرقام على الأقل)", errItems: "تحقق من المنتجات في السلة", many: "محاولات كثيرة، انتظر دقيقة ثم أعد المحاولة", net: "تعذر الاتصال، تحقق من الإنترنت وأعد المحاولة", retry: "إعادة المحاولة", removed: "أُزيلت من السلة منتجات لم تعد متاحة", confirmClear: "تفريغ السلة بالكامل؟", secure: "لن يُرسل الطلب حتى تضغط «إرسال» في واتساب" },
   en: { title: "Your cart", empty: "Your cart is empty", emptySub: "Add products and they will show here", browse: "Browse products", s1: "Review", s2: "Details", s3: "Rep", count: "Items", items: "Products", total: "Total", unp: "+ items with no listed price (quoted on contact)", co: "Checkout", clear: "Clear cart", more: "Keep browsing", contact: "Contact us", cur: "SAR", each: "each", summary: "Order summary", remove: "Remove", out: "Currently unavailable",
-    info: "Contact details", infoSub: "We only need your mobile number to follow up on the order", edit: "Edit", phone: "Mobile number", phoneHint: "e.g. 05XXXXXXXX", city: "City", notes: "Notes", optional: "optional", who: "Add person or company name", whoSub: "Optional, you can leave it empty", person: "Person name", company: "Company name", next: "Choose representative", sendNow: "Send order via WhatsApp",
+    info: "Contact details", infoSub: "We need your name and mobile number to follow up on the order", name: "Full name", nameHint: "Your name", company: "Company name", errName: "Please enter your name", edit: "Edit", phone: "Mobile number", phoneHint: "e.g. 05XXXXXXXX", city: "City", notes: "Notes", optional: "optional", next: "Choose representative", sendNow: "Send order via WhatsApp",
     pick: "Choose your representative", pickSub: "Tap a representative and WhatsApp opens with your order ready to send", via: "Send order", back: "Back", err: "Check your mobile number (at least 8 digits)", errItems: "Check the items in your cart", many: "Too many attempts, wait a minute and retry", net: "Connection problem, check your internet and retry", retry: "Retry", removed: "Unavailable items were removed from your cart", confirmClear: "Clear the whole cart?", secure: "Nothing is sent until you press Send in WhatsApp" },
 };
 const Label = ({ t, opt, children }: { t: string; opt?: string; children: React.ReactNode }) => <label className="block space-y-1.5"><span className="text-sm font-bold">{t}{opt && <small className="text-steel font-normal"> ({opt})</small>}</span>{children}</label>;
@@ -21,14 +21,14 @@ export default function CartPage() {
   const L = useLang(), en = L === "en", d = D[en ? "en" : "ar"], { lines: stored, setQty, clear } = useCart();
   const [items, setItems] = useState<Item[]>([]), [loaded, setLoaded] = useState(false), [ready, setReady] = useState(false);
   const [fail, setFail] = useState(false), [tick, setTick] = useState(0), [removed, setRemoved] = useState(false);
-  const [step, setStep] = useState<1 | 2 | 3>(1), [reps, setReps] = useState<Rep[]>([]), [extra, setExtra] = useState(false), [err, setErr] = useState(""), [busy, setBusy] = useState(false);
+  const [step, setStep] = useState<1 | 2 | 3>(1), [reps, setReps] = useState<Rep[]>([]), [err, setErr] = useState(""), [busy, setBusy] = useState(false);
   const [f, setF] = useState({ name: "", phone: "", company: "", city: "", notes: "" });
   const lines = ready ? stored : []; // قبل التحميل على المتصفح نعرض سلة فارغة كي يطابق HTML السيرفر (تجنب خطأ hydration)
   const key = lines.map((l) => l.productId).join(",");
   useEffect(() => setReady(true), []);
   useEffect(() => { fetch("/api/reps").then((r) => r.json()).then((x) => Array.isArray(x) && setReps(x)).catch(() => {}); }, []);
   // نحفظ بيانات العميل على جهازه فقط لتسهيل الطلب القادم
-  useEffect(() => { try { const v = JSON.parse(localStorage.getItem("dyllu-customer") ?? "null"); if (v) { setF((o) => ({ ...o, ...v, notes: "" })); if (v.name || v.company) setExtra(true); } } catch { /* لا شيء */ } }, []);
+  useEffect(() => { try { const v = JSON.parse(localStorage.getItem("dyllu-customer") ?? "null"); if (v) setF((o) => ({ ...o, ...v, notes: "" })); } catch { /* لا شيء */ } }, []);
   useEffect(() => { window.scrollTo({ top: 0, behavior: "smooth" }); }, [step]);
   useEffect(() => {
     if (!ready) return;
@@ -44,13 +44,13 @@ export default function CartPage() {
   const rows = lines.map((l) => ({ l, p: items.find((i) => i.id === l.productId) })).filter((r): r is { l: (typeof lines)[number]; p: Item } => !!r.p);
   const total = rows.reduce((t, r) => t + (r.p.price ?? 0) * r.l.quantity, 0), qty = rows.reduce((t, r) => t + r.l.quantity, 0), unpriced = rows.some((r) => r.p.price == null);
   const nm = (p: Item) => (en ? p.nameEn : p.nameAr), money = (n: number) => `${n.toLocaleString("en-US")} ${d.cur}`;
-  const phoneOk = toAsciiDigits(f.phone).replace(/\D/g, "").length >= 8;
-  function next() { if (!phoneOk) return setErr(d.err); if (!rows.length) return setErr(d.errItems); setErr(""); reps.length ? setStep(3) : send(); }
+  const phoneOk = toAsciiDigits(f.phone).replace(/\D/g, "").length >= 8, nameOk = f.name.trim().length >= 2;
+  function next() { if (!nameOk) return setErr(d.errName); if (!phoneOk) return setErr(d.err); if (!rows.length) return setErr(d.errItems); setErr(""); reps.length ? setStep(3) : send(); }
   // اختيار المندوب = إنشاء الطلب (السعر من السيرفر) ثم فتح واتساب المندوب برسالة جاهزة
   async function send(repId?: number) {
     setErr(""); setBusy(true);
     try {
-      const customer = { name: extra && f.name.trim() ? f.name.trim() : undefined, company: extra && f.company.trim() ? f.company.trim() : undefined, phone: f.phone.trim(), city: f.city.trim() || undefined };
+      const customer = { name: f.name.trim(), company: f.company.trim() || undefined, phone: f.phone.trim(), city: f.city.trim() || undefined };
       const res = await fetch("/api/orders", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ customer, notes: f.notes.trim() || undefined, source: localStorage.getItem("dyllu-src") || undefined, repId, items: rows.map((r) => ({ productId: r.l.productId, quantity: r.l.quantity })) }) });
       const j = await res.json().catch(() => ({}));
       if (!res.ok || !j.whatsappUrl) return setErr(res.status === 429 ? d.many : d.err);
@@ -94,10 +94,12 @@ export default function CartPage() {
           <div className="flex justify-between text-sm pt-1"><Link href="/products" className="inline-flex items-center gap-1 font-bold text-steel hover:text-ink"><Icon n="chev" s={16} className="rotate-180 rtl:rotate-0" />{d.more}</Link><button className="text-accent font-bold" onClick={() => confirm(d.confirmClear) && clear()}>{d.clear}</button></div></>}
         {step === 2 && <div className="card p-4 sm:p-6 space-y-4">
           <div><h2 className="text-lg">{d.info}</h2><p className="text-sm text-steel mt-1">{d.infoSub}</p></div>
-          <Label t={d.phone}><input className={`field ${err && !phoneOk ? "border-accent ring-4 ring-accent/15" : ""}`} placeholder={d.phoneHint} inputMode="tel" autoComplete="tel" dir="ltr" value={f.phone} onChange={(e) => { setF({ ...f, phone: toAsciiDigits(e.target.value) }); setErr(""); }} onKeyDown={(e) => e.key === "Enter" && next()} /></Label>
-          <label className="flex items-start gap-3 rounded-2xl border border-line p-3 cursor-pointer hover:bg-soft"><input type="checkbox" className="mt-1 w-5 h-5 accent-ink" checked={extra} onChange={(e) => setExtra(e.target.checked)} /><span><b className="block text-sm">{d.who}</b><small className="text-steel">{d.whoSub}</small></span></label>
-          {extra && <div className="grid sm:grid-cols-2 gap-3"><Label t={d.person}><input className="field" autoComplete="name" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} /></Label><Label t={d.company}><input className="field" autoComplete="organization" value={f.company} onChange={(e) => setF({ ...f, company: e.target.value })} /></Label></div>}
-          <Label t={d.city} opt={d.optional}><input className="field" autoComplete="address-level2" value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} /></Label>
+          <div className="grid sm:grid-cols-2 gap-3">
+            <Label t={d.name}><input className={`field ${err === d.errName ? "border-accent ring-4 ring-accent/15" : ""}`} placeholder={d.nameHint} autoComplete="name" enterKeyHint="next" value={f.name} onChange={(e) => { setF({ ...f, name: e.target.value }); setErr(""); }} /></Label>
+            <Label t={d.phone}><input className={`field ${err === d.err && !phoneOk ? "border-accent ring-4 ring-accent/15" : ""}`} placeholder={d.phoneHint} inputMode="tel" autoComplete="tel" dir="ltr" enterKeyHint="next" value={f.phone} onChange={(e) => { setF({ ...f, phone: toAsciiDigits(e.target.value) }); setErr(""); }} /></Label>
+            <Label t={d.company} opt={d.optional}><input className="field" autoComplete="organization" value={f.company} onChange={(e) => setF({ ...f, company: e.target.value })} /></Label>
+            <Label t={d.city} opt={d.optional}><input className="field" autoComplete="address-level2" value={f.city} onChange={(e) => setF({ ...f, city: e.target.value })} /></Label>
+          </div>
           <Label t={d.notes} opt={d.optional}><textarea className="field" rows={3} value={f.notes} onChange={(e) => setF({ ...f, notes: e.target.value })} /></Label>
           {err && <p className="text-accent font-bold text-sm flex items-center gap-2"><Icon n="alert" s={16} />{err}</p>}
           <button onClick={() => setStep(1)} className="btn btn-md btn-ghost"><Icon n="chev" s={16} className="rotate-180 rtl:rotate-0" />{d.back}</button>

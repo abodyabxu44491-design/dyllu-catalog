@@ -66,3 +66,30 @@
 
 @media print { .no-print { display: none !important; } body { background: #fff; } }
 @media (prefers-reduced-motion: reduce) { *, ::before, ::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; } }
+
+/* تصميم الإعلانات (AdCanvas): مقاسات نسبية لصندوق الإعلان. الصندوق الطويل (جوال 16:9) يكبّر النصوص ليسهل قراءتها،
+   والاختيار حسب شكل الصندوق لا عرضه، فتبقى معاينة لوحة التحكم مطابقة للعرض الحقيقي */
+.ad-text { inset-inline-start: 6cqw; top: 20cqh; bottom: 10cqh; width: 50cqw; gap: 2.4cqh; }
+.ad-media { inset-inline-end: 5cqw; top: 9cqh; bottom: 9cqh; width: 40cqw; }
+.ad-logo { width: 11cqw; max-width: 26cqh; top: 6cqh; inset-inline-start: 6cqw; }
+.ad-img { border-radius: 3cqh; filter: drop-shadow(0 3cqh 4cqh rgba(0,0,0,.28)); }
+.ad-title { font-size: min(4.6cqw, 12.5cqh); }
+.ad-sub { font-size: min(1.8cqw, 5.4cqh); }
+.ad-price { font-size: min(3.4cqw, 9.5cqh); }
+.ad-cta { font-size: min(1.6cqw, 4.8cqh); padding: 1.6cqh 2.8cqw; gap: .8cqw; }
+.ad-badge { font-size: min(1.5cqw, 4.6cqh); padding: 1cqh 2cqw; }
+.ad-sticker { width: 30cqh; height: 30cqh; padding: 3cqh; font-size: min(2.2cqw, 6.5cqh); }
+.ad-sku { font-size: min(1.1cqw, 3.4cqh); bottom: 5cqh; inset-inline-end: 5cqw; }
+.adt-pad { padding: 6cqh 6cqw; gap: 2cqh; }
+.adt-title { font-size: min(4.8cqw, 13cqh); }
+.adt-sub { font-size: min(2cqw, 6cqh); }
+@container (max-aspect-ratio: 2/1) {
+  .ad-text { top: 17cqh; bottom: 7cqh; width: 54cqw; gap: 2.4cqh; }
+  .ad-media { width: 38cqw; top: 12cqh; bottom: 10cqh; inset-inline-end: 4cqw; }
+  .ad-logo { width: 17cqw; max-width: none; }
+  .ad-title { font-size: 6cqw; } .ad-sub { font-size: 3.3cqw; } .ad-price { font-size: 5cqw; }
+  .ad-cta { font-size: 3.1cqw; padding: 2cqh 3.4cqw; gap: 1cqw; } .ad-badge { font-size: 2.8cqw; padding: 1.2cqh 2.6cqw; }
+  .ad-sticker { width: 34cqh; height: 34cqh; font-size: 3.2cqw; }
+  .ad-sku { display: none; }
+  .adt-title { font-size: 6.4cqw; } .adt-sub { font-size: 3.4cqw; }
+}

@@ -4,9 +4,10 @@ import { getSettings } from "@/lib/settings";
 import { getLang, pick, txt } from "@/lib/lang";
 import { getWholesale } from "@/lib/wholesale";
 import { cardInclude } from "@/lib/catalog";
+import { priceLabel, priceOf } from "@/lib/format";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
-import BannerCarousel from "@/components/BannerCarousel";
+import BannerCarousel, { type Slide } from "@/components/BannerCarousel";
 import SearchBox from "@/components/SearchBox";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import Icon, { type IconName } from "@/components/Icon";
@@ -19,9 +20,17 @@ export default async function Home() {
     db.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, take: 12, include: { _count: { select: { products: { where: { isActive: true } } } } } }),
     db.product.findMany({ where: { isActive: true, isFeatured: true }, include: cardInclude, orderBy: [{ sortOrder: "asc" }, { id: "asc" }], take: 8 }),
     db.product.findMany({ where: { isActive: true }, include: cardInclude, orderBy: { id: "desc" }, take: 8 }),
-    db.banner.findMany({ where: { isActive: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }] })]);
+    db.banner.findMany({ where: { isActive: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+      include: { product: { include: { images: { orderBy: { sortOrder: "asc" }, take: 1 }, category: { select: { nameAr: true, nameEn: true } } } } } })]);
   const T = (k: string) => txt(s, L, k), cur = en ? s["currency.en"] || "SAR" : s["currency.ar"], hidden = en ? "Contact us" : s["price.hiddenLabel.ar"];
-  const slides = banners.map((b) => { const x = b.type === "IMAGE_TEXT"; return { id: b.id, type: b.type, image: b.image, title: x ? pick(L, b.titleAr, b.titleEn) : "", subtitle: x ? pick(L, b.subtitleAr, b.subtitleEn) : "", button: x ? pick(L, b.buttonAr, b.buttonEn) : "", href: b.linkUrl ?? "", seconds: b.seconds }; });
+  // إعلان المنتج: بياناته وسعره (حسب الجملة/الإخفاء) من المنتج نفسه، والضغط يفتح صفحته. يُتجاهل إن كان المنتج مخفيًا أو محذوفًا
+  const slides = banners.flatMap((b): Slide[] => {
+    const base = { id: b.id, seconds: b.seconds };
+    if (b.type === "PRODUCT") { const p = b.product; if (!p || !p.isActive) return [];
+      return [{ ...base, href: `/products/${p.slug}`, ad: { kind: "PRODUCT" as const, template: b.template, rtl: !en, image: b.image || p.images[0]?.url || "", title: pick(L, b.titleAr, b.titleEn) || pick(L, p.nameAr, p.nameEn), subtitle: pick(L, b.subtitleAr, b.subtitleEn) || pick(L, p.category.nameAr, p.category.nameEn), button: pick(L, b.buttonAr, b.buttonEn) || (en ? "Order now" : "اطلب الآن"), badge: pick(L, b.badgeAr, b.badgeEn), price: b.showPrice && priceOf(p, ws) != null ? priceLabel(p, s, L, ws) : null, sku: p.sku } }]; }
+    const x = b.type === "IMAGE_TEXT";
+    return [{ ...base, href: b.linkUrl ?? "", ad: { kind: b.type, template: "", rtl: !en, image: b.image, title: x ? pick(L, b.titleAr, b.titleEn) : "", subtitle: x ? pick(L, b.subtitleAr, b.subtitleEn) : "", button: x && b.linkUrl ? pick(L, b.buttonAr, b.buttonEn) : "", badge: "", price: null } }];
+  });
   const steps: [string, IconName][] = [["home.step1", "search"], ["home.step2", "cart"], ["home.step3", "whatsapp"]];
   const grid = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5";
   return (<div className="wrap pt-4 md:pt-6 space-y-10 md:space-y-14">

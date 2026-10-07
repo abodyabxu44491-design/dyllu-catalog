@@ -17,7 +17,7 @@ export default async function Customers({ searchParams }: { searchParams: { q?: 
   const [total, stats, all] = await Promise.all([db.customer.count({ where: { ...cw, orders: { some: { status: { not: "CANCELLED" } } } } }),
     db.order.groupBy({ by: ["customerId"], where: { customer: cw, status: { not: "CANCELLED" } }, _count: { id: true }, _sum: { total: true }, _max: { createdAt: true }, orderBy: sort[2], skip: (page - 1) * PER, take: PER }),
     db.order.aggregate({ where: { status: { not: "CANCELLED" } }, _count: { customerId: true } })]);
-  const customers = new Map((await db.customer.findMany({ where: { id: { in: stats.map((x) => x.customerId) } }, include: { orders: { where: { isWholesale: true }, take: 1, select: { id: true } } } })).map((c) => [c.id, c]));
+  const customers = new Map((await db.customer.findMany({ where: { id: { in: stats.map((x) => x.customerId) } }, include: { orders: { orderBy: { id: "desc" }, take: 5, select: { isWholesale: true, store: { select: { name: true } } } } } })).map((c) => [c.id, c]));
   const pages = Math.max(1, Math.ceil(total / PER)), href = (o: Record<string, string | undefined>) => "/admin/customers?" + new URLSearchParams(Object.entries({ q, sort: searchParams.sort, ...o }).filter(([, v]) => v) as [string, string][]).toString();
   const rows = stats.map((x) => ({ ...x, c: customers.get(x.customerId)! })).filter((r) => r.c);
   return (<div>
@@ -27,7 +27,7 @@ export default async function Customers({ searchParams }: { searchParams: { q?: 
     {rows.length === 0 ? <div className="card"><AEmpty icon="users" title={q ? "لا يوجد عملاء مطابقون" : "لا يوجد عملاء بعد. يظهر العميل هنا بعد أول طلب."} /></div> :
       <div className="card overflow-hidden divide-y divide-line">{rows.map(({ c, _count, _sum, _max }) => (<div key={c.id} className="p-3 md:p-4 flex flex-wrap items-center gap-3">
         <span className="w-11 h-11 rounded-full bg-ink text-lime grid place-items-center font-extrabold shrink-0">{c.name !== "بدون اسم" ? c.name[0] : <Icon n="user" s={20} />}</span>
-        <div className="flex-1 min-w-[180px]"><b className="flex items-center gap-2 flex-wrap text-sm">{c.name}{c.company && <span className="font-normal text-steel">· {c.company}</span>}{c.orders.length > 0 && <Badge cls="bg-ink text-lime">جملة</Badge>}</b>
+        <div className="flex-1 min-w-[180px]"><b className="flex items-center gap-2 flex-wrap text-sm">{c.name}{c.company && <span className="font-normal text-steel">· {c.company}</span>}{c.orders.some((o) => o.isWholesale) && <Badge cls="bg-ink text-lime">جملة</Badge>}{c.orders.find((o) => o.store)?.store && <Badge cls="bg-lime/30 text-ink">من {c.orders.find((o) => o.store)!.store!.name}</Badge>}</b>
           <small className="block text-xs text-steel mt-0.5"><span dir="ltr">{prettyPhone(c.phone)}</span>{c.city ? ` · ${c.city}` : ""}{_max.createdAt ? ` · آخر طلب ${fmtDate(_max.createdAt)}` : ""}</small></div>
         <div className="flex gap-4 text-center text-sm"><div><b className="block font-display">{_count.id}</b><small className="text-xs text-steel">طلب</small></div><div><b className="block font-display">{money(_sum.total)}</b><small className="text-xs text-steel">ريال</small></div></div>
         <div className="flex gap-1 w-full sm:w-auto justify-end">
