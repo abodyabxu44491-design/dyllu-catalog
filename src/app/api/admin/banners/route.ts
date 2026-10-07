@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errMsg } from "@/lib/apiError";
 import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -34,7 +35,7 @@ export async function POST(req: Request) {
     if (id) return NextResponse.json(await db.banner.update({ where: { id }, data }));
     const max = await db.banner.aggregate({ _max: { sortOrder: true } });
     return NextResponse.json(await db.banner.create({ data: { ...data, sortOrder: (max._max.sortOrder ?? -1) + 1 } }));
-  } catch (e) { return NextResponse.json({ error: (e as Error).message }, { status: 400 }); }
+  } catch (e) { return NextResponse.json({ error: errMsg(e) }, { status: 400 }); }
 }
 export async function DELETE(req: Request) {
   const deny = await denyUnlessAdmin(); if (deny) return deny;

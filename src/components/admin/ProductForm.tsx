@@ -5,6 +5,7 @@ import Link from "next/link";
 import Icon from "@/components/Icon";
 import { post, uploadFile } from "@/lib/client";
 import { toast } from "@/store/toast";
+import { ask } from "@/store/confirm";
 import { Card, Field, PageHead } from "./ui";
 import Switch from "./Switch";
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -88,7 +89,7 @@ export default function ProductForm({ initial, categories, ai = false, defaultCa
     start.current = JSON.stringify(filled); setP(filled); r.refresh();
   }
   saveRef.current = save;
-  async function remove() { if (!confirm("حذف المنتج نهائيًا؟ لا يمكن التراجع.")) return; const x = await fetch(`/api/admin/products?id=${p.id}`, { method: "DELETE" }); if (x.ok) { start.current = JSON.stringify(p); toast("تم حذف المنتج"); r.push("/admin/products"); } else setErr((await x.json()).error); }
+  async function remove() { if (!(await ask({ title: "حذف المنتج نهائيًا؟", body: "لا يمكن التراجع. لإخفائه مؤقتًا استخدم «المنتج ظاهر».", ok: "حذف نهائي", danger: true }))) return; const x = await fetch(`/api/admin/products?id=${p.id}`, { method: "DELETE" }); if (x.ok) { start.current = JSON.stringify(p); toast("تم حذف المنتج"); r.push("/admin/products"); } else setErr((await x.json()).error); }
   const rowBtn = "btn-icon w-10 h-10 text-steel hover:text-accent hover:bg-accent/5 shrink-0";
   return (<div>
     <PageHead title={p.id ? "تعديل منتج" : "إضافة منتج"} back={["/admin/products", "المنتجات"]}>{p.id && p.slug && JSON.parse(start.current).isActive && <a href={`/products/${p.slug}`} target="_blank" className="btn btn-md btn-ghost"><Icon n="external" s={18} />عرض في المتجر</a>}</PageHead>

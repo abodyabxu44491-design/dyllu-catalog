@@ -5,6 +5,7 @@ import Icon, { type IconName } from "@/components/Icon";
 import AdCanvas, { TEMPLATES, type AdData, type AdKind } from "@/components/ads/AdCanvas";
 import { post, uploadFile } from "@/lib/client";
 import { toast } from "@/store/toast";
+import { ask } from "@/store/confirm";
 import { AEmpty, Badge, Field, PageHead } from "./ui";
 import Switch from "./Switch";
 export type Prod = { id: number; slug: string; sku: string | null; nameAr: string; nameEn: string; price: number | null; showPrice: boolean; images: string[]; category: string; isActive?: boolean };
@@ -54,7 +55,7 @@ function Editor({ b0, cats, cur, onDone }: { b0: B; cats: Cat[]; cur: string; on
     const x = await post("/api/admin/banners", { ...body, productId: prod ? v.product?.id ?? null : null, seconds: Number(v.seconds) || 5, startsAt: v.startsAt ? new Date(v.startsAt).toISOString() : null, endsAt: v.endsAt ? new Date(v.endsAt).toISOString() : null, linkUrl: v.linkUrl || null });
     setBusy(false); if (x.ok) { toast(v.id ? "تم حفظ الإعلان" : "تم نشر الإعلان"); onDone(); r.refresh(); } else setMsg(x.data.error || "تحقق من بيانات الإعلان");
   }
-  async function del() { if (confirm("حذف الإعلان؟")) { await fetch(`/api/admin/banners?id=${v.id}`, { method: "DELETE" }); toast("تم حذف الإعلان"); onDone(); r.refresh(); } }
+  async function del() { if (await ask({ title: "حذف الإعلان؟", body: "لإيقافه مؤقتًا استخدم زر التفعيل بدل الحذف.", ok: "حذف", danger: true })) { await fetch(`/api/admin/banners?id=${v.id}`, { method: "DELETE" }); toast("تم حذف الإعلان"); onDone(); r.refresh(); } }
   const step = (d: number) => set("seconds", Math.max(2, Math.min(30, (Number(v.seconds) || 5) + d)));
   let n = 1;
   return (<div className="border-t border-line bg-soft/40 grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] gap-6 p-4 md:p-5">

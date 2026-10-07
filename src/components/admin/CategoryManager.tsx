@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { post, uploadFile } from "@/lib/client";
 import { toast } from "@/store/toast";
+import { ask } from "@/store/confirm";
 import { AEmpty, Badge, Field, PageHead } from "./ui";
 import Switch from "./Switch";
 type C = { id?: number; slug?: string; nameAr: string; nameEn: string; subtitleAr?: string | null; subtitleEn?: string | null; descriptionAr?: string | null; sortOrder: number; isActive: boolean; image?: string | null; count?: number };
@@ -11,7 +12,7 @@ const blank: C = { nameAr: "", nameEn: "", subtitleAr: "", subtitleEn: "", descr
 function Editor({ c, onDone }: { c: C; onDone: () => void }) {
   const r = useRouter(), [v, setV] = useState(c), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false), set = (k: keyof C, x: unknown) => setV((o) => ({ ...o, [k]: x }));
   async function save() { setBusy(true); const x = await post("/api/admin/categories", { ...v, count: undefined, sortOrder: Number(v.sortOrder) || 0 }); setBusy(false); if (x.ok) { toast(v.id ? "تم حفظ التصنيف" : "تمت إضافة التصنيف"); onDone(); r.refresh(); } else setMsg(typeof x.data.error === "string" && !x.data.error.includes("[") ? x.data.error : "اكتب اسم التصنيف"); }
-  async function del() { if (!confirm("حذف التصنيف؟")) return; const x = await fetch(`/api/admin/categories?id=${v.id}`, { method: "DELETE" }); if (x.ok) { toast("تم حذف التصنيف"); r.refresh(); } else setMsg((await x.json()).error); }
+  async function del() { if (!(await ask({ title: "حذف التصنيف؟", body: "سيُحذف التصنيف نهائيًا. لا يمكن حذف تصنيف فيه منتجات.", ok: "حذف", danger: true }))) return; const x = await fetch(`/api/admin/categories?id=${v.id}`, { method: "DELETE" }); if (x.ok) { toast("تم حذف التصنيف"); r.refresh(); } else setMsg((await x.json()).error); }
   return (<div className="grid md:grid-cols-[240px_1fr] gap-4 p-4 border-t border-line bg-soft/40">
     <div className="space-y-2">{/* معاينة حية لبطاقة التصنيف كما تظهر للعميل */}
       <div className="relative aspect-[4/3] rounded-2xl overflow-hidden bg-steel">{v.image ? <img src={v.image} alt="" className="absolute inset-0 w-full h-full object-cover" /> : <span className="absolute inset-0 grid place-items-center text-white/50"><Icon n="image" s={36} stroke={1.4} /></span>}

@@ -79,8 +79,8 @@ npm run dev
 
 ## 4) التخزين (الصور وملفات PDF)
 
-- **افتراضي (محلي):** تُحفظ في `public/uploads`. يعمل على سيرفر خاص/VPS، **ولا يعمل على Vercel** (نظام ملفاته للقراءة فقط).
-- **سحابي (S3 أو Cloudflare R2):** مطلوب عند النشر على Vercel. المطلوب:
+- **افتراضي (قاعدة البيانات):** الصور (مضغوطة WebP) وملفات PDF تُحفظ في جدول `Upload` وتُعرض من `/uploads/...`. تعمل على Render و Vercel وأي سيرفر بدون أي إعداد، وتبقى بعد إعادة النشر.
+- **سحابي (S3 أو Cloudflare R2) اختياري:** مناسب لآلاف الصور. المطلوب:
   1. أنشئ Bucket وفعّل له رابطًا عامًا للقراءة.
   2. أنشئ مفتاح وصول (Access key + Secret) بصلاحية الكتابة على الـ Bucket.
   3. ضع القيم: `S3_BUCKET` (اسم الـ Bucket)، `S3_ENDPOINT` (لـ R2: `https://<account>.r2.cloudflarestorage.com`، ولـ AWS اتركه فارغًا)، `S3_REGION` (`auto` لـ R2 أو مثل `us-east-1`)، `S3_KEY`، `S3_SECRET`، `S3_PUBLIC_URL` (الرابط العام بدون `/` في النهاية).
@@ -126,9 +126,27 @@ npm run dev
 npm run build
 npm start        # المنفذ 3000 (غيّره بـ PORT=8080 npm start)
 ```
-- **Vercel:** ارفع المشروع، وأضف كل متغيرات `.env` من إعدادات المشروع (Environment Variables)، واستخدم S3/R2 للصور. أنشئ الجداول مرة واحدة من جهازك بعد وضع `DATABASE_URL` الإنتاجي: `npm run db:push` ثم `npm run db:seed`.
+- `npm run build` و `npm start` يحدّثان جداول قاعدة البيانات تلقائيًا، و `npm start` ينشئ حساب الأدمن من `ADMIN_EMAIL` و `ADMIN_PASSWORD` (أو يحدّث كلمة المرور إن غيّرتها). لا حاجة لتنفيذ أوامر يدوية على السيرفر.
+- فحص الصحة: `/api/health`.
+- **Vercel:** أضف متغيرات `.env` من Environment Variables، وأنشئ حساب الأدمن مرة من جهازك: `npm run db:seed`.
+
+### النشر على Render
+**موقع جديد:** Render ← New ← Blueprint ← اختر هذا المستودع. ملف `render.yaml` ينشئ الموقع وقاعدة بيانات PostgreSQL ومفتاح الجلسات تلقائيًا. بعدها من صفحة الموقع ← Environment أكمل:
+`NEXT_PUBLIC_SITE_URL` (رابط موقعك على Render مثل `https://dyllu-catalog.onrender.com`)، `ADMIN_EMAIL`، `ADMIN_PASSWORD`، و `ANTHROPIC_API_KEY` (اختياري للترجمة).
+
+**موقع موجود على Render:** من Settings تأكد من:
+| الإعداد | القيمة |
+|---|---|
+| Branch | الفرع الذي فيه هذه النسخة (main بعد الدمج) |
+| Build Command | `npm install --include=dev && npm run build` |
+| Start Command | `npm start` |
+| Health Check Path | `/api/health` |
+
+ومن Environment تأكد من وجود: `DATABASE_URL` (Internal Database URL من صفحة قاعدة البيانات)، `ADMIN_SESSION_SECRET` (32 حرفًا أو أكثر)، `NEXT_PUBLIC_SITE_URL`، `ADMIN_EMAIL`، `ADMIN_PASSWORD`. ثم Manual Deploy ← Deploy latest commit.
+في سجل التشغيل (Logs) يظهر: `[DYLLU] ✓ أُنشئ حساب الأدمن` أو `✓ حساب الأدمن جاهز`، وبعدها سجّل الدخول من `/admin-login` بنفس البريد وكلمة المرور.
+- الخطة المجانية في Render تُنيم الموقع بعد 15 دقيقة بلا زيارات، فأول فتح بعدها يأخذ 30–60 ثانية. وقاعدة البيانات المجانية تنتهي بعد 30 يومًا: للاستخدام الفعلي اختر خطة مدفوعة لقاعدة البيانات.
 - حدّ المحاولات (تسجيل الدخول، كود الجملة، الطلبات) محفوظ في ذاكرة السيرفر، أي لكل نسخة تعمل على حدة.
-- بعد تحديث المشروع بنسخة جديدة نفّذ دائمًا: `npm install && npm run db:push`.
+- بعد تحديث المشروع بنسخة جديدة على سيرفرك الخاص: `npm install && npm run build && npm start` (الجداول تتحدث تلقائيًا).
 
 ---
 
@@ -140,10 +158,10 @@ npm start        # المنفذ 3000 (غيّره بـ PORT=8080 npm start)
 | `P1001: Can't reach database server` | قاعدة البيانات متوقفة أو الرابط/المنفذ خطأ. إن كانت سحابية تأكد أن الرابط يحتوي `?sslmode=require` عند الحاجة |
 | `P1000: Authentication failed` | اسم المستخدم أو كلمة المرور في `DATABASE_URL` خطأ |
 | الدخول إلى /admin-login يعطي «ADMIN_SESSION_SECRET غير مضبوط» | أضف المفتاح في `.env` ثم أعد تشغيل `npm run dev` |
-| «بيانات الدخول غير صحيحة» | أعد `npm run db:seed` بنفس البريد/كلمة المرور (البريد غير حساس لحالة الأحرف) |
+| «البريد أو كلمة المرور غير صحيحة» | ضع `ADMIN_EMAIL` و `ADMIN_PASSWORD` في Environment (أو `.env`) ثم أعد التشغيل: يُنشأ الحساب أو تُحدَّث كلمة مروره تلقائيًا. محليًا يكفي `npm run db:seed` |
 | `Cannot find module '.prisma/client'` | شغّل `npx prisma generate` |
 | `EADDRINUSE: port 3000` | منفذ مستخدم: `PORT=3001 npm run dev` |
-| الصور لا تظهر بعد النشر على Vercel | فعّل S3/R2 (القسم 4) |
+| الصور القديمة لا تظهر بعد النشر | الصور المرفوعة من نسخ سابقة كانت على قرص السيرفر وضاعت مع إعادة النشر: أعد رفعها (الجديدة تُحفظ في قاعدة البيانات) |
 | تغييرات `.env` لا تظهر | أعد تشغيل `npm run dev` |
 
 ---

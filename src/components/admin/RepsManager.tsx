@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { post, uploadFile } from "@/lib/client";
 import { toast } from "@/store/toast";
+import { ask } from "@/store/confirm";
 import { waHref, prettyPhone } from "@/lib/phone";
 import PhoneInput from "./PhoneInput";
 import { AEmpty, Badge, Field, PageHead } from "./ui";
@@ -15,7 +16,7 @@ function Editor({ r0, onDone }: { r0: R; onDone: () => void }) {
   const r = useRouter(), [v, setV] = useState(r0), [msg, setMsg] = useState(""), [busy, setBusy] = useState(false);
   async function save() { setBusy(true); const x = await post("/api/admin/reps", { ...v, orders: undefined, sortOrder: Number(v.sortOrder) || 0 }); setBusy(false); if (x.ok) { toast(v.id ? "تم حفظ المندوب" : "تمت إضافة المندوب"); onDone(); r.refresh(); } else setMsg("تحقق من الاسم والموقع ورقم الجوال"); }
 
-  async function del() { if (!confirm("حذف المندوب؟")) return; const x = await fetch(`/api/admin/reps?id=${v.id}`, { method: "DELETE" }); if (x.ok) { toast("تم حذف المندوب"); r.refresh(); } else setMsg((await x.json()).error); }
+  async function del() { if (!(await ask({ title: "حذف المندوب؟", body: "إن كان مرتبطًا بطلبات، أوقفه بدل الحذف.", ok: "حذف", danger: true }))) return; const x = await fetch(`/api/admin/reps?id=${v.id}`, { method: "DELETE" }); if (x.ok) { toast("تم حذف المندوب"); r.refresh(); } else setMsg((await x.json()).error); }
   return (<div className="p-4 border-t border-line bg-soft/40 space-y-3">
     <div className="flex items-center gap-3"><Avatar r={v} s="w-16 h-16 text-2xl" /><label className="btn btn-sm btn-ghost cursor-pointer"><input type="file" hidden accept="image/jpeg,image/png,image/webp" onChange={async (e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) try { setV({ ...v, photo: await uploadFile(f) }); } catch (x) { setMsg((x as Error).message); } }} /><Icon n="upload" s={16} />{v.photo ? "تغيير الصورة" : "رفع صورة"}</label>{v.photo && <button className="text-accent text-sm font-bold" onClick={() => setV({ ...v, photo: null })}>إزالة</button>}</div>
     <div className="grid sm:grid-cols-2 gap-3"><Field label="اسم المندوب *"><input className="field" value={v.name} onChange={(e) => setV({ ...v, name: e.target.value })} /></Field><Field label="الموقع *" hint="المدينة - الحي"><input className="field" value={v.location} onChange={(e) => setV({ ...v, location: e.target.value })} /></Field>

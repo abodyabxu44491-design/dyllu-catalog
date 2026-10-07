@@ -3,9 +3,8 @@
 @layer base {
   html { -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; scroll-behavior: smooth; }
   body { @apply font-sans bg-white text-ink antialiased; overflow-x: clip; }
-  /* خطوط الهوية: العناوين Arial Black */
-  /* Arial Black لا يحتوي حروفًا عربية، فالوزن 800 يجعل الخط البديل للعربية عريضًا أيضًا */
-  h1, h2, h3, .font-display { font-family: "Arial Black", Arial, Tahoma, sans-serif; font-weight: 800; }
+  /* خطوط الهوية: العناوين Arial Black للإنجليزية و Cairo للعربية (Arial Black لا يحتوي حروفًا عربية) */
+  h1, h2, h3, .font-display { font-family: var(--font-ard), "Arial Black", Arial, Tahoma, sans-serif; font-weight: 800; letter-spacing: -.005em; }
   /* 16px في الحقول يمنع تكبير الجوال التلقائي */
   input, select, textarea { font-size: 16px; }
   :focus-visible { outline: 2px solid theme("colors.accent"); outline-offset: 2px; }
@@ -60,6 +59,11 @@
 @keyframes rise { from { opacity: 0; transform: translateY(12px) } to { opacity: 1; transform: none } }
 .animate-pop { animation: pop .35s ease-out; }
 .animate-rise { animation: rise .25s ease-out both; }
+/* النوافذ: خلفية تتلاشى + صندوق يظهر بنعومة من المنتصف */
+.dy-modal-bg { animation: m-fade .2s ease-out both; }
+.dy-modal-box { animation: m-pop .32s cubic-bezier(.2,1.2,.35,1) both; }
+@keyframes m-fade { from { opacity: 0 } }
+@keyframes m-pop { from { opacity: 0; transform: translateY(14px) scale(.94) } }
 
 /* لوحة التحكم */
 .admin input[type="datetime-local"] { -webkit-appearance: none; appearance: none; }
@@ -95,18 +99,29 @@
 }
 
 /* شاشة البداية (مرة لكل جلسة): الشعار يظهر بنبضة، شريط برتقالي يمتد، ثم تتلاشى الشاشة بالكامل */
-#splash { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; background: #D0DF00; animation: splash-out .4s ease-in .95s forwards; }
-#splash .s-in { position: relative; display: flex; flex-direction: column; align-items: center; gap: 18px; }
-#splash .s-badge { width: 132px; height: auto; animation: splash-pop .7s cubic-bezier(.2,1.5,.4,1) both; filter: drop-shadow(0 14px 22px rgba(43,45,47,.25)); }
-#splash .s-ring { position: absolute; top: 62px; left: 50%; width: 180px; height: 180px; margin: -90px 0 0 -90px; border-radius: 9999px; border: 3px solid rgba(255,255,255,.7); animation: splash-ring .9s ease-out .15s both; }
-#splash .s-mark { width: 132px; height: auto; animation: splash-up .45s ease-out .35s both; }
-#splash .s-bar { width: 132px; height: 4px; border-radius: 9999px; background: rgba(43,45,47,.15); overflow: hidden; }
-#splash .s-bar i { display: block; height: 100%; width: 100%; background: #FF6900; transform-origin: right; animation: splash-bar .8s ease-in-out .1s both; }
-[dir="ltr"] #splash .s-bar i { transform-origin: left; }
+/* شاشة البداية (~1.5 ثانية): الكبسولة تنفجر من نقطة ← حروف DYLLU تهبط حرفًا حرفًا بارتداد قوي ← ضربة + موجة + لمعة ← الشعار يكبر ويتلاشى */
+#splash { --w: min(72vw, 420px); position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; overflow: hidden; pointer-events: none;
+  background: radial-gradient(60% 45% at 50% 50%, #3a3d40 0%, #2B2D2F 70%); animation: s-out .38s cubic-bezier(.6,0,.8,.4) 1.18s forwards; }
+#splash .s-stage { position: relative; display: flex; flex-direction: column; align-items: center; gap: calc(var(--w) * .09); animation: s-zoom .38s cubic-bezier(.6,0,.8,.4) 1.18s forwards; }
+#splash .s-logo { position: relative; width: var(--w); aspect-ratio: 600 / 197; animation: s-punch .34s ease-out .8s; }
+#splash .s-pill { position: absolute; inset: .5%; border-radius: 9999px; background: #D0DF00; border: calc(var(--w) * .0135) solid #63666A; overflow: hidden;
+  box-shadow: 0 0 0 0 rgba(208,223,0,.0), 0 24px 60px -18px rgba(0,0,0,.6); animation: s-pill .46s cubic-bezier(.2,1.35,.35,1) both; }
+#splash .s-pill::after { content: ""; position: absolute; inset: -20% auto -20% -40%; width: 30%; transform: skewX(-20deg); background: linear-gradient(90deg, transparent, rgba(255,255,255,.75), transparent); animation: s-shine .42s ease-in-out .9s both; }
+#splash .s-l { position: absolute; top: 23.86%; height: 52.28%; width: auto; opacity: 0; animation: s-drop .4s cubic-bezier(.18,1.55,.35,1) calc(.2s + var(--i) * .065s) both; }
+#splash .s-wave { position: absolute; inset: .5%; border-radius: 9999px; border: 3px solid #D0DF00; opacity: 0; animation: s-wave .6s ease-out .8s forwards; }
+#splash .s-tag { display: flex; align-items: center; gap: .9em; font: 800 calc(var(--w) * .043)/1 Arial, sans-serif; color: #fff; letter-spacing: .34em; text-transform: uppercase; white-space: nowrap; animation: s-tag .42s ease-out .72s both; }
+#splash .s-tag b { color: #D0DF00; font-weight: 800; }
+#splash .s-tag i { width: 0; height: 0; border-top: .5em solid transparent; border-bottom: .5em solid transparent; border-left: .8em solid #FF6900; }
+#splash .s-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 6px; background: #D0DF00; box-shadow: 0 -3px 0 #FF6900; transform-origin: left; animation: s-bar 1.05s cubic-bezier(.5,0,.2,1) .05s both; }
+[dir="rtl"] #splash .s-bar { transform-origin: right; }
 .no-splash #splash { display: none; }
-@keyframes splash-pop { from { opacity: 0; transform: scale(.6) rotate(-8deg); } to { opacity: 1; transform: none; } }
-@keyframes splash-ring { from { opacity: .9; transform: scale(.5); } to { opacity: 0; transform: scale(1.5); } }
-@keyframes splash-up { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
-@keyframes splash-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes splash-out { to { opacity: 0; visibility: hidden; transform: scale(1.04); } }
+@keyframes s-pill { 0% { opacity: 0; transform: scale(.05, .2); border-radius: 50%; } 55% { opacity: 1; } 100% { opacity: 1; transform: none; } }
+@keyframes s-drop { 0% { opacity: 0; transform: translateY(-170%) scale(1.7) rotate(-14deg); filter: blur(6px); } 60% { opacity: 1; filter: blur(0); } 100% { opacity: 1; transform: none; filter: none; } }
+@keyframes s-punch { 0%, 100% { transform: none; } 35% { transform: scale(1.07); } 65% { transform: scale(.985); } }
+@keyframes s-wave { 0% { opacity: .9; transform: scale(1); } 100% { opacity: 0; transform: scale(1.55, 2.1); } }
+@keyframes s-shine { from { left: -40%; } to { left: 120%; } }
+@keyframes s-tag { from { opacity: 0; letter-spacing: 1.1em; filter: blur(4px); } to { opacity: 1; letter-spacing: .34em; filter: none; } }
+@keyframes s-bar { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes s-zoom { to { transform: scale(1.35); opacity: 0; } }
+@keyframes s-out { to { opacity: 0; visibility: hidden; } }
 @media print { #splash { display: none; } }

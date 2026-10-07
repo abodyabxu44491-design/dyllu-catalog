@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errMsg } from "@/lib/apiError";
 import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { z } from "zod";
 import { db } from "@/lib/db";
@@ -13,7 +14,7 @@ export async function POST(req: Request) {
     const base = d.nameEn.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "cat";
     return NextResponse.json(await db.category.create({ data: { ...d, slug: given || `${base}-${Date.now().toString(36)}` } }));
   }
-  catch (e) { return NextResponse.json({ error: (e as { code?: string }).code === "P2002" ? "الرابط مستخدم لتصنيف آخر" : (e as Error).message }, { status: 400 }); }
+  catch (e) { return NextResponse.json({ error: errMsg(e, "الرابط مستخدم لتصنيف آخر") }, { status: 400 }); }
 }
 export async function DELETE(req: Request) {
   const deny = await denyUnlessAdmin(); if (deny) return deny;

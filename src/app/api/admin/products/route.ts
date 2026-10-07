@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { errMsg } from "@/lib/apiError";
 import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { db } from "@/lib/db";
 import { searchWhere } from "@/lib/catalog";
@@ -7,7 +8,7 @@ import { duplicateProduct, saveProduct } from "@/lib/admin/products";
 export async function POST(req: Request) {
   const deny = await denyUnlessAdmin(); if (deny) return deny;
   try { const b = await req.json(); if (b.action === "duplicate") return NextResponse.json(await duplicateProduct(Number(b.id))); return NextResponse.json(await saveProduct(b.id ?? null, b)); }
-  catch (e) { return NextResponse.json({ error: (e as { code?: string }).code === "P2002" ? "رمز SKU أو الرابط مستخدم لمنتج آخر" : (e as Error).message }, { status: 400 }); }
+  catch (e) { return NextResponse.json({ error: errMsg(e, "رقم الموديل (SKU) أو الرابط مستخدم لمنتج آخر") }, { status: 400 }); }
 }
 // GET ?q= بحث سريع للوحة التحكم (منتقي المنتج في الإعلانات): كل الصور والسعر والتصنيف
 export async function GET(req: Request) {

@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import Icon from "./Icon";
-import Portal from "./Portal";
+import Modal from "./Modal";
 type BIP = Event & { prompt: () => Promise<void>; userChoice: Promise<{ outcome: string }> };
 declare global { interface Window { __bip?: BIP | null } }
 // زر «تثبيت التطبيق»: أندرويد/كروم/إيدج = نافذة التثبيت الرسمية · آيفون/آيباد = شرح الإضافة للشاشة الرئيسية.
@@ -26,16 +26,16 @@ export default function InstallApp({ variant = "store", en = false }: { variant?
     : variant === "admin" ? <button onClick={install} className="btn btn-sm h-9 rounded-lg bg-lime text-ink" aria-label={label}><Icon n="download" s={16} /><span className="hidden xs:inline">{label}</span></button>
     : <button onClick={install} className="w-full flex items-center gap-3 rounded-xl px-3 h-10 text-sm font-bold text-ink bg-lime hover:bg-lime-dark"><Icon n="download" s={18} />{label}</button>;
   return (<>{btn}
-    <Portal>{help && <div className="fixed inset-0 z-[90] bg-ink/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6" onClick={() => setHelp(false)}>
-      <div role="dialog" aria-modal="true" aria-label={label} className="animate-rise bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-3xl overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="dy-stripe" /><div className="p-5 space-y-4 pb-safe">
-          <div className="flex items-center gap-3"><img src="/brand/icon-192.png" alt="" className="w-14 h-14 rounded-2xl shadow-card" /><div><b className="block font-display">DYLLU</b><small className="text-steel">{en ? "Add to your Home Screen" : "أضفه إلى الشاشة الرئيسية"}</small></div></div>
-          <ol className="space-y-3 text-sm">
-            <li className="flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-lime grid place-items-center font-extrabold shrink-0">1</span><span>{en ? "Tap the Share button" : "اضغط زر المشاركة"} <Icon n="share" s={16} className="inline align-text-bottom text-[#007AFF]" /> {en ? "in Safari's toolbar" : "في شريط Safari"}</span></li>
-            <li className="flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-lime grid place-items-center font-extrabold shrink-0">2</span><span>{en ? "Choose “Add to Home Screen”" : "اختر «إضافة إلى الشاشة الرئيسية»"} <Icon n="plus" s={16} className="inline align-text-bottom" /></span></li>
-            <li className="flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-lime grid place-items-center font-extrabold shrink-0">3</span><span>{en ? "Tap “Add” — DYLLU opens like an app" : "اضغط «إضافة»، ويفتح DYLLU كتطبيق"}</span></li>
-          </ol>
-          <button onClick={() => setHelp(false)} className="btn btn-lg btn-lime w-full">{en ? "Got it" : "تم"}</button>
-        </div></div></div>}</Portal>
+    <Modal open={help} onClose={() => setHelp(false)} title={en ? "Install DYLLU" : "ثبّت تطبيق DYLLU"} sub={en ? "Add it to your Home Screen in 3 steps" : "أضفه إلى الشاشة الرئيسية في 3 خطوات"} closeLabel={en ? "Close" : "إغلاق"}>
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 rounded-2xl bg-soft p-3"><img src="/brand/icon-192.png" alt="" className="w-12 h-12 rounded-xl shadow-card" /><div><b className="block font-display">DYLLU</b><small className="text-steel">{en ? "Opens full screen, like an app" : "يفتح بملء الشاشة كتطبيق"}</small></div></div>
+        <ol className="space-y-3 text-sm">
+          <li className="flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-lime grid place-items-center font-extrabold shrink-0">1</span><span>{en ? "Tap the Share button" : "اضغط زر المشاركة"} <Icon n="share" s={16} className="inline align-text-bottom text-[#007AFF]" /> {en ? "in Safari's toolbar" : "في شريط Safari"}</span></li>
+          <li className="flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-lime grid place-items-center font-extrabold shrink-0">2</span><span>{en ? "Choose “Add to Home Screen”" : "اختر «إضافة إلى الشاشة الرئيسية»"} <Icon n="plus" s={16} className="inline align-text-bottom" /></span></li>
+          <li className="flex items-center gap-3"><span className="w-8 h-8 rounded-full bg-lime grid place-items-center font-extrabold shrink-0">3</span><span>{en ? "Tap “Add”" : "اضغط «إضافة»"}</span></li>
+        </ol>
+        <button onClick={() => setHelp(false)} className="btn btn-lg btn-lime w-full">{en ? "Got it" : "تم"}</button>
+      </div>
+    </Modal>
   </>);
 }

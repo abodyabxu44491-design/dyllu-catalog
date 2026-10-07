@@ -1,0 +1,33 @@
+# نشر DYLLU على Render بضغطة واحدة (Blueprint): موقع + قاعدة بيانات PostgreSQL
+# Render → New → Blueprint → اختر هذا المستودع. بعدها أكمل القيم المطلوبة (sync: false) من صفحة Environment.
+services:
+  - type: web
+    name: dyllu-catalog
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm install --include=dev && npm run build
+    # قبل التشغيل: تحديث الجداول + إنشاء حساب الأدمن من ADMIN_EMAIL / ADMIN_PASSWORD (scripts/prestart.mjs)
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dyllu-db
+          property: connectionString
+      - key: ADMIN_SESSION_SECRET
+        generateValue: true
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: ADMIN_PASSWORD
+        sync: false
+      - key: ANTHROPIC_API_KEY
+        sync: false
+databases:
+  - name: dyllu-db
+    plan: free
+    region: frankfurt

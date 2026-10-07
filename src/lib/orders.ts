@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { db } from "./db";
 import { priceOf } from "./format";
-import { normalizePhone, toAsciiDigits } from "./phone";
+import { isPhone, normalizePhone, toAsciiDigits } from "./phone";
 // الواجهة ترسل productId + quantity فقط. السعر دائمًا من قاعدة البيانات، وسعر الجملة يحدده كوكي موقّع من السيرفر.
 export const orderInput = z.object({
-  customer: z.object({ name: z.string({ required_error: "اكتب الاسم" }).trim().min(2, "اكتب الاسم").max(80), phone: z.string({ required_error: "اكتب رقم الجوال" }).trim().max(24).transform(toAsciiDigits).refine((v) => v.replace(/\D/g, "").length >= 8, "رقم الجوال غير صحيح"), company: z.string().trim().max(80).optional(), city: z.string().trim().max(60).optional() }),
+  customer: z.object({ name: z.string({ required_error: "اكتب الاسم" }).trim().min(2, "اكتب الاسم").max(80), phone: z.string({ required_error: "اكتب رقم الجوال" }).trim().max(32).transform(toAsciiDigits).refine(isPhone, "رقم الجوال غير مكتمل، اكتبه مثل 0551234567"), company: z.string().trim().max(80).optional(), city: z.string().trim().max(60).optional() }),
   notes: z.string().max(1000).optional(),
   source: z.string().max(60).optional(),
   repId: z.number().int().optional(),

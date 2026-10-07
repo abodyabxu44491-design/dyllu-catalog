@@ -5,16 +5,16 @@ import Icon from "@/components/Icon";
 import { Empty } from "@/components/ui";
 import { useCart } from "@/store/cart";
 import { useLang } from "@/lib/useLang";
-import { toAsciiDigits } from "@/lib/phone";
+import { isPhone, toAsciiDigits } from "@/lib/phone";
 type Item = { id: number; slug: string; sku: string | null; inStock: boolean; nameAr: string; nameEn: string; allowCart: boolean; image: string | null; price: number | null };
 type Rep = { id: number; name: string; location: string; photo: string | null };
 const D = {
   ar: { title: "سلة الطلب", empty: "السلة فارغة", emptySub: "أضف منتجات وستظهر هنا", browse: "استعرض المنتجات", s1: "المراجعة", s2: "البيانات", s3: "المندوب", count: "عدد القطع", items: "المنتجات", total: "الإجمالي", unp: "+ منتجات بسعر غير محدد (يُحدد سعرها عند التواصل)", co: "إتمام الطلب", clear: "تفريغ السلة", more: "متابعة التصفح", contact: "تواصل معنا", cur: "ريال", each: "للقطعة", summary: "ملخص الطلب", remove: "حذف", out: "غير متوفر حاليًا",
     info: "بيانات التواصل", infoSub: "نحتاج اسمك ورقم جوالك للتواصل معك بخصوص الطلب", name: "الاسم", nameHint: "الاسم الكامل", company: "اسم الشركة", errName: "اكتب اسمك", edit: "تعديل", phone: "رقم الجوال", phoneHint: "05XXXXXXXX", city: "المدينة", notes: "ملاحظات", optional: "اختياري", next: "اختيار المندوب", sendNow: "إرسال الطلب عبر واتساب",
-    pick: "اختر المندوب", pickSub: "اضغط على المندوب وسيُفتح واتساب برسالة طلبك جاهزة للإرسال", via: "أرسل الطلب", back: "رجوع", err: "تحقق من رقم الجوال (8 أرقام على الأقل)", errItems: "تحقق من المنتجات في السلة", many: "محاولات كثيرة، انتظر دقيقة ثم أعد المحاولة", net: "تعذر الاتصال، تحقق من الإنترنت وأعد المحاولة", retry: "إعادة المحاولة", removed: "أُزيلت من السلة منتجات لم تعد متاحة", confirmClear: "تفريغ السلة بالكامل؟", secure: "لن يُرسل الطلب حتى تضغط «إرسال» في واتساب" },
+    pick: "اختر المندوب", pickSub: "اضغط على المندوب وسيُفتح واتساب برسالة طلبك جاهزة للإرسال", via: "أرسل الطلب", back: "رجوع", err: "رقم الجوال غير مكتمل، اكتبه مثل 0551234567", errItems: "تحقق من المنتجات في السلة", many: "محاولات كثيرة، انتظر دقيقة ثم أعد المحاولة", net: "تعذر الاتصال، تحقق من الإنترنت وأعد المحاولة", retry: "إعادة المحاولة", removed: "أُزيلت من السلة منتجات لم تعد متاحة", confirmClear: "تفريغ السلة بالكامل؟", secure: "لن يُرسل الطلب حتى تضغط «إرسال» في واتساب" },
   en: { title: "Your cart", empty: "Your cart is empty", emptySub: "Add products and they will show here", browse: "Browse products", s1: "Review", s2: "Details", s3: "Rep", count: "Items", items: "Products", total: "Total", unp: "+ items with no listed price (quoted on contact)", co: "Checkout", clear: "Clear cart", more: "Keep browsing", contact: "Contact us", cur: "SAR", each: "each", summary: "Order summary", remove: "Remove", out: "Currently unavailable",
     info: "Contact details", infoSub: "We need your name and mobile number to follow up on the order", name: "Full name", nameHint: "Your name", company: "Company name", errName: "Please enter your name", edit: "Edit", phone: "Mobile number", phoneHint: "05XXXXXXXX", city: "City", notes: "Notes", optional: "optional", next: "Choose representative", sendNow: "Send order via WhatsApp",
-    pick: "Choose your representative", pickSub: "Tap a representative and WhatsApp opens with your order ready to send", via: "Send order", back: "Back", err: "Check your mobile number (at least 8 digits)", errItems: "Check the items in your cart", many: "Too many attempts, wait a minute and retry", net: "Connection problem, check your internet and retry", retry: "Retry", removed: "Unavailable items were removed from your cart", confirmClear: "Clear the whole cart?", secure: "Nothing is sent until you press Send in WhatsApp" },
+    pick: "Choose your representative", pickSub: "Tap a representative and WhatsApp opens with your order ready to send", via: "Send order", back: "Back", err: "Mobile number looks incomplete, e.g. 0551234567", errItems: "Check the items in your cart", many: "Too many attempts, wait a minute and retry", net: "Connection problem, check your internet and retry", retry: "Retry", removed: "Unavailable items were removed from your cart", confirmClear: "Clear the whole cart?", secure: "Nothing is sent until you press Send in WhatsApp" },
 };
 const Label = ({ t, opt, children }: { t: string; opt?: string; children: React.ReactNode }) => <label className="block space-y-1.5"><span className="text-sm font-bold">{t}{opt && <small className="text-steel font-normal"> ({opt})</small>}</span>{children}</label>;
 export default function CartPage() {
@@ -44,7 +44,7 @@ export default function CartPage() {
   const rows = lines.map((l) => ({ l, p: items.find((i) => i.id === l.productId) })).filter((r): r is { l: (typeof lines)[number]; p: Item } => !!r.p);
   const total = rows.reduce((t, r) => t + (r.p.price ?? 0) * r.l.quantity, 0), qty = rows.reduce((t, r) => t + r.l.quantity, 0), unpriced = rows.some((r) => r.p.price == null);
   const nm = (p: Item) => (en ? p.nameEn || p.nameAr : p.nameAr || p.nameEn), money = (n: number) => `${n.toLocaleString("en-US")} ${d.cur}`;
-  const phoneOk = toAsciiDigits(f.phone).replace(/\D/g, "").length >= 8, nameOk = f.name.trim().length >= 2;
+  const phoneOk = isPhone(f.phone), nameOk = f.name.trim().length >= 2;
   function next() { if (!nameOk) return setErr(d.errName); if (!phoneOk) return setErr(d.err); if (!rows.length) return setErr(d.errItems); setErr(""); reps.length ? setStep(3) : send(); }
   // اختيار المندوب = إنشاء الطلب (السعر من السيرفر) ثم فتح واتساب المندوب برسالة جاهزة
   async function send(repId?: number) {

@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { post } from "@/lib/client";
 import { toast } from "@/store/toast";
+import { ask } from "@/store/confirm";
 import { AEmpty, Badge, PageHead } from "./ui";
 import Switch from "./Switch";
 type C = { id: number; code: string; name: string; isActive: boolean; orders: number };
@@ -11,7 +12,7 @@ export default function CodesManager({ initial }: { initial: C[] }) {
   const r = useRouter(), [name, setName] = useState(""), [busy, setBusy] = useState(false);
   async function create() { if (!name.trim()) return toast("اكتب اسم العميل", { tone: "err" }); setBusy(true); const x = await post("/api/admin/codes", { name }); setBusy(false); if (x.ok) { setName(""); toast(`تم إنشاء الكود ${x.data.code}`); r.refresh(); } else toast(x.data.error, { tone: "err" }); }
   async function toggle(c: C, v: boolean) { const x = await post("/api/admin/codes", { id: c.id, isActive: v }, "PUT"); if (x.ok) { toast(v ? "تم تفعيل الكود" : "تم إيقاف الكود"); r.refresh(); } else toast("تعذر الحفظ", { tone: "err" }); }
-  async function remove(c: C) { if (!confirm(`حذف كود ${c.name}؟`)) return; const x = await fetch(`/api/admin/codes?id=${c.id}`, { method: "DELETE" }); if (x.ok) { toast("تم حذف الكود"); r.refresh(); } else toast((await x.json()).error, { tone: "err" }); }
+  async function remove(c: C) { if (!(await ask({ title: `حذف كود ${c.name}؟`, body: "يفقد العميل أسعار الجملة فورًا.", ok: "حذف", danger: true }))) return; const x = await fetch(`/api/admin/codes?id=${c.id}`, { method: "DELETE" }); if (x.ok) { toast("تم حذف الكود"); r.refresh(); } else toast((await x.json()).error, { tone: "err" }); }
   const copy = (c: C) => { navigator.clipboard?.writeText(c.code); toast(`تم نسخ ${c.code}`); };
   return (<div className="max-w-4xl space-y-4">
     <PageHead title="أكواد الجملة" desc="أنشئ كودًا لكل عميل جملة. عند إدخاله تتحول الأسعار لأسعار الجملة. أوقف الكود في أي وقت ويفقد العميل الأسعار فورًا." />

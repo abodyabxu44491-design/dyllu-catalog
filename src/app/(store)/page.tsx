@@ -12,8 +12,9 @@ import SearchBox from "@/components/SearchBox";
 import RecentlyViewed from "@/components/RecentlyViewed";
 import Icon, { type IconName } from "@/components/Icon";
 import { SectionHead } from "@/components/ui";
+import { isPhone, waHref } from "@/lib/phone";
 export const dynamic = "force-dynamic";
-// الترتيب: بنر (إعلانات أو واجهة ثابتة) ← بحث (جوال) ← كيف تطلب ← تصنيفات ← مميز ← وصل حديثًا ← شريط الهوية. كل النصوص من الإعدادات.
+// الترتيب: بنر (إعلانات أو واجهة ثابتة) ← بحث (جوال) ← تصنيفات ← مميز ← وصل حديثًا ← الختام (الهوية + اختصارات). كل النصوص من الإعدادات.
 export default async function Home() {
   const L = getLang(), en = L === "en", ws = !!(await getWholesale()), now = new Date();
   const [s, cats, featured, latest, banners] = await Promise.all([getSettings(),
@@ -31,7 +32,11 @@ export default async function Home() {
     const x = b.type === "IMAGE_TEXT";
     return [{ ...base, href: b.linkUrl ?? "", ad: { kind: b.type, template: "", rtl: !en, image: b.image, title: x ? pick(L, b.titleAr, b.titleEn) : "", subtitle: x ? pick(L, b.subtitleAr, b.subtitleEn) : "", button: x && b.linkUrl ? pick(L, b.buttonAr, b.buttonEn) : "", badge: "", price: null } }];
   });
-  const steps: [string, IconName][] = [["home.step1", "search"], ["home.step2", "cart"], ["home.step3", "whatsapp"]];
+  const wa = s["whatsapp.number"], waOk = isPhone(wa);
+  const tiles: [string, string, string, IconName, boolean][] = [
+    ["/catalog", en ? "Price list" : "قائمة الأسعار", en ? "Print or save as PDF" : "اطبعها أو احفظها PDF", "doc", false],
+    ["/categories", en ? "All categories" : "كل التصنيفات", en ? "Browse by department" : "تصفح حسب القسم", "grid", false],
+    ...(waOk ? [[waHref(wa, en ? "Hello" : "السلام عليكم"), en ? "Talk to us" : "تواصل معنا", en ? "WhatsApp, we reply fast" : "واتساب، نرد بسرعة", "whatsapp", true] as [string, string, string, IconName, boolean]] : [])];
   const grid = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5";
   return (<div className="wrap pt-4 md:pt-6 space-y-10 md:space-y-14">
     <div className="space-y-4">
@@ -48,14 +53,6 @@ export default async function Home() {
         </section>}
       <div className="md:hidden"><SearchBox placeholder={T("search.ph")} cur={cur} hidden={hidden} size="lg" /></div>
     </div>
-
-    {/* كيف تطلب: 3 خطوات بأيقونات */}
-    <section aria-label={T("home.how")} className="grid grid-cols-3 gap-2 sm:gap-4">
-      {steps.map(([k, i], n) => (<div key={k} className="relative flex flex-col sm:flex-row items-center sm:items-center gap-2 sm:gap-4 text-center sm:text-start rounded-2xl bg-soft p-3 sm:p-5">
-        <span className="relative grid place-items-center w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-white text-ink shadow-card shrink-0"><Icon n={i} s={24} /><b className="absolute -top-1.5 -start-1.5 w-6 h-6 rounded-full bg-lime text-ink text-xs grid place-items-center border-2 border-soft">{n + 1}</b></span>
-        <span className="min-w-0"><small className="hidden sm:block text-xs text-steel font-bold">{T("home.how")}</small><b className="block text-xs sm:text-base leading-tight">{T(k)}</b></span>
-      </div>))}
-    </section>
 
     {cats.length > 0 && <section className="space-y-4 md:space-y-6">
       <SectionHead title={T("home.cats")} href={cats.length > 6 ? "/categories" : "/products"} more={cats.length > 6 ? T("home.allCats") : T("home.allProducts")} />
@@ -76,15 +73,27 @@ export default async function Home() {
 
     <RecentlyViewed cur={cur} hidden={hidden} />
 
-    {/* شريط الهوية: DYLLU, Discover your Power */}
-    <section className="relative overflow-hidden rounded-3xl bg-ink text-white">
-      <span className="absolute -top-20 -end-20 w-72 h-72 rounded-full bg-lime/10" /><span className="absolute -bottom-24 end-40 w-56 h-56 rounded-full bg-accent/10" />
-      <div className="relative grid md:grid-cols-[auto_1fr_auto] items-center gap-6 p-6 md:p-10">
-        <span className="bg-white rounded-2xl p-3 w-fit"><img src="/brand/logo-badge.png" alt="DYLLU" className="h-16 md:h-20 w-auto" /></span>
-        <div><b className="block font-display text-2xl md:text-3xl text-lime" dir="ltr" style={{ textAlign: "start" }}>Discover your Power</b><p className="text-white/70 mt-2 max-w-xl">{T("footer.text")} — {T("home.sub")}</p></div>
-        <Link href="/products" className="btn btn-lg btn-lime w-full md:w-auto">{T("home.cta")}<Icon n="chev" s={18} className="flip-rtl" /></Link>
+    {/* الختام: لوحة الهوية + اختصارات سريعة */}
+    <section className="grid lg:grid-cols-[1.5fr_1fr] gap-3 sm:gap-4">
+      <div className="relative overflow-hidden rounded-3xl bg-ink text-white flex flex-col md:flex-row-reverse md:min-h-[300px]">
+        {/* لوحة ليمونية بحافة مائلة (من دليل الهوية) فيها الشعار */}
+        <div aria-hidden className="relative h-36 md:h-auto md:w-[40%] shrink-0 bg-lime grid place-items-center [clip-path:polygon(0_0,100%_0,100%_78%,0_100%)] md:[clip-path:polygon(0_0,100%_0,100%_100%,22%_100%)] rtl:md:[clip-path:polygon(0_0,100%_0,78%_100%,0_100%)]">
+          <i className="absolute top-0 end-0 w-0 h-0 border-t-[30px] border-t-accent border-s-[30px] border-s-transparent" />
+          <img src="/brand/logo-badge.png" alt="" className="w-24 md:w-40 h-auto drop-shadow-[0_10px_24px_rgba(0,0,0,.25)] md:ms-10 rtl:md:ms-0 rtl:md:me-10" />
+        </div>
+        <div className="relative flex-1 p-6 pt-3 md:p-10 flex flex-col justify-center gap-3">
+          <img src="/brand/logo-wordmark-white.png" alt="DYLLU" className="h-7 md:h-8 w-auto self-start" />
+          <b className="block font-display text-3xl md:text-[2.8rem] leading-[1.05] text-lime" dir="ltr" style={{ textAlign: "start" }}>Discover <br className="hidden md:inline" />your Power</b>
+          <p className="text-white/70 text-sm md:text-base leading-7">{T("footer.text")}</p>
+          <Link href="/products" className="btn btn-lg btn-lime self-stretch sm:self-start mt-1">{T("home.cta")}<Icon n="chev" s={18} className="flip-rtl" /></Link>
+        </div>
+        <i aria-hidden className="absolute inset-x-0 bottom-0 h-1.5 bg-lime shadow-[0_-2px_0_theme(colors.accent)]" />
       </div>
-      <div className="h-1.5 bg-lime shadow-[0_-2px_0_theme(colors.accent)]" />
+      <div className="grid sm:grid-cols-3 lg:grid-cols-1 gap-3 sm:gap-4">{tiles.map(([href, t, sub, i, ext]) => (
+        <Link key={t} href={href} {...(ext && { target: "_blank", rel: "noopener noreferrer" })} className="group flex items-center gap-4 rounded-3xl bg-soft hover:bg-lime/30 p-4 md:p-5 transition">
+          <span className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl grid place-items-center shrink-0 transition group-hover:scale-105 ${i === "whatsapp" ? "bg-[#1FA855] text-white" : "bg-white text-ink shadow-card"}`}><Icon n={i} s={24} /></span>
+          <span className="min-w-0 flex-1"><b className="block font-display text-base md:text-lg leading-tight">{t}</b><small className="block text-xs md:text-sm text-steel mt-0.5">{sub}</small></span>
+          <Icon n="chev" s={18} className="flip-rtl text-steel group-hover:text-ink transition" /></Link>))}</div>
     </section>
   </div>);
 }

@@ -6,7 +6,9 @@ export const FORMATS: { id: PosterFormat; ar: string; size: string; w: number; h
 ];
 export type PosterText = { url: string; store?: string; headline: string; sub: string };
 const C = { lime: "#D0DF00", accent: "#FF6900", ink: "#2B2D2F", steel: "#63666A", soft: "#F4F5F5" };
-const FONT = (px: number, w = "bold") => `${w} ${px}px Arial, Tahoma, sans-serif`;
+// خط العناوين العربي (Cairo) المحمّل في الصفحة، ثم Arial للإنجليزية
+const AR = () => (typeof document === "undefined" ? "" : getComputedStyle(document.documentElement).getPropertyValue("--font-ard").trim());
+const FONT = (px: number, w = "bold") => `${w} ${px}px ${AR() ? AR() + ", " : ""}Arial, Tahoma, sans-serif`;
 let assets: Promise<{ badge: HTMLImageElement; mark: HTMLImageElement; markWhite: HTMLImageElement }> | null = null;
 const load = () => (assets ??= Promise.all([loadImg("/brand/logo-badge.png"), loadImg("/brand/logo-wordmark.png"), loadImg("/brand/logo-wordmark-white.png")]).then(([badge, mark, markWhite]) => ({ badge, mark, markWhite })));
 function box(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number, r: number, fill: string) { ctx.fillStyle = fill; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill(); }
@@ -25,6 +27,7 @@ function stripe(ctx: CanvasRenderingContext2D, W: number, H: number, h: number, 
   text(ctx, "DYLLU, Discover your Power", W - h * 0.9, H - h * 0.32, tagPx, C.steel, { align: "right", dir: "ltr" });
 }
 export async function renderPoster(canvas: HTMLCanvasElement, f: PosterFormat, t: PosterText) {
+  await Promise.all(["bold", "800", "900"].map((w) => document.fonts.load(FONT(40, w), "عربي").catch(() => null)));
   const { badge, mark, markWhite } = await load(), spec = FORMATS.find((x) => x.id === f)!, W = spec.w, H = spec.h;
   canvas.width = W; canvas.height = H; const ctx = canvas.getContext("2d")!; ctx.clearRect(0, 0, W, H);
   const url = t.url.replace(/^https?:\/\//, "");

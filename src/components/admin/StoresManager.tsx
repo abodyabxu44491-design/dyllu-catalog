@@ -2,8 +2,10 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
+import Modal from "@/components/Modal";
 import { post } from "@/lib/client";
 import { toast } from "@/store/toast";
+import { ask } from "@/store/confirm";
 import { drawQr, loadImg, qrSvg } from "@/lib/qrdraw";
 import { FORMATS, renderPoster, type PosterFormat } from "@/lib/qrposter";
 import { AEmpty, Badge, Field, PageHead } from "./ui";
@@ -26,17 +28,14 @@ function QrThumb({ url, size = 168 }: { url: string; size?: number }) {
 function Designer({ url, store, onClose }: { url: string; store?: Store; onClose: () => void }) {
   const [f, setF] = useState<PosterFormat>("a5"), [headline, setHeadline] = useState("امسح الرمز وتصفّح الكتالوج"), [sub, setSub] = useState("اطلب مباشرة عبر واتساب"), [busy, setBusy] = useState(true), ref = useRef<HTMLCanvasElement>(null);
   useEffect(() => { const c = ref.current; if (!c) return; setBusy(true); renderPoster(c, f, { url, store: store?.name, headline, sub }).then(() => setBusy(false)); }, [f, headline, sub, url, store]);
-  useEffect(() => { const k = (e: KeyboardEvent) => e.key === "Escape" && onClose(); addEventListener("keydown", k); document.body.style.overflow = "hidden"; return () => { removeEventListener("keydown", k); document.body.style.overflow = ""; }; }, [onClose]);
   const spec = FORMATS.find((x) => x.id === f)!;
   function print() {
     const src = ref.current!.toDataURL("image/png"), fr = document.createElement("iframe"); fr.style.cssText = "position:fixed;width:0;height:0;border:0"; document.body.appendChild(fr);
     const d = fr.contentDocument!; d.open(); d.write(`<!doctype html><html><head><style>@page{margin:0}html,body{margin:0;height:100%;display:grid;place-items:center}img{max-width:100%;max-height:100vh}</style></head><body><img src="${src}"></body></html>`); d.close();
     fr.contentWindow!.onload = () => { fr.contentWindow!.print(); setTimeout(() => fr.remove(), 1500); };
   }
-  return (<div className="fixed inset-0 z-[70] bg-ink/70 backdrop-blur-sm flex items-end sm:items-center justify-center sm:p-6" onClick={onClose}>
-    <div role="dialog" aria-modal="true" aria-label="تصميم للطباعة" className="animate-rise bg-white w-full sm:max-w-4xl max-h-[94vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl" onClick={(e) => e.stopPropagation()}>
-      <div className="sticky top-0 z-10 bg-white flex items-center justify-between gap-3 px-4 md:px-6 py-3 border-b border-line"><b className="flex items-center gap-2"><Icon n="print" s={20} className="text-accent" />تصميم للطباعة{store && <span className="text-steel font-normal text-sm">· {store.name}</span>}</b><button onClick={onClose} aria-label="إغلاق" className="btn-icon w-10 h-10 hover:bg-soft"><Icon n="close" s={22} /></button></div>
-      <div className="grid md:grid-cols-[1fr_300px] gap-5 p-4 md:p-6">
+  return (<Modal open onClose={onClose} size="xl" icon="print" title={<>تصميم للطباعة{store && <span className="text-steel font-normal text-sm"> · {store.name}</span>}</>} sub="اختر المقاس والنص، ثم حمّل التصميم أو اطبعه مباشرة">
+      <div className="grid md:grid-cols-[1fr_300px] gap-5">
         <div className="relative rounded-2xl bg-soft p-4 grid place-items-center min-h-[280px]"><canvas ref={ref} className={`max-w-full max-h-[60vh] w-auto h-auto shadow-lift rounded-lg transition ${busy ? "opacity-40" : ""}`} /></div>
         <div className="space-y-4">
           <div><b className="block text-sm mb-2">المقاس</b><div className="grid gap-2">{FORMATS.map((x) => <button key={x.id} onClick={() => setF(x.id)} className={`flex items-center justify-between rounded-xl border-2 px-3 py-2.5 text-start ${f === x.id ? "border-ink bg-soft" : "border-line hover:border-steel/40"}`}><b className="text-sm">{x.ar}</b><small className="text-xs text-steel">{x.size}</small></button>)}</div></div>
@@ -46,7 +45,7 @@ function Designer({ url, store, onClose }: { url: string; store?: Store; onClose
             <button disabled={busy} onClick={() => download(ref.current!.toDataURL("image/png"), `${file(store)}-${f}.png`)} className="btn btn-lg btn-lime"><Icon n="download" s={18} />تحميل للطباعة (PNG)</button>
             <button disabled={busy} onClick={print} className="btn btn-md btn-ghost"><Icon n="print" s={18} />طباعة مباشرة</button>
             <small className="text-xs text-steel leading-5">دقة 300 نقطة/إنش ({spec.w}×{spec.h} بكسل) مناسبة لأي مطبعة.</small></div>
-        </div></div></div></div>);
+        </div></div></Modal>);
 }
 function StoreForm({ s0, onDone }: { s0?: Store; onDone: () => void }) {
   const r = useRouter(), [v, setV] = useState({ name: s0?.name ?? "", city: s0?.city ?? "", code: s0?.code ?? "", notes: s0?.notes ?? "", isActive: s0?.isActive ?? true }), [busy, setBusy] = useState(false), [adv, setAdv] = useState(false);
@@ -64,7 +63,7 @@ export default function StoresManager({ stores, base, unassigned }: { stores: St
   const r = useRouter(), [design, setDesign] = useState<{ url: string; store?: Store } | null>(null), [edit, setEdit] = useState<number | "new" | null>(stores.length ? null : "new"), [q, setQ] = useState("");
   const list = stores.filter((s) => !q || `${s.name} ${s.city ?? ""} ${s.code}`.toLowerCase().includes(q.toLowerCase()));
   const totalScans = stores.reduce((n, s) => n + s.scans, 0), totalOrders = stores.reduce((n, s) => n + s.orders, 0);
-  async function remove(s: Store) { if (!confirm(`حذف «${s.name}»؟`)) return; const x = await fetch(`/api/admin/stores?id=${s.id}`, { method: "DELETE" }).then((x) => x.json()); toast(x.deactivated ? "للمحل طلبات، فتم إيقاف رمزه بدل حذفه" : "تم حذف المحل"); r.refresh(); }
+  async function remove(s: Store) { if (!(await ask({ title: `حذف «${s.name}»؟`, body: "إن كان للمحل طلبات سابقة يُوقف رمزه فقط ويبقى سجله.", ok: "حذف", danger: true }))) return; const x = await fetch(`/api/admin/stores?id=${s.id}`, { method: "DELETE" }).then((x) => x.json()); toast(x.deactivated ? "للمحل طلبات، فتم إيقاف رمزه بدل حذفه" : "تم حذف المحل"); r.refresh(); }
   const svg = (url: string, s?: Store) => download("data:image/svg+xml;charset=utf-8," + encodeURIComponent(qrSvg(url)), `${file(s)}.svg`);
   return (<div className="max-w-6xl">
     <PageHead title="رموز QR للمحلات" desc="لكل محل رمز خاص محفوظ هنا دائمًا. أي عميل يمسح رمز المحل ويطلب، يظهر اسم المحل في طلبه وفي صفحة العملاء.">
