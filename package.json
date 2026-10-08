@@ -1,6 +1,10 @@
 {
  "name": "dyllu-catalog",
  "private": true,
+ "version": "1.0.0",
+ "description": "DYLLU product catalog: storefront, admin panel, sales reps, offers and reports.",
+ "author": "Abdullah Al-Sakni",
+ "license": "UNLICENSED",
  "scripts": {
   "dev": "next dev",
   "build": "node scripts/prestart.mjs && next build",
@@ -16,7 +20,9 @@
   "start:only": "next start",
   "build:only": "next build",
   "catalog:import": "node scripts/import-catalog.mjs",
-  "english:backfill": "node scripts/backfill-english.mjs"
+  "english:backfill": "node scripts/backfill-english.mjs",
+  "format": "prettier --write \"src/**/*.{ts,tsx,mjs,css}\" \"scripts/**/*.mjs\" \"prisma/seed.ts\" \"*.{mjs,ts}\"",
+  "format:check": "prettier --check \"src/**/*.{ts,tsx,mjs,css}\" \"scripts/**/*.mjs\" \"prisma/seed.ts\" \"*.{mjs,ts}\""
  },
  "dependencies": {
   "@anthropic-ai/sdk": "^0.131.0",
@@ -40,6 +46,7 @@
   "@types/react-dom": "^18.3.7",
   "autoprefixer": "^10",
   "postcss": "^8",
+  "prettier": "3.6.2",
   "tailwindcss": "^3.4.0",
   "tsx": "^4.19.0",
   "typescript": "^5.5.0"

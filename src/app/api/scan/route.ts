@@ -1,7 +1,7 @@
+// Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { ipOf, limited } from "@/lib/ratelimit";
-// عدّاد مسح رمز QR: يُستدعى مرة لكل زيارة (جلسة) من محل، ومحدود لكل جهاز لمنع التضخيم
 export async function POST(req: Request) {
   const { src } = await req.json().catch(() => ({ src: "" }));
   const code = String(src ?? "").slice(0, 40);
