@@ -67,7 +67,7 @@ npm run dev
 | المتغير | إلزامي | ماذا تضع |
 |---|---|---|
 | `DATABASE_URL` | نعم | رابط PostgreSQL (القسم 1) |
-| `ADMIN_SESSION_SECRET` | نعم | نص عشوائي 32 حرفًا فأكثر. ولّده: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `ADMIN_SESSION_SECRET` | مستحسن | نص عشوائي 32 حرفًا فأكثر لتوقيع جلسات الدخول (إن لم يُضبط يُشتق مفتاح من `DATABASE_URL`، وتغيير أيهما يُخرج كل المستخدمين). ولّده: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
 | `NEXT_PUBLIC_SITE_URL` | نعم | رابط موقعك: محليًا `http://localhost:3000`، وفي الإنتاج `https://دومينك` |
 | `ADMIN_EMAIL` | للـ seed | بريد الدخول إلى لوحة التحكم |
 | `ADMIN_PASSWORD` | للـ seed | كلمة مرور 8 أحرف فأكثر (احذفها بعد الـ seed) |
@@ -164,7 +164,7 @@ npm start        # المنفذ 3000 (غيّره بـ PORT=8080 npm start)
 | `Environment variable not found: DATABASE_URL` | ملف `.env` غير موجود أو `DATABASE_URL` فارغ. شغّل `npm run check` |
 | `P1001: Can't reach database server` | قاعدة البيانات متوقفة أو الرابط/المنفذ خطأ. إن كانت سحابية تأكد أن الرابط يحتوي `?sslmode=require` عند الحاجة |
 | `P1000: Authentication failed` | اسم المستخدم أو كلمة المرور في `DATABASE_URL` خطأ |
-| الدخول إلى /admin-login يعطي «ADMIN_SESSION_SECRET غير مضبوط» | أضف المفتاح في `.env` ثم أعد تشغيل `npm run dev` |
+| الدخول إلى /admin-login يعطي «إعدادات السيرفر غير مكتملة» | أضف `DATABASE_URL` (و `ADMIN_SESSION_SECRET`) في `.env` أو متغيرات Vercel ثم أعد التشغيل/الرفع |
 | «البريد أو كلمة المرور غير صحيحة» | ضع `ADMIN_EMAIL` و `ADMIN_PASSWORD` في Environment (أو `.env`) ثم أعد التشغيل: يُنشأ الحساب أو تُحدَّث كلمة مروره تلقائيًا. محليًا يكفي `npm run db:seed` |
 | `Cannot find module '.prisma/client'` | شغّل `npx prisma generate` |
 | `EADDRINUSE: port 3000` | منفذ مستخدم: `PORT=3001 npm run dev` |

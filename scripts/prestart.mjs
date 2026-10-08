@@ -15,7 +15,7 @@ const log = (m) => console.log(`[DYLLU] ${m}`);
 // محليًا: قراءة .env (على Render المتغيرات تأتي من البيئة ولها الأولوية)
 try { for (const l of readFileSync(".env", "utf8").split(/\r?\n/)) { const m = l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/); if (m && !l.trim().startsWith("#") && process.env[m[1]] === undefined) process.env[m[1]] = m[2].replace(/^(["'])(.*)\1$/, "$2"); } } catch { /* لا يوجد .env */ }
 if (!process.env.DATABASE_URL) { log("✗ DATABASE_URL غير مضبوط: أضفه في Environment على Render"); process.exit(0); }
-if (!process.env.ADMIN_SESSION_SECRET || process.env.ADMIN_SESSION_SECRET.length < 32) log("✗ ADMIN_SESSION_SECRET فارغ أو قصير (32 حرفًا على الأقل): تسجيل دخول الأدمن لن يعمل بدونه");
+if (!process.env.ADMIN_SESSION_SECRET?.trim()) log("ℹ ADMIN_SESSION_SECRET غير مضبوط: الدخول يعمل بمفتاح مشتق من DATABASE_URL. الأفضل إضافته (32 حرفًا عشوائيًا)");
 
 // prisma db push يرفض أحيانًا تغييرًا آمنًا بتحذير «فقد بيانات» (مثل قيد unique على عمود جديد فارغ).
 // عندها نحسب أوامر SQL المطلوبة بالضبط وننفذها فقط إن كانت إضافات (أعمدة/جداول/فهارس) بدون أي حذف لبيانات.
