@@ -15,7 +15,7 @@ export default function BannerCarousel({ slides, rtl }: { slides: Slide[]; rtl: 
   }
   const inner = (s: Slide) => <AdCanvas ad={s.ad} />;
   return (<section aria-roledescription="carousel">
-    <div className="relative aspect-[16/9] md:aspect-[2.6/1] lg:aspect-[3/1] rounded-3xl overflow-hidden bg-ink touch-pan-y select-none"
+    <div className={`relative aspect-[16/9] md:aspect-[2.6/1] lg:aspect-[3/1] rounded-3xl overflow-hidden bg-ink touch-pan-y select-none ${n > 1 ? "ad-arrows" : ""}`}
       onPointerDown={(e) => { x0.current = e.clientX; swiped.current = false; setHold(true); }} onPointerUp={up} onPointerCancel={() => setHold(false)} onPointerLeave={() => hold && setHold(false)}
       onClickCapture={(e) => { if (swiped.current) { e.preventDefault(); e.stopPropagation(); swiped.current = false; } }}>
       {slides.map((s, k) => { const cls = `absolute inset-0 transition-opacity duration-500 ${k === i ? "opacity-100" : "opacity-0 pointer-events-none"}`;

@@ -75,11 +75,13 @@
 
 /* تصميم الإعلانات (AdCanvas): مقاسات نسبية لصندوق الإعلان. الصندوق الطويل (جوال 16:9) يكبّر النصوص ليسهل قراءتها،
    والاختيار حسب شكل الصندوق لا عرضه، فتبقى معاينة لوحة التحكم مطابقة للعرض الحقيقي */
-.ad-text { inset-inline-start: 6cqw; top: 20cqh; bottom: 10cqh; width: 50cqw; gap: 2.4cqh; }
+/* النص بين الشعار (فوق) وصورة المنتج (الطرف الآخر): لا يتجاوز حدوده أبدًا. إن طال يُقص من الأسفل بدل أن يغطي الشعار */
+.ad-text { inset-inline-start: 6cqw; inset-inline-end: 47cqw; top: 22cqh; bottom: 8cqh; gap: 2cqh; justify-content: safe center; overflow: hidden; }
+.ad-text .ad-sub { -webkit-line-clamp: 1; }
 .ad-media { inset-inline-end: 5cqw; top: 9cqh; bottom: 9cqh; width: 40cqw; }
 .ad-logo { width: 11cqw; max-width: 26cqh; top: 6cqh; inset-inline-start: 6cqw; }
 .ad-img { border-radius: 3cqh; filter: drop-shadow(0 3cqh 4cqh rgba(0,0,0,.28)); }
-.ad-title { font-size: min(4.6cqw, 12.5cqh); }
+.ad-title { font-size: min(3.9cqw, 11cqh); }
 .ad-sub { font-size: min(1.8cqw, 5.4cqh); }
 .ad-price { font-size: min(3.4cqw, 9.5cqh); }
 .ad-cta { font-size: min(1.6cqw, 4.8cqh); padding: 1.6cqh 2.8cqw; gap: .8cqw; }
@@ -87,10 +89,11 @@
 .ad-sticker { width: 30cqh; height: 30cqh; padding: 3cqh; font-size: min(2.2cqw, 6.5cqh); }
 .ad-sku { font-size: min(1.1cqw, 3.4cqh); bottom: 5cqh; inset-inline-end: 5cqw; }
 .adt-pad { padding: 6cqh 6cqw; gap: 2cqh; }
-.adt-title { font-size: min(4.8cqw, 13cqh); }
+.adt-title { font-size: min(4.2cqw, 11.5cqh); }
 .adt-sub { font-size: min(2cqw, 6cqh); }
 @container (max-aspect-ratio: 2/1) {
-  .ad-text { top: 17cqh; bottom: 7cqh; width: 54cqw; gap: 2.4cqh; }
+  .ad-text { top: 18cqh; bottom: 7cqh; inset-inline-end: 43cqw; gap: 2.2cqh; }
+  .ad-text .ad-sub { -webkit-line-clamp: 2; }
   .ad-media { width: 38cqw; top: 12cqh; bottom: 10cqh; inset-inline-end: 4cqw; }
   .ad-logo { width: 17cqw; max-width: none; }
   .ad-title { font-size: 6cqw; } .ad-sub { font-size: 3.3cqw; } .ad-price { font-size: 5cqw; }
@@ -98,6 +101,12 @@
   .ad-sticker { width: 34cqh; height: 34cqh; font-size: 3.2cqw; }
   .ad-sku { display: none; }
   .adt-title { font-size: 6.4cqw; } .adt-sub { font-size: 3.4cqw; }
+}
+/* سلايدر الرئيسية على التابلت والكمبيوتر: مسافة لأسهم التنقل حتى لا تغطي النص أو الشعار */
+@media (min-width: 768px) {
+  .ad-arrows .ad-text, .ad-arrows .ad-logo { inset-inline-start: max(6cqw, 4.5rem); }
+  .ad-arrows .ad-media { inset-inline-end: max(5cqw, 4.5rem); }
+  .ad-arrows .adt-pad { padding-inline: max(6cqw, 4.5rem); }
 }
 
 /* شاشة البداية (~2.8 ثانية، الشعار فقط): إطار الكبسولة يُرسم بخط ليموني ← تمتلئ من المنتصف ← حروف DYLLU تسقط حرفًا حرفًا بدوران ثلاثي الأبعاد
