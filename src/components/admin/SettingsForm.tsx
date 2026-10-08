@@ -6,7 +6,6 @@ import { post, uploadFile } from "@/lib/client";
 import { toast } from "@/store/toast";
 import { Card, Field, PageHead } from "./ui";
 import PhoneInput from "./PhoneInput";
-import Switch from "./Switch";
 // لإضافة إعداد جديد: أضف مفتاحه هنا وفي defaultSettings (src/config/brand.ts)
 const IMAGES: [string, string, string][] = [["logo.url", "الشعار", "يظهر أعلى المتجر. PNG شفاف بعرض 600px مثالي. يُستخدم شعار DYLLU الرسمي إن تُرك فارغًا."], ["hero.image", "صورة الواجهة الثابتة", "تظهر في الرئيسية عند عدم وجود إعلانات. PNG شفاف مفضّل."]];
 type F = [string, string, string?, boolean?];
@@ -14,7 +13,7 @@ const CONTACT: F[] = [["contact.email", "البريد الإلكتروني", "ي
 const PRICE: F[] = [["price.hiddenLabel.ar", "نص السعر المخفي", "يظهر بدل السعر عند إخفائه"], ["currency.ar", "العملة"]];
 // النصوص تُكتب بالعربية (المفتاح.ar)، والنسخة الإنجليزية (المفتاح.en) يولّدها السيرفر تلقائيًا عند الحفظ
 const HOME: [string, string][] = [["home.title", "عنوان الواجهة الثابتة"], ["home.sub", "النص الفرعي"], ["home.cta", "نص زر الواجهة"], ["search.ph", "نص خانة البحث"], ["home.cats", "عنوان قسم التصنيفات"], ["home.featured", "عنوان قسم المميز"], ["home.new", "عنوان قسم «وصل حديثًا»"], ["home.allCats", "رابط «عرض كل التصنيفات»"], ["home.allProducts", "رابط «عرض كل المنتجات»"], ["home.allFeatured", "رابط «عرض كل المميزة»"]];
-const FOOT: [string, string][] = [["footer.text", "وصف المتجر في التذييل"], ["footer.tagline", "الشعار النصي (لوحة الهوية آخر الرئيسية)"], ["contact.address", "العنوان"]];
+const FOOT: [string, string][] = [["footer.text", "وصف المتجر في التذييل"], ["footer.tagline", "الشعار النصي (أسفل الصفحة)"], ["contact.address", "العنوان"]];
 export default function SettingsForm({ initial }: { initial: Record<string, string> }) {
   const r = useRouter(), base = useRef(JSON.stringify(initial)), [s, setS] = useState(initial), [busy, setBusy] = useState(false);
   const dirty = JSON.stringify(s) !== base.current, set = (k: string, v: string) => setS((o) => ({ ...o, [k]: v }));
@@ -33,8 +32,7 @@ export default function SettingsForm({ initial }: { initial: Record<string, stri
     <Card title="التواصل والحسابات" desc="اكتب الأرقام كما هي (05XXXXXXXX)، وتتحول تلقائيًا لروابط واتساب واتصال في المتجر."><div className="grid sm:grid-cols-2 gap-3">
       <PhoneInput label="رقم واتساب العام" hint="يستقبل الطلبات عند عدم وجود مناديب، ولزر واتساب في المتجر" value={s["whatsapp.number"] ?? ""} onChange={(v) => set("whatsapp.number", v)} />
       <PhoneInput label="رقم الاتصال" hint="اختياري: لزر «اتصال». إن تُرك فارغًا يُستخدم رقم واتساب" value={s["contact.phone"] ?? ""} onChange={(v) => set("contact.phone", v)} />
-      {CONTACT.map(plain)}
-      <div className="sm:col-span-2"><Switch label="زر واتساب العائم في المتجر" hint="زر دائري أسفل الشاشة يفتح محادثة واتساب مباشرة" on={s["whatsapp.float"] === "1"} onChange={(v) => set("whatsapp.float", v ? "1" : "")} /></div></div></Card>
+      {CONTACT.map(plain)}</div></Card>
     <Card title="الأسعار والعملة"><div className="grid sm:grid-cols-2 gap-3">{PRICE.map(plain)}</div></Card>
     <Card title="نصوص الصفحة الرئيسية" desc="اكتب بالعربية فقط. النسخة الإنجليزية للمتجر تُترجم تلقائيًا عند الحفظ."><div className="grid sm:grid-cols-2 gap-3">{HOME.map(([k, l]) => pair(k, l))}</div></Card>
     <Card title="التذييل" desc="النسخة الإنجليزية تُترجم تلقائيًا."><div className="grid sm:grid-cols-2 gap-3">{FOOT.map(([k, l]) => pair(k, l))}</div></Card>

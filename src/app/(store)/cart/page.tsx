@@ -120,7 +120,7 @@ export default function CartPage() {
       <aside className="hidden lg:block lg:sticky lg:top-28"><Summary cta={primary} /></aside>
       <div className="lg:hidden"><Summary /></div>
     </div>
-    {primary && <><div className="h-24 lg:hidden" aria-hidden /><div className="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-line pb-safe"><div className="wrap py-3 flex items-center gap-3">
+    {primary && <><div className="h-24 lg:hidden" aria-hidden /><div className="lg:hidden fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] md:bottom-0 md:pb-safe z-30 bg-white/95 backdrop-blur border-t border-line shadow-[0_-8px_24px_-12px_rgba(43,45,47,.25)]"><div className="wrap py-3 flex items-center gap-3">
       <div className="min-w-[84px]"><small className="block text-steel text-[11px] font-bold">{d.total}</small><b className="font-display">{money(total)}</b></div><div className="flex-1">{primary}</div></div></div></>}
   </div>);
 }

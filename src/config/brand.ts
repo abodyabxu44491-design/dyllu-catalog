@@ -26,7 +26,6 @@ export const defaultSettings: Record<string, string> = {
   "home.cta.ar": "استعرض المنتجات",
   "whatsapp.number": "9665XXXXXXXX",
   "contact.phone": "", "contact.email": "",
-  "whatsapp.float": "1", // زر واتساب العائم في المتجر: "1" ظاهر، "" مخفي
   "contact.address.ar": "", "contact.address.en": "",
   "social.instagram": "", "social.x": "", "social.tiktok": "", "social.snapchat": "",
   "logo.url": "",

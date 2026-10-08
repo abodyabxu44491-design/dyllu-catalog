@@ -6,10 +6,10 @@ import { useCartCount } from "@/store/cart";
 import { useLang } from "@/lib/useLang";
 import { t, type TKey } from "@/lib/i18n";
 const ITEMS: [string, IconName, TKey][] = [["/", "home", "home"], ["/categories", "grid", "categories"], ["/products", "box", "products"], ["/cart", "cart", "cart"]];
-// شريط تنقل سفلي للجوال (مثل التطبيقات). يختفي في صفحة المنتج والسلة لأن لهما شريط شراء خاص
+// شريط تنقل سفلي للجوال (مثل التطبيقات). يختفي في صفحة المنتج (لها شريط شراء خاص). في السلة يبقى، وشريط الطلب يظهر فوقه
 export default function BottomNav() {
   const p = usePathname(), L = useLang(), count = useCartCount();
-  if (/^\/(products\/[^/]+|cart|order)/.test(p)) return null;
+  if (/^\/(products\/[^/]+|order)/.test(p)) return null;
   const on = (h: string) => (h === "/" ? p === "/" : p.startsWith(h));
   return (<>
     <div className="h-[68px] md:hidden pb-safe" aria-hidden />
