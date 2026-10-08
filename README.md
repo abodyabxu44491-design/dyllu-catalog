@@ -1,5 +1,7 @@
 # DYLLU Catalog
 
+> تطوير وبرمجة: **عبدالله السكني** (Abdullah Al-Sakni) — © 2026 جميع الحقوق محفوظة.
+
 كتالوج منتجات: QR ← تصفّح ← سلة ← طلب عبر واتساب، مع لوحة تحكم كاملة (/admin)، أسعار جملة بكود سري، مناديب، إعلانات، وتبديل عربي/English.
 التقنيات: Next.js 14 (App Router) + TypeScript + Tailwind + Prisma + PostgreSQL.
 

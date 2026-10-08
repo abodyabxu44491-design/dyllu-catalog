@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 generator client {
   provider = "prisma-client-js"
 }
@@ -16,220 +17,227 @@ enum OrderStatus {
 }
 
 model Category {
-  id Int @id @default(autoincrement())
-  slug String @unique
-  nameAr String
-  nameEn String
-  descriptionAr String?
-  descriptionEn String? // يُترجم تلقائيًا من العربي
-  subtitleAr String?
-  subtitleEn String?
-  image String?
-  sortOrder Int @default(0)
-  isActive Boolean @default(true)
-  products Product[]
-}
-model Product {
-  id Int @id @default(autoincrement())
-  slug String @unique
-  sku String? @unique
-  nameAr String
-  nameEn String
+  id            Int       @id @default(autoincrement())
+  slug          String    @unique
+  nameAr        String
+  nameEn        String
   descriptionAr String?
   descriptionEn String?
-  price Decimal? @db.Decimal(10,2)
-  wholesalePrice Decimal? @db.Decimal(10,2)
-  videoUrl String?
-  showPrice Boolean @default(true)
-  isActive Boolean @default(true)
-  allowCart Boolean @default(true)
-  inStock Boolean @default(true)
-  isFeatured Boolean @default(false)
-  sortOrder Int @default(0)
-  categoryId Int
-  category Category @relation(fields: [categoryId], references: [id])
-  images ProductImage[]
-  specs ProductSpec[]
-  features ProductFeature[]
-  documents ProductDocument[]
-  items OrderItem[]
-  banners Banner[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  subtitleAr    String?
+  subtitleEn    String?
+  image         String?
+  sortOrder     Int       @default(0)
+  isActive      Boolean   @default(true)
+  products      Product[]
+}
+
+model Product {
+  id             Int               @id @default(autoincrement())
+  slug           String            @unique
+  sku            String?           @unique
+  nameAr         String
+  nameEn         String
+  descriptionAr  String?
+  descriptionEn  String?
+  price          Decimal?          @db.Decimal(10, 2)
+  wholesalePrice Decimal?          @db.Decimal(10, 2)
+  videoUrl       String?
+  showPrice      Boolean           @default(true)
+  isActive       Boolean           @default(true)
+  allowCart      Boolean           @default(true)
+  inStock        Boolean           @default(true)
+  isFeatured     Boolean           @default(false)
+  sortOrder      Int               @default(0)
+  categoryId     Int
+  category       Category          @relation(fields: [categoryId], references: [id])
+  images         ProductImage[]
+  specs          ProductSpec[]
+  features       ProductFeature[]
+  documents      ProductDocument[]
+  items          OrderItem[]
+  banners        Banner[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+
   @@index([categoryId, isActive])
   @@index([isActive, isFeatured])
 }
+
 model ProductImage {
-  id Int @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   productId Int
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  url String
-  sortOrder Int @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  url       String
+  sortOrder Int     @default(0)
   isPrimary Boolean @default(false)
 }
+
 model ProductSpec {
-  id Int @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   productId Int
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  nameAr String
-  nameEn String
-  value String
-  valueEn String? // ترجمة القيمة إن كانت عربية
-  sortOrder Int @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  nameAr    String
+  nameEn    String
+  value     String
+  valueEn   String?
+  sortOrder Int     @default(0)
 }
+
 model ProductFeature {
-  id Int @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   productId Int
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  textAr String
-  textEn String
-  sortOrder Int @default(0)
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  textAr    String
+  textEn    String
+  sortOrder Int     @default(0)
 }
+
 model ProductDocument {
-  id Int @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   productId Int
-  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
-  title String
-  titleEn String?
-  url String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  title     String
+  titleEn   String?
+  url       String
 }
+
 model Customer {
-  id Int @id @default(autoincrement())
-  name String
-  phone String
-  phoneKey String? @unique // الجوال بصيغة دولية موحّدة (966...)، لربط طلبات نفس العميل بسجل واحد
-  company String?
-  city String?
-  orders Order[]
+  id        Int      @id @default(autoincrement())
+  name      String
+  phone     String
+  phoneKey  String?  @unique
+  company   String?
+  city      String?
+  orders    Order[]
   createdAt DateTime @default(now())
 }
+
 model Order {
-  id Int @id @default(autoincrement())
-  number String @unique
-  token String @unique @default(uuid())
-  customerId Int
-  customer Customer @relation(fields: [customerId], references: [id])
-  notes String?
-  total Decimal? @db.Decimal(10,2)
-  hasUnpriced Boolean @default(false)
-  status OrderStatus @default(NEW)
-  source String?
-  isWholesale Boolean @default(false)
+  id              Int            @id @default(autoincrement())
+  number          String         @unique
+  token           String         @unique @default(uuid())
+  customerId      Int
+  customer        Customer       @relation(fields: [customerId], references: [id])
+  notes           String?
+  total           Decimal?       @db.Decimal(10, 2)
+  hasUnpriced     Boolean        @default(false)
+  status          OrderStatus    @default(NEW)
+  source          String?
+  isWholesale     Boolean        @default(false)
   wholesaleCodeId Int?
-  wholesaleCode WholesaleCode? @relation(fields: [wholesaleCodeId], references: [id])
-  repId Int?
-  rep Rep? @relation(fields: [repId], references: [id])
-  storeId Int? // المحل الذي جاء منه العميل (رمز QR)
-  store Store? @relation(fields: [storeId], references: [id])
-  items OrderItem[]
-  createdAt DateTime @default(now())
+  wholesaleCode   WholesaleCode? @relation(fields: [wholesaleCodeId], references: [id])
+  repId           Int?
+  rep             Rep?           @relation(fields: [repId], references: [id])
+  storeId         Int?
+  store           Store?         @relation(fields: [storeId], references: [id])
+  items           OrderItem[]
+  createdAt       DateTime       @default(now())
+
   @@index([createdAt])
   @@index([status])
   @@index([storeId])
 }
+
 model OrderItem {
-  id Int @id @default(autoincrement())
-  orderId Int
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  productId Int
-  product Product @relation(fields: [productId], references: [id])
+  id           Int      @id @default(autoincrement())
+  orderId      Int
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId    Int
+  product      Product  @relation(fields: [productId], references: [id])
   nameSnapshot String
-  skuSnapshot String?
-  unitPrice Decimal? @db.Decimal(10,2)
-  quantity Int
+  skuSnapshot  String?
+  unitPrice    Decimal? @db.Decimal(10, 2)
+  quantity     Int
 }
+
 model Setting {
-  key String @id
+  key   String @id
   value String
 }
+
 model AdminUser {
-  id Int @id @default(autoincrement())
-  email String @unique
-  passwordHash String
-  name String
-  sessionVersion Int @default(0) // يُرفع عند الخروج أو تغيير كلمة المرور لإبطال كل الجلسات
+  id             Int    @id @default(autoincrement())
+  email          String @unique
+  passwordHash   String
+  name           String
+  sessionVersion Int    @default(0)
 }
 
-// كود الجملة: يُنشأ من لوحة التحكم، ويكتبه عميل الجملة بـ 3 ضغطات متتالية على الشعار
 model WholesaleCode {
-  id Int @id @default(autoincrement())
-  code String @unique
-  name String
-  isActive Boolean @default(true)
-  orders Order[]
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  isActive  Boolean  @default(true)
+  orders    Order[]
   createdAt DateTime @default(now())
 }
-// المندوب: يظهر للعميل عند إتمام الطلب، ويُرسل الطلب إلى واتساب المندوب
+
 model Rep {
-  id Int @id @default(autoincrement())
-  name String
-  location String
-  phone String
-  photo String?
-  sortOrder Int @default(0)
-  isActive Boolean @default(true)
-  orders Order[]
-  account RepAccount?
+  id        Int         @id @default(autoincrement())
+  name      String
+  location  String
+  phone     String
+  photo     String?
+  sortOrder Int         @default(0)
+  isActive  Boolean     @default(true)
+  orders    Order[]
+  account   RepAccount?
 }
 
-// حساب دخول المندوب (/rep): الدخول برقم جواله وكلمة مرور يضعها المدير. منفصل عن Rep حتى لا تُقرأ كلمة المرور مع بيانات المندوب
 model RepAccount {
-  id Int @id @default(autoincrement())
-  repId Int @unique
-  rep Rep @relation(fields: [repId], references: [id], onDelete: Cascade)
-  passwordHash String
-  isActive Boolean @default(true)
-  sessionVersion Int @default(0) // يُرفع عند تغيير كلمة المرور أو الإيقاف لإبطال جلساته
-  lastLoginAt DateTime?
-  createdAt DateTime @default(now())
+  id             Int       @id @default(autoincrement())
+  repId          Int       @unique
+  rep            Rep       @relation(fields: [repId], references: [id], onDelete: Cascade)
+  passwordHash   String
+  isActive       Boolean   @default(true)
+  sessionVersion Int       @default(0)
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
 }
 
-// إعلانات الرئيسية: سلايدر يقلب كل N ثانية (الافتراضي 5). نوعان: صورة فقط، أو صورة مع نص وزر
 enum BannerType {
   IMAGE
   IMAGE_TEXT
-  PRODUCT // إعلان منتج: تصميم جاهز يُولَّد من بيانات المنتج ويفتح صفحته عند الضغط
+  PRODUCT
 }
+
 model Banner {
-  id Int @id @default(autoincrement())
-  type BannerType @default(IMAGE_TEXT)
-  image String @default("")
-  productId Int?
-  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
-  template String @default("spotlight") // قالب تصميم إعلان المنتج
-  badgeAr String? // شارة العرض مثل «خصم 20%»
-  badgeEn String?
-  showPrice Boolean @default(true)
-  titleAr String?
-  titleEn String?
+  id         Int        @id @default(autoincrement())
+  type       BannerType @default(IMAGE_TEXT)
+  image      String     @default("")
+  productId  Int?
+  product    Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+  template   String     @default("spotlight")
+  badgeAr    String?
+  badgeEn    String?
+  showPrice  Boolean    @default(true)
+  titleAr    String?
+  titleEn    String?
   subtitleAr String?
   subtitleEn String?
-  buttonAr String?
-  buttonEn String?
-  linkUrl String?
-  seconds Int @default(5)
-  startsAt DateTime?
-  endsAt DateTime?
-  sortOrder Int @default(0)
-  isActive Boolean @default(true)
-  createdAt DateTime @default(now())
+  buttonAr   String?
+  buttonEn   String?
+  linkUrl    String?
+  seconds    Int        @default(5)
+  startsAt   DateTime?
+  endsAt     DateTime?
+  sortOrder  Int        @default(0)
+  isActive   Boolean    @default(true)
+  createdAt  DateTime   @default(now())
 }
 
-// المحلات: لكل محل رمز QR خاص (?src=code) يُحفظ هنا، ويُنسب له كل عميل وطلب جاء منه
 model Store {
-  id Int @id @default(autoincrement())
-  name String
-  code String @unique
-  city String?
-  notes String?
-  scans Int @default(0)
-  isActive Boolean @default(true)
-  orders Order[]
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String   @unique
+  city      String?
+  notes     String?
+  scans     Int      @default(0)
+  isActive  Boolean  @default(true)
+  orders    Order[]
   createdAt DateTime @default(now())
 }
 
-// الصور والملفات المرفوعة تُحفظ في قاعدة البيانات (إن لم يُضبط S3)، فتبقى بعد إعادة النشر على Render/Vercel
-// وتُعرض من /uploads/<name>. الصور مضغوطة WebP (عادة 100–300KB)
 model Upload {
   id        Int      @id @default(autoincrement())
   name      String   @unique
@@ -239,19 +247,17 @@ model Upload {
   createdAt DateTime @default(now())
 }
 
-// عروض وخصومات بنسبة مئوية لفترة محددة: على كل المنتجات، أو تصنيفات، أو منتجات بعينها.
-// يُطبَّق أعلى خصم فعّال على المنتج، والسعر القديم يظهر مشطوبًا. لا يشمل أسعار الجملة إلا إن فُعّل includeWholesale
 model Offer {
-  id Int @id @default(autoincrement())
-  nameAr String
-  nameEn String @default("")
-  percent Int
-  scope String @default("all") // all | categories | products
-  categoryIds Int[] @default([])
-  productIds Int[] @default([])
-  includeWholesale Boolean @default(false)
-  startsAt DateTime?
-  endsAt DateTime?
-  isActive Boolean @default(true)
-  createdAt DateTime @default(now())
+  id               Int       @id @default(autoincrement())
+  nameAr           String
+  nameEn           String    @default("")
+  percent          Int
+  scope            String    @default("all") // all | categories | products
+  categoryIds      Int[]     @default([])
+  productIds       Int[]     @default([])
+  includeWholesale Boolean   @default(false)
+  startsAt         DateTime?
+  endsAt           DateTime?
+  isActive         Boolean   @default(true)
+  createdAt        DateTime  @default(now())
 }
