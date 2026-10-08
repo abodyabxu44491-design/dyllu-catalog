@@ -68,6 +68,7 @@ npm run dev
 |---|---|---|
 | `DATABASE_URL` | نعم | رابط PostgreSQL (القسم 1) |
 | `ADMIN_SESSION_SECRET` | مستحسن | نص عشوائي 32 حرفًا فأكثر لتوقيع جلسات الدخول (إن لم يُضبط يُشتق مفتاح من `DATABASE_URL`، وتغيير أيهما يُخرج كل المستخدمين). ولّده: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"` |
+| `MAIN_DOMAIN` | لا | الدومين الرسمي (الافتراضي `dyllusa.com`). أي زيارة لرابط قديم (`*.onrender.com` أو رابط `vercel.app` الرئيسي) تتحول له بنفس المسار، فتبقى رموز QR القديمة شغالة |
 | `NEXT_PUBLIC_SITE_URL` | نعم | رابط موقعك: محليًا `http://localhost:3000`، وفي الإنتاج `https://دومينك` |
 | `ADMIN_EMAIL` | للـ seed | بريد الدخول إلى لوحة التحكم |
 | `ADMIN_PASSWORD` | للـ seed | كلمة مرور 8 أحرف فأكثر (احذفها بعد الـ seed) |
