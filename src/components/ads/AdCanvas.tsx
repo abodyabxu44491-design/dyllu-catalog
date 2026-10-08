@@ -1,7 +1,7 @@
 // تصميم الإعلان: نفس المكوّن يُعرض في المعاينة داخل لوحة التحكم وفي سلايدر الرئيسية، فما تراه هو ما يراه العميل.
 // كل المقاسات نسبية لصندوق الإعلان (cqw/cqh)، فيبقى التصميم متناسقًا على الجوال والتابلت والكمبيوتر.
 export type AdKind = "IMAGE" | "IMAGE_TEXT" | "PRODUCT";
-export type AdData = { kind: AdKind; template: string; image: string; title: string; subtitle: string; button: string; badge: string; price: string | null; sku?: string | null; rtl: boolean };
+export type AdData = { kind: AdKind; template: string; image: string; title: string; subtitle: string; button: string; badge: string; price: string | null; oldPrice?: string | null; sku?: string | null; rtl: boolean };
 export const TEMPLATES: { id: string; ar: string; en: string }[] = [
   { id: "spotlight", ar: "أضواء (داكن)", en: "Spotlight" }, { id: "lime", ar: "ليموني (الهوية)", en: "Lime" }, { id: "clean", ar: "أنيق (فاتح)", en: "Clean" },
   { id: "offer", ar: "عرض (برتقالي)", en: "Offer" }, { id: "split", ar: "مقسوم", en: "Split" },
@@ -51,7 +51,7 @@ export default function AdCanvas({ ad }: { ad: AdData }) {
       <b className={`font-display leading-[1.12] line-clamp-2 ad-title ${th.title}`}>{ad.title}</b>
       {ad.subtitle && <span className={`line-clamp-2 leading-snug ad-sub ${th.sub}`}>{ad.subtitle}</span>}
       <div className="flex flex-wrap items-center" style={{ gap: "2.4cqw", marginTop: "1cqh" }}>
-        {ad.price && <b className={`font-display whitespace-nowrap ad-price ${th.price}`}>{ad.price}</b>}
+        {ad.price && <span className="inline-flex flex-col leading-none">{ad.oldPrice && <s className={`whitespace-nowrap opacity-70 ad-sub ${th.sub}`}>{ad.oldPrice}</s>}<b className={`font-display whitespace-nowrap ad-price ${th.price}`}>{ad.price}</b></span>}
         {ad.button && <span className={`inline-flex items-center rounded-full font-bold whitespace-nowrap ad-cta ${th.cta}`}>{ad.button}<Chev rtl={ad.rtl} /></span>}
       </div>
     </div>

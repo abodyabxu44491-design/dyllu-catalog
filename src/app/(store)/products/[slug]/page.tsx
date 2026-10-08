@@ -4,7 +4,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { isWsPrice, priceLabel, priceOf } from "@/lib/format";
+import Price from "@/components/Price";
+import { isWsPrice, oldPriceOf, priceLabel, priceOf } from "@/lib/format";
+import { activeOffers, offerFor } from "@/lib/offers";
 import { getWholesale } from "@/lib/wholesale";
 import { cardInclude } from "@/lib/catalog";
 import { isPhone, telHref, waHref } from "@/lib/phone";
@@ -28,10 +30,13 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 const Sec = ({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) => (<section className={`space-y-3 ${className}`}><SectionHead title={title} /><div className="card overflow-hidden">{children}</div></section>);
 // صفحة المنتج: كمبيوتر = عمودان (المعرض | البيانات والشراء) · جوال = معرض بالسحب وشريط شراء ثابت أسفل الشاشة
 export default async function ProductPage({ params }: { params: { slug: string } }) {
-  const [s, p] = await Promise.all([getSettings(), find(params.slug)]);
-  if (!p) notFound();
+  const [s, p0] = await Promise.all([getSettings(), find(params.slug)]);
+  if (!p0) notFound();
+  // العرض الفعّال (إن وُجد): السعر بعد الخصم، والقديم مشطوبًا
+  const offer = offerFor(p0, await activeOffers()), p = { ...p0, offer };
   const L = getLang(), en = L === "en", ws = !!(await getWholesale());
   const related = await db.product.findMany({ where: { categoryId: p.categoryId, isActive: true, id: { not: p.id } }, include: cardInclude, orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }], take: 4 });
+  const old = oldPriceOf(p, ws);
   const name = pick(L, p.nameAr, p.nameEn), other = en || p.nameEn === name ? "" : p.nameEn, price = priceLabel(p, s, L, ws), priced = priceOf(p, ws) != null;
   const desc = pick(L, p.descriptionAr, p.descriptionEn), cat = p.category, catName = pick(L, cat.nameAr, cat.nameEn), base = siteUrl();
   const wa = s["whatsapp.number"], askUrl = isPhone(wa) ? waHref(wa, `${en ? "Hello, I'd like to ask about" : "السلام عليكم، أرغب في الاستفسار عن"}: ${p.nameEn || p.nameAr}${p.sku ? ` (${p.sku})` : ""}${base ? `\n${base}/products/${p.slug}` : ""}`) : undefined;
@@ -56,7 +61,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
         </div>
         <div className="rounded-2xl bg-soft p-4 md:p-5 space-y-4">
           <div className="flex items-end justify-between gap-3"><div><small className="block text-xs text-steel font-bold">{t(L, "price")}</small>
-            <b className={priced ? "font-display text-3xl md:text-4xl" : "text-xl text-steel"}>{price}</b>{isWsPrice(p, ws) && <span className="ms-2 align-middle bg-ink text-lime text-xs font-extrabold rounded-lg px-2 py-1">{t(L, "wholesale")}</span>}</div></div>
+            <div className="mt-1 flex items-start gap-2 flex-wrap"><Price p={p} s={s} L={L} ws={ws} size="page" />{isWsPrice(p, ws) && <span className="bg-ink text-lime text-xs font-extrabold rounded-lg px-2 py-1">{t(L, "wholesale")}</span>}</div>
+            {offer && old != null && <small className="block mt-2 text-xs font-bold text-accent">{en ? offer.nameEn : offer.nameAr}{offer.endsAt && ` · ${en ? "ends" : "حتى"} ${new Date(offer.endsAt).toLocaleDateString(en ? "en-GB" : "ar-SA-u-nu-latn", { timeZone: "Asia/Riyadh", day: "numeric", month: "long" })}`}</small>}</div></div>
           <div className="hidden md:block">{p.allowCart ? <AddToCart productId={p.id} name={name} full /> : <p className="text-steel font-bold">{t(L, "contactToOrder")}</p>}</div>
         </div>
         {p.features.length > 0 && <ul className="grid sm:grid-cols-2 gap-2">{p.features.slice(0, 6).map((f) => <li key={f.id} className="flex gap-2.5 items-start text-sm"><span className="mt-0.5 bg-lime rounded-full w-5 h-5 grid place-items-center shrink-0"><Icon n="check" s={12} stroke={3} /></span>{pick(L, f.textAr, f.textEn)}</li>)}</ul>}
@@ -80,7 +86,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
     {/* شريط الشراء الثابت (جوال/تابلت) */}
     <div className="h-24 md:hidden" aria-hidden />
     <div className="md:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-line pb-safe no-print"><div className="wrap py-3 flex items-center gap-3">
-      <div className="min-w-[72px]"><small className="block text-steel text-[11px] font-bold">{t(L, "price")}</small><b className={priced ? "font-display" : "text-sm text-steel"}>{price}</b></div>
+      <div className="min-w-[72px]"><small className="block text-steel text-[11px] font-bold">{t(L, "price")}</small><b className={priced ? `font-display ${old != null ? "text-accent" : ""}` : "text-sm text-steel"}>{price}</b>{old != null && <s className="block text-[11px] text-steel leading-tight">{priceLabel({ ...p, offer: null }, s, L, ws)}</s>}</div>
       <div className="flex-1">{p.allowCart ? <AddToCart productId={p.id} name={name} full /> : askUrl ? <a href={askUrl} target="_blank" rel="noopener noreferrer" className="btn btn-lg btn-lime w-full"><Icon n="whatsapp" s={20} />{t(L, "contactToOrder")}</a> : <span className="block text-center text-steel text-sm font-bold">{t(L, "contactToOrder")}</span>}</div>
     </div></div>
   </div>);

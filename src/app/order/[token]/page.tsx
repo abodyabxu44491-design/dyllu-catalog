@@ -41,7 +41,7 @@ export default async function OrderPage({ params }: { params: { token: string } 
               {contact && <p className="text-xs text-steel">{en ? "Orders & inquiries" : "للطلبات والاستفسار"}: <b dir="ltr" className="text-ink">{prettyPhone(contact)}</b></p>}</div>
             <div className="text-end space-y-1.5"><h1 className="text-2xl md:text-3xl">{en ? "Proforma invoice" : "فاتورة مبدئية"}</h1>
               <p className="text-sm"><span className="text-steel">{en ? "No." : "رقم"}</span> <b dir="ltr">{o.number}</b></p>
-              <p className="text-sm text-steel">{o.createdAt.toLocaleDateString(en ? "en-GB" : "ar-SA", { dateStyle: "long" })}</p>
+              <p className="text-sm text-steel">{o.createdAt.toLocaleDateString(en ? "en-GB" : "ar-SA", { timeZone: "Asia/Riyadh", dateStyle: "long" })}</p>
               <span className={`inline-block rounded-lg px-2.5 py-1 text-xs font-extrabold ${st[2]}`}>{en ? st[1] : st[0]}</span></div>
           </header>
 

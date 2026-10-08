@@ -7,6 +7,8 @@ const GLOSSARY = [
   [/منشار\s+(ال)?تقليم/g, "pruning saw"], [/أقراص\s+(ال)?قص/g, "cutting discs"], [/قرص\s+(ال)?قص/g, "cutting disc"], [/أقراص\s+(ال)?ألماس/g, "diamond discs"], [/قرص\s+(ال)?ألماس/g, "diamond disc"],
   [/طقم\s+مفاتيح/g, "wrench set"], [/بطارية\s+ليثيوم/g, "lithium battery"], [/مفاتيح\s+(إ|ا)نجليزي(ة)?/g, "adjustable wrenches"], [/مفتاح\s+(إ|ا)نجليزي/g, "adjustable wrench"],
   [/(ال)?عدد\s+اليدوية/g, "hand tools"], [/عدد\s+يدوية/g, "hand tools"], [/السعر\s+عند\s+التواصل/g, "price on request"],
+  // العروض («عرض» تُترجم أحيانًا Display)
+  [/(ال)?عروض/g, "offers"], [/^عرض\s+/g, "offer on "], [/\sعرض\s/g, " offer "],
   // كلمات مفردة
   [/(ال)?صواريخ/g, "angle grinders"], [/(ال)?صاروخ/g, "angle grinder"], [/(ال)?جلاخ(ة|ات)/g, "angle grinder"], [/(ال)?دريلات/g, "drills"], [/(ال)?دريل/g, "drill"], [/(ال)?شنيور/g, "drill"],
   [/(ال)?مساطرين/g, "trowels"], [/(ال)?مسطرين/g, "trowel"], [/(ال)?بوكسات/g, "sockets"],

@@ -29,7 +29,7 @@ export default async function Dash() {
   const alerts: [boolean, string, string][] = [[oNew > 0, `${oNew} طلب جديد بانتظار المتابعة`, "/admin/orders?status=NEW"], [outStock > 0, `${outStock} منتج ظاهر لكنه غير متوفر`, "/admin/products?st=out"], [noWs > 0 && codes > 0, `${noWs} منتج بلا سعر جملة (عملاء الجملة يرون السعر العادي)`, "/admin/products?st=nows"], [pAll === 0, "لم تضف أي منتج بعد", "/admin/products/new"]];
   return (<div className="space-y-5 md:space-y-6">
     <div className="flex flex-wrap items-end justify-between gap-3">
-      <div><p className="text-sm text-steel">{now.toLocaleDateString("ar-SA", { weekday: "long", day: "numeric", month: "long" })}</p><h1 className="text-2xl md:text-3xl mt-1">{hello}</h1></div>
+      <div><p className="text-sm text-steel">{now.toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh", weekday: "long", day: "numeric", month: "long" })}</p><h1 className="text-2xl md:text-3xl mt-1">{hello}</h1></div>
       <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2 w-full sm:w-auto">{quick.map(([h, l, i, c]) => <Link key={h} href={h} className={`btn btn-md ${c}`}><Icon n={i} s={18} />{l}</Link>)}</div>
     </div>
 
@@ -51,7 +51,7 @@ export default async function Dash() {
             <div className="absolute inset-0 flex items-end gap-[2px] sm:gap-1">{series.map((x, i) => { const today = i === DAYS - 1; return (<div key={i} className="group relative flex-1 h-full flex flex-col justify-end items-center">
               <div className="w-full flex-1 flex items-end pb-5"><div className={`w-full max-w-7 mx-auto rounded-t ${today ? "bg-accent" : "bg-steel group-hover:bg-ink"} transition-colors`} style={{ height: x.n ? `${Math.max(4, (x.n / maxDay) * 100)}%` : "2px", opacity: x.n ? 1 : 0.35 }} /></div>
               <span className={`absolute bottom-0 text-[10px] ${today ? "text-ink font-bold" : "text-steel"} ${i % 2 && !today ? "hidden sm:block" : ""}`}>{x.d.getDate()}</span>
-              <span className={`pointer-events-none absolute bottom-full mb-1 hidden group-hover:block ${i < 3 ? "start-0" : i > DAYS - 4 ? "end-0" : "left-1/2 -translate-x-1/2"} bg-ink text-white text-xs font-bold rounded-lg px-2 py-1 whitespace-nowrap z-10`}>{x.d.toLocaleDateString("ar-SA", { day: "numeric", month: "short" })} · {x.n} طلب</span></div>); })}</div>
+              <span className={`pointer-events-none absolute bottom-full mb-1 hidden group-hover:block ${i < 3 ? "start-0" : i > DAYS - 4 ? "end-0" : "left-1/2 -translate-x-1/2"} bg-ink text-white text-xs font-bold rounded-lg px-2 py-1 whitespace-nowrap z-10`}>{x.d.toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh", day: "numeric", month: "short" })} · {x.n} طلب</span></div>); })}</div>
           </div>
         </div>
       </Card>

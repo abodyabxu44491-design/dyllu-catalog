@@ -5,23 +5,24 @@ import { getSettings } from "@/lib/settings";
 import { getWholesale } from "@/lib/wholesale";
 import { pageParam } from "@/lib/format";
 import { cardInclude, getNavCategories, orderByFor, searchWhere } from "@/lib/catalog";
+import { onSaleWhere } from "@/lib/offers";
 import { getLang, pick, t, txt } from "@/lib/lang";
 import ProductCard from "./ProductCard";
 import Pager from "./Pager";
 import SortSelect from "./SortSelect";
 import Icon from "./Icon";
 import { Empty } from "./ui";
-export type BrowseParams = { q?: string; sort?: string; stock?: string; featured?: string; page?: string; category?: string };
+export type BrowseParams = { q?: string; sort?: string; stock?: string; featured?: string; sale?: string; page?: string; category?: string };
 const PER = 24;
 // قائمة منتجات مشتركة بين «كل المنتجات» وصفحة التصنيف: بحث + تصنيفات + المتوفر فقط + ترتيب + ترقيم.
 // كمبيوتر: شريط جانبي للفلاتر · جوال/تابلت: شرائح أفقية وقائمة ترتيب
 export default async function ProductBrowser({ sp, category }: { sp: BrowseParams; category?: { id: number; slug: string } }) {
   const L = getLang(), en = L === "en", ws = !!(await getWholesale()), page = pageParam(sp.page);
-  const q = sp.q?.trim().slice(0, 60) || undefined, sort = ["new", "low", "high", "name"].includes(sp.sort ?? "") ? sp.sort : undefined, stock = sp.stock === "1" ? "1" : undefined, featured = sp.featured ? "1" : undefined;
+  const q = sp.q?.trim().slice(0, 60) || undefined, sort = ["new", "low", "high", "name"].includes(sp.sort ?? "") ? sp.sort : undefined, stock = sp.stock === "1" ? "1" : undefined, featured = sp.featured ? "1" : undefined, sale = sp.sale ? "1" : undefined, saleW = sale ? await onSaleWhere() : null;
   const base = category ? `/categories/${category.slug}` : "/products";
-  const href = (o: Record<string, string | undefined>, path = base) => { const p = new URLSearchParams(Object.entries({ q, sort, stock, featured: path === "/products" ? featured : undefined, ...o }).filter(([, v]) => v) as [string, string][]).toString(); return p ? `${path}?${p}` : path; };
+  const href = (o: Record<string, string | undefined>, path = base) => { const p = new URLSearchParams(Object.entries({ q, sort, stock, featured: path === "/products" ? featured : undefined, sale, ...o }).filter(([, v]) => v) as [string, string][]).toString(); return p ? `${path}?${p}` : path; };
   // فلاتر بدون التصنيف (لحساب عدد كل تصنيف في الشريط الجانبي)
-  const common: Prisma.ProductWhereInput = { isActive: true, ...(featured && !category && { isFeatured: true }), ...(stock && { inStock: true }), ...searchWhere(q) };
+  const common: Prisma.ProductWhereInput = { isActive: true, ...(featured && !category && { isFeatured: true }), ...(stock && { inStock: true }), ...(sale && !saleW && { id: -1 }), AND: [searchWhere(q), ...(saleW ? [saleW] : [])] };
   const where: Prisma.ProductWhereInput = { ...common, ...(category && { categoryId: category.id }) };
   const [s, cats, counts, total, products] = await Promise.all([getSettings(),
     getNavCategories(),
@@ -32,7 +33,7 @@ export default async function ProductBrowser({ sp, category }: { sp: BrowseParam
   const sorts = [["", "sortDefault"], ["new", "sortNew"], ["low", "sortLow"], ["high", "sortHigh"], ["name", "sortName"]] as const;
   const sortOpts = sorts.map(([v, k]) => ({ v, label: t(L, k), href: href({ sort: v || undefined }) }));
   const catHref = (slug?: string) => (slug ? href({}, `/categories/${slug}`) : href({}, "/products"));
-  const filtered = !!(q || stock || featured);
+  const filtered = !!(q || stock || featured || sale);
   const side = "flex items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-sm font-bold transition";
   return (<div className="lg:grid lg:grid-cols-[250px_1fr] lg:gap-8 xl:gap-10">
     {/* الشريط الجانبي (كمبيوتر) */}
@@ -64,6 +65,7 @@ export default async function ProductBrowser({ sp, category }: { sp: BrowseParam
         {q && <Link href={href({ q: undefined })} className="chip chip-off h-8 text-xs">«{q}»<Icon n="close" s={14} /></Link>}
         {featured && !category && <Link href={href({ featured: undefined })} className="chip chip-off h-8 text-xs">{txt(s, L, "home.featured")}<Icon n="close" s={14} /></Link>}
         {stock && <Link href={href({ stock: undefined })} className="chip chip-off h-8 text-xs">{t(L, "inStockOnly")}<Icon n="close" s={14} /></Link>}
+        {sale && <Link href={href({ sale: undefined })} className="chip chip-off h-8 text-xs">{en ? "Offers" : "العروض"}<Icon n="close" s={14} /></Link>}
         <Link href={base} className="text-xs font-bold text-accent self-center px-2">{t(L, "clearFilters")}</Link></div>}
 
       {products.length > 0 ? <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5">{products.map((p) => <ProductCard key={p.id} p={p} s={s} ws={ws} />)}</div>

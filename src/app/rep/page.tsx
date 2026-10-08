@@ -44,7 +44,7 @@ export default async function RepHome() {
     </section>
     <Card title="آخر الطلبات" action={<Link href="/rep/orders" className="text-sm font-bold text-steel hover:text-ink">عرض الكل</Link>} pad={false}>
       {recent.length ? <div className="divide-y divide-line">{recent.map((o) => (<Link key={o.id} href={`/rep/orders?q=${o.number}`} className="flex items-center gap-3 px-4 md:px-5 py-3 hover:bg-soft/60">
-        <span className="min-w-0 flex-1"><b className="text-sm" dir="ltr">{o.number}</b> <span className="text-sm">· {o.customer.name}</span><small className="block text-xs text-steel">{o.createdAt.toLocaleDateString("ar-SA", { dateStyle: "medium" })}</small></span>
+        <span className="min-w-0 flex-1"><b className="text-sm" dir="ltr">{o.number}</b> <span className="text-sm">· {o.customer.name}</span><small className="block text-xs text-steel">{o.createdAt.toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh", dateStyle: "medium" })}</small></span>
         <b className="text-sm">{o.total == null ? "—" : `${money(o.total)} ر.س`}</b><Badge cls={STATUS_CLS[o.status]}>{STATUS_AR[o.status]}</Badge></Link>))}</div>
         : <p className="text-sm text-steel text-center py-10 px-4">لا توجد طلبات بعد. شارك رابطك مع عملائك لتبدأ.</p>}
     </Card>

@@ -13,6 +13,9 @@ type Acc = { isActive: boolean; lastLoginAt: string | null } | null;
 type R = { id?: number; name: string; location: string; phone: string; photo?: string | null; sortOrder: number; isActive: boolean; orders?: number; account?: Acc };
 const blank: R = { name: "", location: "", phone: "", photo: null, sortOrder: 0, isActive: true };
 const Avatar = ({ r, s = "w-12 h-12 text-lg" }: { r: R; s?: string }) => <span className={`${s} rounded-full bg-ink text-lime grid place-items-center font-extrabold overflow-hidden shrink-0`}>{r.photo ? <img src={r.photo} alt="" className="w-full h-full object-cover" /> : (r.name[0] ?? "؟")}</span>;
+// تاريخ بتوقيت السعودية بتنسيق ثابت (نفس النص على السيرفر والمتصفح)
+const MONTHS = ["يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو", "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر"];
+const when = (iso: string) => { const d = new Date(new Date(iso).getTime() + 3 * 36e5), h = d.getUTCHours(); return `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${d.getUTCFullYear()}، ${h % 12 || 12}:${String(d.getUTCMinutes()).padStart(2, "0")} ${h < 12 ? "ص" : "م"}`; };
 // كلمة مرور سهلة القراءة والكتابة على الجوال (بدون أحرف متشابهة مثل l و 1 و O و 0)
 const gen = () => Array.from(crypto.getRandomValues(new Uint8Array(8)), (b) => "abcdefghjkmnpqrstuvwxyz23456789"[b % 31]).join("");
 // حساب دخول المندوب: إنشاء/إيقاف/تغيير كلمة المرور + إرسال بيانات الدخول له على واتساب
@@ -29,7 +32,7 @@ function Account({ rep }: { rep: R }) {
   return (<div className="rounded-2xl border border-line bg-white p-4 space-y-3">
     <div className="flex flex-wrap items-center gap-2"><Icon n="key" s={18} className="text-accent" /><b className="text-sm">حساب الدخول</b>
       {acc ? <Badge cls={acc.isActive ? "bg-lime text-ink" : "bg-soft text-steel"}>{acc.isActive ? "فعّال" : "موقوف"}</Badge> : <Badge>لا يوجد حساب</Badge>}
-      {acc?.lastLoginAt && <small className="text-xs text-steel ms-auto">آخر دخول: {new Date(acc.lastLoginAt).toLocaleString("ar-SA", { dateStyle: "medium", timeStyle: "short" })}</small>}</div>
+      {acc?.lastLoginAt && <small className="text-xs text-steel ms-auto">آخر دخول: {when(acc.lastLoginAt)}</small>}</div>
     <p className="text-xs text-steel leading-5">يدخل المندوب من <b dir="ltr">/rep-login</b> برقم جواله <b dir="ltr">{localPhone(rep.phone)}</b>، ويرى طلباته وعملاءه ويحدّث حالة الطلب، ويحصل على رابط خاص به: أي طلب من الرابط يصله هو.</p>
     <div className="grid sm:grid-cols-[1fr_auto] gap-2 items-end">
       <Field label={acc ? "كلمة مرور جديدة (اختياري)" : "كلمة المرور"} hint={acc ? "اتركها فارغة للإبقاء على الحالية" : "6 أحرف على الأقل"}>
