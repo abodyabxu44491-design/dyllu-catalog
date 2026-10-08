@@ -10,20 +10,20 @@ import CategoryCard from "@/components/CategoryCard";
 import BannerCarousel, { type Slide } from "@/components/BannerCarousel";
 import SearchBox from "@/components/SearchBox";
 import RecentlyViewed from "@/components/RecentlyViewed";
-import Icon, { type IconName } from "@/components/Icon";
+import Icon from "@/components/Icon";
 import { SectionHead } from "@/components/ui";
-import { isPhone, waHref } from "@/lib/phone";
 import { activeOffers, offerFor, onSaleWhere } from "@/lib/offers";
 export const dynamic = "force-dynamic";
-// الترتيب: بنر (إعلانات أو واجهة ثابتة) ← بحث (جوال) ← تصنيفات ← العروض ← مميز ← وصل حديثًا ← الختام (الهوية + اختصارات). كل النصوص من الإعدادات.
+// الترتيب: بنر (إعلانات أو واجهة ثابتة) ← بحث (جوال) ← تصنيفات ← العروض ← مميز ← وصل حديثًا ← الختام (لوحة الهوية). كل النصوص من الإعدادات.
 export default async function Home() {
   const L = getLang(), en = L === "en", ws = !!(await getWholesale()), now = new Date();
-  const [s, cats, featured, latest, banners] = await Promise.all([getSettings(),
+  const [s, cats, featured, latest, banners, productCount, catCount] = await Promise.all([getSettings(),
     db.category.findMany({ where: { isActive: true }, orderBy: { sortOrder: "asc" }, take: 12, include: { _count: { select: { products: { where: { isActive: true } } } } } }),
     db.product.findMany({ where: { isActive: true, isFeatured: true }, include: cardInclude, orderBy: [{ sortOrder: "asc" }, { id: "asc" }], take: 8 }),
     db.product.findMany({ where: { isActive: true }, include: cardInclude, orderBy: { id: "desc" }, take: 8 }),
     db.banner.findMany({ where: { isActive: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
-      include: { product: { include: { images: { orderBy: { sortOrder: "asc" }, take: 1 }, category: { select: { nameAr: true, nameEn: true } } } } } })]);
+      include: { product: { include: { images: { orderBy: { sortOrder: "asc" }, take: 1 }, category: { select: { nameAr: true, nameEn: true } } } } } }),
+    db.product.count({ where: { isActive: true } }), db.category.count({ where: { isActive: true } })]);
   // العروض: منتجات عليها خصم فعّال الآن (القسم يظهر فقط عند وجود عروض)
   const [offers, saleWhere] = await Promise.all([activeOffers(), onSaleWhere()]);
   const sale = saleWhere ? await db.product.findMany({ where: { isActive: true, AND: [saleWhere, { OR: [{ showPrice: true, price: { not: null } }, ...(ws ? [{ wholesalePrice: { not: null } }] : [])] }] }, include: cardInclude, orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }], take: 8 }) : [];
@@ -36,10 +36,10 @@ export default async function Home() {
     const x = b.type === "IMAGE_TEXT";
     return [{ ...base, href: b.linkUrl ?? "", ad: { kind: b.type, template: "", rtl: !en, image: b.image, title: x ? pick(L, b.titleAr, b.titleEn) : "", subtitle: x ? pick(L, b.subtitleAr, b.subtitleEn) : "", button: x && b.linkUrl ? pick(L, b.buttonAr, b.buttonEn) : "", badge: "", price: null } }];
   });
-  const wa = s["whatsapp.number"], waOk = isPhone(wa);
-  const tiles: [string, string, string, IconName, boolean][] = [
-    ["/categories", en ? "All categories" : "كل التصنيفات", en ? "Browse by department" : "تصفح حسب القسم", "grid", false],
-    ...(waOk ? [[waHref(wa, en ? "Hello" : "السلام عليكم"), en ? "Talk to us" : "تواصل معنا", en ? "WhatsApp, we reply fast" : "واتساب، نرد بسرعة", "whatsapp", true] as [string, string, string, IconName, boolean]] : [])];
+  // أرقام حقيقية من المتجر بدل أزرار مكررة
+  const stats: [string, string][] = [[`${productCount}+`, en ? "Products" : "منتج"], [String(catCount), en ? "Categories" : "تصنيف"],
+    offers.length ? [String(offers.length), en ? "Active offers" : "عرض فعّال"] : [en ? "Fast" : "طلب سريع", en ? "WhatsApp ordering" : "عبر واتساب"]];
+  const slogan = (T("footer.tagline") || "DYLLU, Discover your Power").replace(/^\s*DYLLU\s*[,،]?\s*/i, "") || "Discover your Power";
   const grid = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5";
   return (<div className="wrap pt-4 md:pt-6 space-y-10 md:space-y-14">
     <div className="space-y-4">
@@ -81,27 +81,21 @@ export default async function Home() {
 
     <RecentlyViewed cur={cur} hidden={hidden} />
 
-    {/* الختام: لوحة الهوية + اختصارات سريعة */}
-    <section className="grid lg:grid-cols-[1.5fr_1fr] gap-3 sm:gap-4">
-      <div className="relative overflow-hidden rounded-3xl bg-ink text-white flex flex-col md:flex-row-reverse md:min-h-[300px]">
-        {/* لوحة ليمونية بحافة مائلة (من دليل الهوية) فيها الشعار */}
-        <div aria-hidden className="relative h-36 md:h-auto md:w-[40%] shrink-0 bg-lime grid place-items-center [clip-path:polygon(0_0,100%_0,100%_78%,0_100%)] md:[clip-path:polygon(0_0,100%_0,100%_100%,22%_100%)] rtl:md:[clip-path:polygon(0_0,100%_0,78%_100%,0_100%)]">
-          <i className="absolute top-0 end-0 w-0 h-0 border-t-[30px] border-t-accent border-s-[30px] border-s-transparent" />
-          <img src="/brand/logo-badge.png" alt="" className="w-24 md:w-40 h-auto drop-shadow-[0_10px_24px_rgba(0,0,0,.25)] md:ms-10 rtl:md:ms-0 rtl:md:me-10" />
-        </div>
-        <div className="relative flex-1 p-6 pt-3 md:p-10 flex flex-col justify-center gap-3">
-          <img src="/brand/logo-wordmark-white.png" alt="DYLLU" className="h-7 md:h-8 w-auto self-start" />
-          <b className="block font-display text-3xl md:text-[2.8rem] leading-[1.05] text-lime" dir="ltr" style={{ textAlign: "start" }}>Discover <br className="hidden md:inline" />your Power</b>
-          <p className="text-white/70 text-sm md:text-base leading-7">{T("footer.text")}</p>
-          <Link href="/products" className="btn btn-lg btn-lime self-stretch sm:self-start mt-1">{T("home.cta")}<Icon n="chev" s={18} className="flip-rtl" /></Link>
-        </div>
-        <i aria-hidden className="absolute inset-x-0 bottom-0 h-1.5 bg-lime shadow-[0_-2px_0_theme(colors.accent)]" />
+    {/* الختام: لوحة الهوية فقط (بدون أزرار: روابط المنتجات والتصنيفات موجودة في رؤوس الأقسام والتذييل) */}
+    <section aria-label="DYLLU" className="relative overflow-hidden rounded-3xl bg-ink text-white grid md:grid-cols-[1fr_38%] md:min-h-[260px]">
+      {/* لوحة ليمونية بحافة مائلة (من دليل الهوية) فيها الشعار */}
+      <div aria-hidden className="relative h-32 md:h-auto md:order-2 bg-lime grid place-items-center [clip-path:polygon(0_0,100%_0,100%_74%,0_100%)] md:[clip-path:polygon(18%_0,100%_0,100%_100%,0_100%)] rtl:md:[clip-path:polygon(0_0,82%_0,100%_100%,0_100%)]">
+        <i className="absolute top-0 end-0 w-0 h-0 border-t-[34px] border-t-accent border-s-[34px] border-s-transparent" />
+        <img src="/brand/logo-badge.png" alt="" className="w-24 md:w-36 h-auto drop-shadow-[0_12px_28px_rgba(0,0,0,.28)]" />
       </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 content-center">{tiles.map(([href, t, sub, i, ext]) => (
-        <Link key={t} href={href} {...(ext && { target: "_blank", rel: "noopener noreferrer" })} className="group flex items-center gap-4 rounded-3xl bg-soft hover:bg-lime/30 p-4 md:p-5 transition">
-          <span className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl grid place-items-center shrink-0 transition group-hover:scale-105 ${i === "whatsapp" ? "bg-[#1FA855] text-white" : "bg-white text-ink shadow-card"}`}><Icon n={i} s={24} /></span>
-          <span className="min-w-0 flex-1"><b className="block font-display text-base md:text-lg leading-tight">{t}</b><small className="block text-xs md:text-sm text-steel mt-0.5">{sub}</small></span>
-          <Icon n="chev" s={18} className="flip-rtl text-steel group-hover:text-ink transition" /></Link>))}</div>
+      <div className="relative p-6 pt-2 md:p-10 flex flex-col justify-center gap-5">
+        <b className="block font-display text-[2rem] md:text-5xl leading-[1.02] text-lime"><bdi dir="ltr">{slogan}</bdi></b>
+        <dl className="grid grid-cols-3 gap-2 sm:gap-3 max-w-lg">{stats.map(([n, label]) => (
+          <div key={label} className="rounded-2xl bg-white/[.06] ring-1 ring-white/10 px-3 py-3 sm:px-4">
+            <dt className="sr-only">{label}</dt><dd><b className="block font-display text-xl sm:text-2xl text-white leading-none"><bdi dir="ltr">{n}</bdi></b><small className="block text-[11px] sm:text-xs text-white/60 mt-1.5">{label}</small></dd>
+          </div>))}</dl>
+      </div>
+      <i aria-hidden className="absolute inset-x-0 bottom-0 h-1.5 bg-lime shadow-[0_-2px_0_theme(colors.accent)]" />
     </section>
   </div>);
 }

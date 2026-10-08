@@ -6,7 +6,7 @@ import { isPhone, prettyPhone, telHref, waHref } from "@/lib/phone";
 import Icon, { type IconName } from "./Icon";
 const SOCIAL: [string, string, (h: string) => string][] = [["social.instagram", "Instagram", (h) => `https://instagram.com/${h}`], ["social.x", "X", (h) => `https://x.com/${h}`], ["social.tiktok", "TikTok", (h) => `https://tiktok.com/@${h}`], ["social.snapchat", "Snapchat", (h) => `https://snapchat.com/add/${h}`]];
 const url = (v: string, f: (h: string) => string) => (/^https?:\/\//.test(v) ? v : f(v.replace(/^@/, "")));
-// التذييل: الشعار والوصف، روابط سريعة، التصنيفات، التواصل، ثم شريط الهوية (ليموني بخط برتقالي وشعار DYLLU, Discover your Power)
+// التذييل: الشعار والوصف، روابط سريعة، التصنيفات، التواصل، ثم شريط الهوية (ليموني بخط برتقالي). الشعار النصي يظهر في لوحة الهوية آخر الرئيسية
 export default async function SiteFooter() {
   const [s, cats] = await Promise.all([getSettings(), getNavCategories().then((c) => c.slice(0, 8))]);
   const L = getLang(), name = s["site.name"] || "DYLLU", wa = s["whatsapp.number"], hasWa = isPhone(wa), call = isPhone(s["contact.phone"]) ? s["contact.phone"] : hasWa ? wa : "";
@@ -28,6 +28,6 @@ export default async function SiteFooter() {
       </Col></div>}
     </div>
     <div className="border-t border-white/10"><div className="wrap py-4 text-xs text-white/50 flex flex-wrap justify-between gap-2"><span>© {new Date().getFullYear()} {name}. {t(L, "rights")}</span></div></div></div>
-    <div className="bg-lime shadow-[0_-3px_0_theme(colors.accent)]"><div className="wrap h-9 flex items-center justify-end"><b className="text-steel text-xs sm:text-sm tracking-wide" dir="ltr">{txt(s, L, "footer.tagline") || "DYLLU, Discover your Power"}</b></div></div>
+    <div aria-hidden className="h-2.5 bg-lime shadow-[0_-3px_0_theme(colors.accent)]" />
   </footer>);
 }

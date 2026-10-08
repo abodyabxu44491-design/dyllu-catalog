@@ -14,7 +14,7 @@ const CONTACT: F[] = [["contact.email", "البريد الإلكتروني", "ي
 const PRICE: F[] = [["price.hiddenLabel.ar", "نص السعر المخفي", "يظهر بدل السعر عند إخفائه"], ["currency.ar", "العملة"]];
 // النصوص تُكتب بالعربية (المفتاح.ar)، والنسخة الإنجليزية (المفتاح.en) يولّدها السيرفر تلقائيًا عند الحفظ
 const HOME: [string, string][] = [["home.title", "عنوان الواجهة الثابتة"], ["home.sub", "النص الفرعي"], ["home.cta", "نص زر الواجهة"], ["search.ph", "نص خانة البحث"], ["home.cats", "عنوان قسم التصنيفات"], ["home.featured", "عنوان قسم المميز"], ["home.new", "عنوان قسم «وصل حديثًا»"], ["home.allCats", "رابط «عرض كل التصنيفات»"], ["home.allProducts", "رابط «عرض كل المنتجات»"], ["home.allFeatured", "رابط «عرض كل المميزة»"]];
-const FOOT: [string, string][] = [["footer.text", "وصف المتجر في التذييل"], ["footer.tagline", "الشعار النصي (أسفل الصفحة)"], ["contact.address", "العنوان"]];
+const FOOT: [string, string][] = [["footer.text", "وصف المتجر في التذييل"], ["footer.tagline", "الشعار النصي (لوحة الهوية آخر الرئيسية)"], ["contact.address", "العنوان"]];
 export default function SettingsForm({ initial }: { initial: Record<string, string> }) {
   const r = useRouter(), base = useRef(JSON.stringify(initial)), [s, setS] = useState(initial), [busy, setBusy] = useState(false);
   const dirty = JSON.stringify(s) !== base.current, set = (k: string, v: string) => setS((o) => ({ ...o, [k]: v }));
