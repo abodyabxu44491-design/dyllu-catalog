@@ -2,6 +2,7 @@ import { z } from "zod";
 import { db } from "./db";
 import { priceOf } from "./format";
 import { isPhone, normalizePhone, toAsciiDigits } from "./phone";
+import { withOffers } from "./offers";
 // الواجهة ترسل productId + quantity فقط. السعر دائمًا من قاعدة البيانات، وسعر الجملة يحدده كوكي موقّع من السيرفر.
 export const orderInput = z.object({
   customer: z.object({ name: z.string({ required_error: "اكتب الاسم" }).trim().min(2, "اكتب الاسم").max(80), phone: z.string({ required_error: "اكتب رقم الجوال" }).trim().max(32).transform(toAsciiDigits).refine(isPhone, "رقم الجوال غير مكتمل، اكتبه مثل 0551234567"), company: z.string().trim().max(80).optional(), city: z.string().trim().max(60).optional() }),
@@ -14,7 +15,8 @@ export async function createOrder(raw: unknown, ws: { id: number } | null = null
   const input = orderInput.parse(raw);
   const rep = input.repId ? await db.rep.findFirst({ where: { id: input.repId, isActive: true } }) : null;
   if (input.repId && !rep) throw new Error("مندوب غير متاح");
-  const products = await db.product.findMany({ where: { id: { in: input.items.map((i) => i.productId) }, isActive: true, allowCart: true } });
+  // السعر من قاعدة البيانات بعد تطبيق العروض الفعّالة الآن
+  const products = await withOffers(await db.product.findMany({ where: { id: { in: input.items.map((i) => i.productId) }, isActive: true, allowCart: true } }));
   const map = new Map(products.map((p) => [p.id, p]));
   if (input.items.some((i) => !map.has(i.productId))) throw new Error("منتج غير متاح");
   let total = 0, hasUnpriced = false;

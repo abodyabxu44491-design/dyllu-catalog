@@ -4,17 +4,17 @@ import { getSettings } from "@/lib/settings";
 import { getLang, pick, txt } from "@/lib/lang";
 import { getWholesale } from "@/lib/wholesale";
 import { cardInclude } from "@/lib/catalog";
-import { priceLabel, priceOf } from "@/lib/format";
+import { oldPriceOf, priceLabel, priceOf } from "@/lib/format";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
 import BannerCarousel, { type Slide } from "@/components/BannerCarousel";
 import SearchBox from "@/components/SearchBox";
 import RecentlyViewed from "@/components/RecentlyViewed";
-import Icon, { type IconName } from "@/components/Icon";
+import Icon from "@/components/Icon";
 import { SectionHead } from "@/components/ui";
-import { isPhone, waHref } from "@/lib/phone";
+import { activeOffers, offerFor, onSaleWhere } from "@/lib/offers";
 export const dynamic = "force-dynamic";
-// الترتيب: بنر (إعلانات أو واجهة ثابتة) ← بحث (جوال) ← تصنيفات ← مميز ← وصل حديثًا ← الختام (الهوية + اختصارات). كل النصوص من الإعدادات.
+// الترتيب: بنر (إعلانات أو واجهة ثابتة) ← بحث (جوال) ← تصنيفات ← العروض ← مميز ← وصل حديثًا. كل النصوص من الإعدادات.
 export default async function Home() {
   const L = getLang(), en = L === "en", ws = !!(await getWholesale()), now = new Date();
   const [s, cats, featured, latest, banners] = await Promise.all([getSettings(),
@@ -23,19 +23,18 @@ export default async function Home() {
     db.product.findMany({ where: { isActive: true }, include: cardInclude, orderBy: { id: "desc" }, take: 8 }),
     db.banner.findMany({ where: { isActive: true, AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }] }, orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       include: { product: { include: { images: { orderBy: { sortOrder: "asc" }, take: 1 }, category: { select: { nameAr: true, nameEn: true } } } } } })]);
+  // العروض: منتجات عليها خصم فعّال الآن (القسم يظهر فقط عند وجود عروض)
+  const [offers, saleWhere] = await Promise.all([activeOffers(), onSaleWhere()]);
+  const sale = saleWhere ? await db.product.findMany({ where: { isActive: true, AND: [saleWhere, { OR: [{ showPrice: true, price: { not: null } }, ...(ws ? [{ wholesalePrice: { not: null } }] : [])] }] }, include: cardInclude, orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }], take: 8 }) : [];
   const T = (k: string) => txt(s, L, k), cur = en ? s["currency.en"] || "SAR" : s["currency.ar"], hidden = en ? "Contact us" : s["price.hiddenLabel.ar"];
   // إعلان المنتج: بياناته وسعره (حسب الجملة/الإخفاء) من المنتج نفسه، والضغط يفتح صفحته. يُتجاهل إن كان المنتج مخفيًا أو محذوفًا
   const slides = banners.flatMap((b): Slide[] => {
     const base = { id: b.id, seconds: b.seconds };
-    if (b.type === "PRODUCT") { const p = b.product; if (!p || !p.isActive) return [];
-      return [{ ...base, href: `/products/${p.slug}`, ad: { kind: "PRODUCT" as const, template: b.template, rtl: !en, image: b.image || p.images[0]?.url || "", title: pick(L, b.titleAr, b.titleEn) || pick(L, p.nameAr, p.nameEn), subtitle: pick(L, b.subtitleAr, b.subtitleEn) || pick(L, p.category.nameAr, p.category.nameEn), button: pick(L, b.buttonAr, b.buttonEn) || (en ? "Order now" : "اطلب الآن"), badge: pick(L, b.badgeAr, b.badgeEn), price: b.showPrice && priceOf(p, ws) != null ? priceLabel(p, s, L, ws) : null, sku: p.sku } }]; }
+    if (b.type === "PRODUCT") { const p0 = b.product; if (!p0 || !p0.isActive) return []; const p = { ...p0, offer: offerFor(p0, offers) };
+      return [{ ...base, href: `/products/${p.slug}`, ad: { kind: "PRODUCT" as const, template: b.template, rtl: !en, image: b.image || p.images[0]?.url || "", title: pick(L, b.titleAr, b.titleEn) || pick(L, p.nameAr, p.nameEn), subtitle: pick(L, b.subtitleAr, b.subtitleEn) || pick(L, p.category.nameAr, p.category.nameEn), button: pick(L, b.buttonAr, b.buttonEn) || (en ? "Order now" : "اطلب الآن"), badge: pick(L, b.badgeAr, b.badgeEn), price: b.showPrice && priceOf(p, ws) != null ? priceLabel(p, s, L, ws) : null, oldPrice: b.showPrice && oldPriceOf(p, ws) != null ? priceLabel({ ...p, offer: null }, s, L, ws) : null, sku: p.sku } }]; }
     const x = b.type === "IMAGE_TEXT";
     return [{ ...base, href: b.linkUrl ?? "", ad: { kind: b.type, template: "", rtl: !en, image: b.image, title: x ? pick(L, b.titleAr, b.titleEn) : "", subtitle: x ? pick(L, b.subtitleAr, b.subtitleEn) : "", button: x && b.linkUrl ? pick(L, b.buttonAr, b.buttonEn) : "", badge: "", price: null } }];
   });
-  const wa = s["whatsapp.number"], waOk = isPhone(wa);
-  const tiles: [string, string, string, IconName, boolean][] = [
-    ["/categories", en ? "All categories" : "كل التصنيفات", en ? "Browse by department" : "تصفح حسب القسم", "grid", false],
-    ...(waOk ? [[waHref(wa, en ? "Hello" : "السلام عليكم"), en ? "Talk to us" : "تواصل معنا", en ? "WhatsApp, we reply fast" : "واتساب، نرد بسرعة", "whatsapp", true] as [string, string, string, IconName, boolean]] : [])];
   const grid = "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-5";
   return (<div className="wrap pt-4 md:pt-6 space-y-10 md:space-y-14">
     <div className="space-y-4">
@@ -58,6 +57,11 @@ export default async function Home() {
       <div className={`grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 ${cats.length <= 6 ? "lg:grid-cols-6" : "lg:grid-cols-4"}`}>{cats.map((c) => <CategoryCard key={c.id} c={c} L={L} />)}</div>
     </section>}
 
+    {sale.length > 0 && <section className="space-y-4 md:space-y-6">
+      <SectionHead title={en ? "Offers" : "العروض"} href="/products?sale=1" more={en ? "All offers" : "كل العروض"} />
+      <div className={grid}>{sale.map((p) => <ProductCard key={p.id} p={p} s={s} ws={ws} />)}</div>
+    </section>}
+
     {featured.length > 0 && <section className="space-y-4 md:space-y-6">
       <SectionHead title={T("home.featured")} href="/products?featured=1" more={T("home.allFeatured")} />
       <div className={grid}>{featured.map((p) => <ProductCard key={p.id} p={p} s={s} ws={ws} />)}</div>
@@ -72,27 +76,5 @@ export default async function Home() {
 
     <RecentlyViewed cur={cur} hidden={hidden} />
 
-    {/* الختام: لوحة الهوية + اختصارات سريعة */}
-    <section className="grid lg:grid-cols-[1.5fr_1fr] gap-3 sm:gap-4">
-      <div className="relative overflow-hidden rounded-3xl bg-ink text-white flex flex-col md:flex-row-reverse md:min-h-[300px]">
-        {/* لوحة ليمونية بحافة مائلة (من دليل الهوية) فيها الشعار */}
-        <div aria-hidden className="relative h-36 md:h-auto md:w-[40%] shrink-0 bg-lime grid place-items-center [clip-path:polygon(0_0,100%_0,100%_78%,0_100%)] md:[clip-path:polygon(0_0,100%_0,100%_100%,22%_100%)] rtl:md:[clip-path:polygon(0_0,100%_0,78%_100%,0_100%)]">
-          <i className="absolute top-0 end-0 w-0 h-0 border-t-[30px] border-t-accent border-s-[30px] border-s-transparent" />
-          <img src="/brand/logo-badge.png" alt="" className="w-24 md:w-40 h-auto drop-shadow-[0_10px_24px_rgba(0,0,0,.25)] md:ms-10 rtl:md:ms-0 rtl:md:me-10" />
-        </div>
-        <div className="relative flex-1 p-6 pt-3 md:p-10 flex flex-col justify-center gap-3">
-          <img src="/brand/logo-wordmark-white.png" alt="DYLLU" className="h-7 md:h-8 w-auto self-start" />
-          <b className="block font-display text-3xl md:text-[2.8rem] leading-[1.05] text-lime" dir="ltr" style={{ textAlign: "start" }}>Discover <br className="hidden md:inline" />your Power</b>
-          <p className="text-white/70 text-sm md:text-base leading-7">{T("footer.text")}</p>
-          <Link href="/products" className="btn btn-lg btn-lime self-stretch sm:self-start mt-1">{T("home.cta")}<Icon n="chev" s={18} className="flip-rtl" /></Link>
-        </div>
-        <i aria-hidden className="absolute inset-x-0 bottom-0 h-1.5 bg-lime shadow-[0_-2px_0_theme(colors.accent)]" />
-      </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-1 gap-3 sm:gap-4 content-center">{tiles.map(([href, t, sub, i, ext]) => (
-        <Link key={t} href={href} {...(ext && { target: "_blank", rel: "noopener noreferrer" })} className="group flex items-center gap-4 rounded-3xl bg-soft hover:bg-lime/30 p-4 md:p-5 transition">
-          <span className={`w-12 h-12 md:w-14 md:h-14 rounded-2xl grid place-items-center shrink-0 transition group-hover:scale-105 ${i === "whatsapp" ? "bg-[#1FA855] text-white" : "bg-white text-ink shadow-card"}`}><Icon n={i} s={24} /></span>
-          <span className="min-w-0 flex-1"><b className="block font-display text-base md:text-lg leading-tight">{t}</b><small className="block text-xs md:text-sm text-steel mt-0.5">{sub}</small></span>
-          <Icon n="chev" s={18} className="flip-rtl text-steel group-hover:text-ink transition" /></Link>))}</div>
-    </section>
   </div>);
 }

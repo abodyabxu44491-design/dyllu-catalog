@@ -6,7 +6,7 @@ import { Empty } from "@/components/ui";
 import { useCart } from "@/store/cart";
 import { useLang } from "@/lib/useLang";
 import { isPhone, toAsciiDigits } from "@/lib/phone";
-type Item = { id: number; slug: string; sku: string | null; inStock: boolean; nameAr: string; nameEn: string; allowCart: boolean; image: string | null; price: number | null };
+type Item = { id: number; slug: string; sku: string | null; inStock: boolean; nameAr: string; nameEn: string; allowCart: boolean; image: string | null; price: number | null; oldPrice?: number | null };
 type Rep = { id: number; name: string; location: string; photo: string | null };
 const D = {
   ar: { title: "سلة الطلب", empty: "السلة فارغة", emptySub: "أضف منتجات وستظهر هنا", browse: "استعرض المنتجات", s1: "المراجعة", s2: "البيانات", s3: "المندوب", count: "عدد القطع", items: "المنتجات", total: "الإجمالي", unp: "+ منتجات بسعر غير محدد (يُحدد سعرها عند التواصل)", co: "إتمام الطلب", clear: "تفريغ السلة", more: "متابعة التصفح", contact: "تواصل معنا", cur: "ريال", each: "للقطعة", summary: "ملخص الطلب", remove: "حذف", out: "غير متوفر حاليًا",
@@ -92,7 +92,7 @@ export default function CartPage() {
                 <button aria-label={d.remove} onClick={() => setQty(p.id, 0)} className="btn-icon w-9 h-9 text-steel hover:text-accent hover:bg-accent/5 -mt-1 -me-1"><Icon n="trash" s={18} /></button></div>
               <div className="flex items-center justify-between gap-2 mt-auto flex-wrap">
                 <div className="flex items-center rounded-xl border border-line"><button aria-label="-" className="btn-icon w-10 h-10 text-steel hover:text-ink" onClick={() => setQty(p.id, l.quantity - 1)}><Icon n={l.quantity === 1 ? "trash" : "minus"} s={16} /></button><span className="min-w-8 text-center font-extrabold">{l.quantity}</span><button aria-label="+" className="btn-icon w-10 h-10 text-steel hover:text-ink" onClick={() => setQty(p.id, l.quantity + 1)}><Icon n="plus" s={16} /></button></div>
-                <div className="text-end"><b className="block">{p.price == null ? d.contact : money(p.price * l.quantity)}</b>{p.price != null && l.quantity > 1 && <small className="text-xs text-steel">{money(p.price)} {d.each}</small>}</div></div>
+                <div className="text-end">{p.oldPrice != null && p.price != null && <s className="block text-xs text-steel">{money(p.oldPrice * l.quantity)}</s>}<b className={`block ${p.oldPrice != null ? "text-accent" : ""}`}>{p.price == null ? d.contact : money(p.price * l.quantity)}</b>{p.price != null && l.quantity > 1 && <small className="text-xs text-steel">{money(p.price)} {d.each}</small>}</div></div>
             </div></div>))}
           <div className="flex justify-between text-sm pt-1"><Link href="/products" className="inline-flex items-center gap-1 font-bold text-steel hover:text-ink"><Icon n="chev" s={16} className="rotate-180 rtl:rotate-0" />{d.more}</Link><button className="text-accent font-bold" onClick={() => confirm(d.confirmClear) && clear()}>{d.clear}</button></div></>}
         {step === 2 && <div className="card p-4 sm:p-6 space-y-4">
@@ -120,7 +120,7 @@ export default function CartPage() {
       <aside className="hidden lg:block lg:sticky lg:top-28"><Summary cta={primary} /></aside>
       <div className="lg:hidden"><Summary /></div>
     </div>
-    {primary && <><div className="h-24 lg:hidden" aria-hidden /><div className="lg:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-line pb-safe"><div className="wrap py-3 flex items-center gap-3">
+    {primary && <><div className="h-24 lg:hidden" aria-hidden /><div className="lg:hidden fixed inset-x-0 bottom-[calc(64px+env(safe-area-inset-bottom))] md:bottom-0 md:pb-safe z-30 bg-white/95 backdrop-blur border-t border-line shadow-[0_-8px_24px_-12px_rgba(43,45,47,.25)]"><div className="wrap py-3 flex items-center gap-3">
       <div className="min-w-[84px]"><small className="block text-steel text-[11px] font-bold">{d.total}</small><b className="font-display">{money(total)}</b></div><div className="flex-1">{primary}</div></div></div></>}
   </div>);
 }

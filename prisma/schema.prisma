@@ -21,6 +21,7 @@ model Category {
   nameAr String
   nameEn String
   descriptionAr String?
+  descriptionEn String? // يُترجم تلقائيًا من العربي
   subtitleAr String?
   subtitleEn String?
   image String?
@@ -73,6 +74,7 @@ model ProductSpec {
   nameAr String
   nameEn String
   value String
+  valueEn String? // ترجمة القيمة إن كانت عربية
   sortOrder Int @default(0)
 }
 model ProductFeature {
@@ -88,6 +90,7 @@ model ProductDocument {
   productId Int
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   title String
+  titleEn String?
   url String
 }
 model Customer {
@@ -233,5 +236,22 @@ model Upload {
   type      String
   size      Int
   data      Bytes
+  createdAt DateTime @default(now())
+}
+
+// عروض وخصومات بنسبة مئوية لفترة محددة: على كل المنتجات، أو تصنيفات، أو منتجات بعينها.
+// يُطبَّق أعلى خصم فعّال على المنتج، والسعر القديم يظهر مشطوبًا. لا يشمل أسعار الجملة إلا إن فُعّل includeWholesale
+model Offer {
+  id Int @id @default(autoincrement())
+  nameAr String
+  nameEn String @default("")
+  percent Int
+  scope String @default("all") // all | categories | products
+  categoryIds Int[] @default([])
+  productIds Int[] @default([])
+  includeWholesale Boolean @default(false)
+  startsAt DateTime?
+  endsAt DateTime?
+  isActive Boolean @default(true)
   createdAt DateTime @default(now())
 }

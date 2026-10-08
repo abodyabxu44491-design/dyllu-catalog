@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 const find = cache((slug: string) => db.category.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true } }));
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
   const c = await find(params.slug), L = getLang();
-  return c ? { title: pick(L, c.nameAr, c.nameEn), description: pick(L, c.subtitleAr, c.subtitleEn) || c.descriptionAr || undefined, openGraph: { images: c.image ? [c.image] : [] } } : {};
+  return c ? { title: pick(L, c.nameAr, c.nameEn), description: pick(L, c.subtitleAr, c.subtitleEn) || pick(L, c.descriptionAr, c.descriptionEn) || undefined, openGraph: { images: c.image ? [c.image] : [] } } : {};
 }
 // صفحة التصنيف: بنر بالصورة والاسم، ثم قائمة المنتجات المشتركة (بحث وفلاتر وترتيب)
 export default async function CategoryPage({ params, searchParams }: { params: { slug: string }; searchParams: BrowseParams }) {
@@ -26,7 +26,7 @@ export default async function CategoryPage({ params, searchParams }: { params: {
         <i className="block w-12 h-1.5 bg-accent rounded mb-3" />
         <h1 className="text-2xl md:text-4xl">{name}</h1>
         {sub && <p className="text-lime font-bold mt-1 md:text-lg">{sub}</p>}
-        {cat.descriptionAr && !en && <p className="text-sm md:text-base text-white/80 mt-2 max-w-2xl leading-7 [&_a]:text-white"><Linkify text={cat.descriptionAr} /></p>}
+        {pick(L, cat.descriptionAr, cat.descriptionEn) && <p className="text-sm md:text-base text-white/80 mt-2 max-w-2xl leading-7 [&_a]:text-white"><Linkify text={pick(L, cat.descriptionAr, cat.descriptionEn)} /></p>}
       </div>
     </section>
     <ProductBrowser sp={searchParams} category={{ id: cat.id, slug: cat.slug }} />

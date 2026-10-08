@@ -20,7 +20,7 @@ export default async function RepCustomers() {
         <span className="w-11 h-11 rounded-full bg-ink text-lime grid place-items-center font-extrabold shrink-0">{c.name[0]}</span>
         <span className="min-w-0 flex-1"><b className="block text-sm truncate">{c.name}{c.company && <span className="text-steel font-normal"> · {c.company}</span>}</b>
           <small className="block text-xs text-steel" dir="ltr" style={{ textAlign: "start" }}>{prettyPhone(c.phone)}</small>
-          <small className="block text-xs text-steel">{c.n} طلب · {money(c.sum)} ر.س{c.last && ` · آخر طلب ${c.last.toLocaleDateString("ar-SA", { dateStyle: "medium" })}`}</small></span>
+          <small className="block text-xs text-steel">{c.n} طلب · {money(c.sum)} ر.س{c.last && ` · آخر طلب ${c.last.toLocaleDateString("ar-SA", { timeZone: "Asia/Riyadh", dateStyle: "medium" })}`}</small></span>
         <a href={waHref(c.phone, `السلام عليكم ${c.name}`)} target="_blank" rel="noopener noreferrer" aria-label={`واتساب ${c.name}`} className="btn-icon w-10 h-10 bg-[#1FA855] text-white"><Icon n="whatsapp" s={20} /></a>
         <a href={telHref(c.phone)} aria-label={`اتصال ${c.name}`} className="btn-icon w-10 h-10 bg-soft text-ink"><Icon n="phone" s={18} /></a></div>))}</div>}
   </div>);

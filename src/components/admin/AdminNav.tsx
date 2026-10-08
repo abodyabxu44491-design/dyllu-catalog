@@ -7,8 +7,8 @@ import InstallApp from "@/components/InstallApp";
 type Item = [string, string, IconName];
 const GROUPS: [string, Item[]][] = [
   ["", [["/admin", "لوحة المعلومات", "dash"]]],
-  ["المبيعات", [["/admin/orders", "الطلبات", "orders"], ["/admin/customers", "العملاء", "user"], ["/admin/reps", "المناديب", "users"], ["/admin/codes", "أكواد الجملة", "key"]]],
-  ["الكتالوج", [["/admin/products", "المنتجات", "box"], ["/admin/categories", "التصنيفات", "grid"], ["/admin/banners", "الإعلانات", "megaphone"]]],
+  ["المبيعات", [["/admin/orders", "الطلبات", "orders"], ["/admin/reports", "التقارير", "chart"], ["/admin/customers", "العملاء", "user"], ["/admin/reps", "المناديب", "users"], ["/admin/codes", "أكواد الجملة", "key"]]],
+  ["الكتالوج", [["/admin/products", "المنتجات", "box"], ["/admin/categories", "التصنيفات", "grid"], ["/admin/banners", "الإعلانات", "megaphone"], ["/admin/offers", "العروض", "tag"]]],
   ["النظام", [["/admin/settings", "الإعدادات", "settings"], ["/admin/qr", "رموز QR", "qr"]]],
 ];
 const TABS: Item[] = [["/admin", "الرئيسية", "dash"], ["/admin/orders", "الطلبات", "orders"], ["/admin/products", "المنتجات", "box"]];

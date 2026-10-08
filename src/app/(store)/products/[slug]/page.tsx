@@ -4,7 +4,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
-import { isWsPrice, priceLabel, priceOf } from "@/lib/format";
+import Price from "@/components/Price";
+import { isWsPrice, oldPriceOf, priceLabel, priceOf } from "@/lib/format";
+import { activeOffers, offerFor } from "@/lib/offers";
 import { getWholesale } from "@/lib/wholesale";
 import { cardInclude } from "@/lib/catalog";
 import { isPhone, telHref, waHref } from "@/lib/phone";
@@ -28,11 +30,14 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 const Sec = ({ title, children, className = "" }: { title: string; children: React.ReactNode; className?: string }) => (<section className={`space-y-3 ${className}`}><SectionHead title={title} /><div className="card overflow-hidden">{children}</div></section>);
 // صفحة المنتج: كمبيوتر = عمودان (المعرض | البيانات والشراء) · جوال = معرض بالسحب وشريط شراء ثابت أسفل الشاشة
 export default async function ProductPage({ params }: { params: { slug: string } }) {
-  const [s, p] = await Promise.all([getSettings(), find(params.slug)]);
-  if (!p) notFound();
+  const [s, p0] = await Promise.all([getSettings(), find(params.slug)]);
+  if (!p0) notFound();
+  // العرض الفعّال (إن وُجد): السعر بعد الخصم، والقديم مشطوبًا
+  const offer = offerFor(p0, await activeOffers()), p = { ...p0, offer };
   const L = getLang(), en = L === "en", ws = !!(await getWholesale());
   const related = await db.product.findMany({ where: { categoryId: p.categoryId, isActive: true, id: { not: p.id } }, include: cardInclude, orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }], take: 4 });
-  const name = pick(L, p.nameAr, p.nameEn), other = (en ? p.nameAr : p.nameEn) === name ? "" : en ? p.nameAr : p.nameEn, price = priceLabel(p, s, L, ws), priced = priceOf(p, ws) != null;
+  const old = oldPriceOf(p, ws);
+  const name = pick(L, p.nameAr, p.nameEn), other = en || p.nameEn === name ? "" : p.nameEn, price = priceLabel(p, s, L, ws), priced = priceOf(p, ws) != null;
   const desc = pick(L, p.descriptionAr, p.descriptionEn), cat = p.category, catName = pick(L, cat.nameAr, cat.nameEn), base = siteUrl();
   const wa = s["whatsapp.number"], askUrl = isPhone(wa) ? waHref(wa, `${en ? "Hello, I'd like to ask about" : "السلام عليكم، أرغب في الاستفسار عن"}: ${p.nameEn || p.nameAr}${p.sku ? ` (${p.sku})` : ""}${base ? `\n${base}/products/${p.slug}` : ""}`) : undefined;
   const call = isPhone(s["contact.phone"]) ? s["contact.phone"] : isPhone(wa) ? wa : "";
@@ -56,7 +61,8 @@ export default async function ProductPage({ params }: { params: { slug: string }
         </div>
         <div className="rounded-2xl bg-soft p-4 md:p-5 space-y-4">
           <div className="flex items-end justify-between gap-3"><div><small className="block text-xs text-steel font-bold">{t(L, "price")}</small>
-            <b className={priced ? "font-display text-3xl md:text-4xl" : "text-xl text-steel"}>{price}</b>{isWsPrice(p, ws) && <span className="ms-2 align-middle bg-ink text-lime text-xs font-extrabold rounded-lg px-2 py-1">{t(L, "wholesale")}</span>}</div></div>
+            <div className="mt-1 flex items-start gap-2 flex-wrap"><Price p={p} s={s} L={L} ws={ws} size="page" />{isWsPrice(p, ws) && <span className="bg-ink text-lime text-xs font-extrabold rounded-lg px-2 py-1">{t(L, "wholesale")}</span>}</div>
+            {offer && old != null && <small className="block mt-2 text-xs font-bold text-accent">{en ? offer.nameEn : offer.nameAr}{offer.endsAt && ` · ${en ? "ends" : "حتى"} ${new Date(offer.endsAt).toLocaleDateString(en ? "en-GB" : "ar-SA-u-nu-latn", { timeZone: "Asia/Riyadh", day: "numeric", month: "long" })}`}</small>}</div></div>
           <div className="hidden md:block">{p.allowCart ? <AddToCart productId={p.id} name={name} full /> : <p className="text-steel font-bold">{t(L, "contactToOrder")}</p>}</div>
         </div>
         {p.features.length > 0 && <ul className="grid sm:grid-cols-2 gap-2">{p.features.slice(0, 6).map((f) => <li key={f.id} className="flex gap-2.5 items-start text-sm"><span className="mt-0.5 bg-lime rounded-full w-5 h-5 grid place-items-center shrink-0"><Icon n="check" s={12} stroke={3} /></span>{pick(L, f.textAr, f.textEn)}</li>)}</ul>}
@@ -66,10 +72,10 @@ export default async function ProductPage({ params }: { params: { slug: string }
 
     <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 mt-10 md:mt-14 items-start">
       {desc && <Sec title={t(L, "description")} className={p.specs.length ? "" : "lg:col-span-2"}><p className="p-4 md:p-6 leading-8 text-ink/80 whitespace-pre-line"><Linkify text={desc} /></p></Sec>}
-      {p.specs.length > 0 && <Sec title={t(L, "specs")} className={desc ? "" : "lg:col-span-2"}><table className="w-full text-sm md:text-base"><tbody>{p.specs.map((x, i) => <tr key={x.id} className={i % 2 ? "" : "bg-soft"}><th scope="row" className="p-3 md:px-5 text-steel font-normal text-start w-[42%]">{pick(L, x.nameAr, x.nameEn)}</th><td className="p-3 md:px-5 font-bold" dir="ltr" style={{ textAlign: "start" }}>{x.value}</td></tr>)}</tbody></table></Sec>}
+      {p.specs.length > 0 && <Sec title={t(L, "specs")} className={desc ? "" : "lg:col-span-2"}><table className="w-full text-sm md:text-base"><tbody>{p.specs.map((x, i) => <tr key={x.id} className={i % 2 ? "" : "bg-soft"}><th scope="row" className="p-3 md:px-5 text-steel font-normal text-start w-[42%]">{pick(L, x.nameAr, x.nameEn)}</th><td className="p-3 md:px-5 font-bold" dir="auto" style={{ textAlign: "start" }}>{en ? x.valueEn || x.value : x.value}</td></tr>)}</tbody></table></Sec>}
       {p.features.length > 6 && <Sec title={t(L, "features")} className="lg:col-span-2"><ul className="grid md:grid-cols-2">{p.features.map((f) => <li key={f.id} className="flex gap-2.5 p-3 md:px-5 border-b border-line text-sm"><span className="mt-0.5 bg-lime rounded-full w-5 h-5 grid place-items-center shrink-0"><Icon n="check" s={12} stroke={3} /></span>{pick(L, f.textAr, f.textEn)}</li>)}</ul></Sec>}
       {p.videoUrl && <Sec title={t(L, "video")}>{/\.(mp4|webm)(\?|$)/i.test(p.videoUrl) ? <video src={p.videoUrl} controls playsInline preload="metadata" className="w-full bg-ink aspect-video" /> : <a href={p.videoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 font-bold hover:bg-soft"><span className="w-11 h-11 rounded-full bg-lime grid place-items-center"><Icon n="play" s={18} /></span>{t(L, "watchVideo")}<Icon n="external" s={16} className="ms-auto text-steel" /></a>}</Sec>}
-      {p.documents.length > 0 && <Sec title={t(L, "files")}>{p.documents.map((d) => <a key={d.id} href={d.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 border-b border-line last:border-0 font-bold hover:bg-soft"><span className="w-10 h-10 rounded-xl bg-accent/10 text-accent grid place-items-center"><Icon n="doc" s={20} /></span><span className="flex-1">{d.title}</span><Icon n="download" s={18} className="text-steel" /></a>)}</Sec>}
+      {p.documents.length > 0 && <Sec title={t(L, "files")}>{p.documents.map((d) => <a key={d.id} href={d.url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-3 p-4 border-b border-line last:border-0 font-bold hover:bg-soft"><span className="w-10 h-10 rounded-xl bg-accent/10 text-accent grid place-items-center"><Icon n="doc" s={20} /></span><span className="flex-1">{en ? d.titleEn || d.title : d.title}</span><Icon n="download" s={18} className="text-steel" /></a>)}</Sec>}
     </div>
 
     {related.length > 0 && <section className="mt-12 md:mt-16 space-y-4 md:space-y-6"><SectionHead title={t(L, "related")} href={`/categories/${cat.slug}`} more={t(L, "viewAll")} />
@@ -80,7 +86,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
     {/* شريط الشراء الثابت (جوال/تابلت) */}
     <div className="h-24 md:hidden" aria-hidden />
     <div className="md:hidden fixed inset-x-0 bottom-0 z-30 bg-white/95 backdrop-blur border-t border-line pb-safe no-print"><div className="wrap py-3 flex items-center gap-3">
-      <div className="min-w-[72px]"><small className="block text-steel text-[11px] font-bold">{t(L, "price")}</small><b className={priced ? "font-display" : "text-sm text-steel"}>{price}</b></div>
+      <div className="min-w-[72px]"><small className="block text-steel text-[11px] font-bold">{t(L, "price")}</small><b className={priced ? `font-display ${old != null ? "text-accent" : ""}` : "text-sm text-steel"}>{price}</b>{old != null && <s className="block text-[11px] text-steel leading-tight">{priceLabel({ ...p, offer: null }, s, L, ws)}</s>}</div>
       <div className="flex-1">{p.allowCart ? <AddToCart productId={p.id} name={name} full /> : askUrl ? <a href={askUrl} target="_blank" rel="noopener noreferrer" className="btn btn-lg btn-lime w-full"><Icon n="whatsapp" s={20} />{t(L, "contactToOrder")}</a> : <span className="block text-center text-steel text-sm font-bold">{t(L, "contactToOrder")}</span>}</div>
     </div></div>
   </div>);

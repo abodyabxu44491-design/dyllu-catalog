@@ -13,7 +13,7 @@ async function optimize(buf: Buffer, type: string): Promise<{ buf: Buffer; type:
   } catch { throw new Error("تعذر قراءة الصورة، قد تكون تالفة. جرّب صورة أخرى"); }
 }
 export async function saveUpload(file: File) {
-  if (!EXT[file?.type] || file.size > (file.type === "application/pdf" ? 8e6 : 15e6)) throw new Error("ملف غير مسموح (صور JPG/PNG/WEBP/GIF حتى 15MB، أو PDF حتى 8MB)");
+  if (!EXT[file?.type] || file.size > (file.type === "application/pdf" ? 4.4e6 : 15e6)) throw new Error("ملف غير مسموح (صور JPG/PNG/WEBP/GIF حتى 15MB، أو PDF حتى 4MB)");
   // الامتداد يُحدد من نوع الملف المسموح، لا من اسمه، حتى لا يُحفظ ملف .html أو .svg
   const o = await optimize(Buffer.from(await file.arrayBuffer()), file.type);
   const name = `${crypto.randomUUID()}${o.ext}`;
