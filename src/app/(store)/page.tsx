@@ -39,13 +39,15 @@ export default async function Home() {
   return (<div className="wrap pt-4 md:pt-6 space-y-10 md:space-y-14">
     <div className="space-y-4">
       {slides.length > 0 ? <BannerCarousel slides={slides} rtl={!en} /> :
-        <section className="relative overflow-hidden bg-lime rounded-3xl aspect-[16/10] sm:aspect-[16/9] md:aspect-[2.6/1] lg:aspect-[3/1]">
+        <section className="relative overflow-hidden bg-lime rounded-3xl">
           <span className="absolute -bottom-24 -end-16 w-72 h-72 md:w-[28rem] md:h-[28rem] rounded-full bg-white/25" />
-          <img src={s["hero.image"] || "/brand/logo-badge.png"} alt="" className="absolute end-4 md:end-12 top-1/2 -translate-y-1/2 h-[70%] md:h-[78%] max-w-[40%] object-contain" />
-          <div className="relative h-full flex flex-col justify-center items-start gap-2 md:gap-4 p-5 md:p-12 lg:p-16 pe-[44%]">
-            <h1 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl leading-tight text-ink">{T("home.title")}</h1>
-            <p className="text-sm md:text-lg text-ink/70 line-clamp-2">{T("home.sub")}</p>
-            <Link href="/products" className="mt-1 md:mt-3 btn btn-md md:btn-lg btn-dark">{T("home.cta")}<Icon n="chev" s={18} className="flip-rtl" /></Link>
+          <div className="relative grid grid-cols-[minmax(0,1fr)_34%] md:grid-cols-[minmax(0,1fr)_36%] items-center gap-4 md:gap-10 min-h-[210px] sm:min-h-[260px] md:min-h-[300px] lg:min-h-[360px] p-5 sm:p-8 md:p-12 lg:px-16">
+            <div className="flex flex-col items-start gap-2 md:gap-4 min-w-0">
+              <h1 className="text-xl sm:text-3xl md:text-4xl xl:text-5xl leading-[1.4] pb-[.08em] text-ink line-clamp-3 [text-wrap:balance]">{T("home.title")}</h1>
+              <p className="text-sm md:text-lg text-ink/70 line-clamp-2 max-w-2xl">{T("home.sub")}</p>
+              <Link href="/products" className="mt-1 md:mt-3 btn btn-md md:btn-lg btn-dark">{T("home.cta")}<Icon n="chev" s={18} className="flip-rtl" /></Link>
+            </div>
+            <img src={s["hero.image"] || "/brand/logo-badge.png"} alt="" className="justify-self-center w-full h-auto max-h-[150px] sm:max-h-[210px] md:max-h-[240px] lg:max-h-[290px] object-contain" />
           </div>
           <i className="absolute inset-x-0 bottom-0 h-1 bg-accent" />
         </section>}
