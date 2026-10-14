@@ -1,11 +1,15 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { cache } from "react";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { db } from "./db";
-import { TRADE_COOKIE, verifyTradeSession } from "./session";
-// Checked against the database on every request, so disabling a shop or signing it out applies immediately
-export const currentTrade = cache(async () => {
-  const s = await verifyTradeSession(cookies().get(TRADE_COOKIE)?.value);
+import { TRADE_COOKIE, verifyTradeKey } from "./session";
+// The shop's private key comes from the link (?k=), the app header, or the cookie set on first open.
+// Checked against the database on every request, so disabling a shop or changing its link applies immediately.
+export const currentTrade = cache(async (fromUrl?: string | null) => {
+  const s =
+    (await verifyTradeKey(fromUrl)) ??
+    (await verifyTradeKey(headers().get("x-trade-key"))) ??
+    (await verifyTradeKey(cookies().get(TRADE_COOKIE)?.value));
   if (!s) return null;
   const c = await db.wholesaleCode.findUnique({
     where: { id: s.id },

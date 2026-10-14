@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { db } from "@/lib/db";
 import { siteUrl } from "@/lib/siteUrl";
+import { tradeKey } from "@/lib/session";
 import TradeManager from "@/components/admin/TradeManager";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "تطبيق أصحاب المحلات" };
@@ -18,15 +19,19 @@ export default async function TradePage() {
   const names = new Map(
     (await db.product.findMany({ where: { id: { in: ids } }, select: { id: true, nameAr: true } })).map((p) => [p.id, p.nameAr]),
   );
+  const base = siteUrl(),
+    links = new Map(
+      await Promise.all(codes.map(async (c) => [c.id, `${base}/trade?k=${await tradeKey(c.id, c.sessionVersion)}`] as const)),
+    );
   return (
     <TradeManager
-      link={`${siteUrl()}/trade`}
       coverage={{ withBarcode, total }}
       shops={codes.map((c) => ({
         id: c.id,
         name: c.name,
         code: c.code,
         phone: c.phone ?? "",
+        link: links.get(c.id)!,
         isActive: c.isActive,
         tradeAccess: c.tradeAccess,
         lastUsedAt: c.lastUsedAt?.toISOString() ?? null,

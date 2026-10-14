@@ -28,6 +28,14 @@ type View =
   | { k: "found"; p: Product; b: string }
   | { k: "missing"; b: string };
 const RECENT = "dy-trade-recent";
+export const KEY_STORE = "dy-trade-key";
+const savedKey = () => {
+  try {
+    return localStorage.getItem(KEY_STORE) || "";
+  } catch {
+    return "";
+  }
+};
 const sar = (n: number) => `${n.toLocaleString("en-US", { minimumFractionDigits: n % 1 ? 2 : 0, maximumFractionDigits: 2 })}`;
 function readRecent(): Recent[] {
   try {
@@ -36,7 +44,7 @@ function readRecent(): Recent[] {
     return [];
   }
 }
-export default function TradeApp({ shop }: { shop: string }) {
+export default function TradeApp({ shop, linkKey }: { shop: string; linkKey: string | null }) {
   const r = useRouter(),
     [view, setView] = useState<View>({ k: "home" }),
     [scan, setScan] = useState(false),
@@ -45,6 +53,18 @@ export default function TradeApp({ shop }: { shop: string }) {
     [img, setImg] = useState(0),
     [recent, setRecent] = useState<Recent[]>([]);
   useEffect(() => setRecent(readRecent()), []);
+  // Opened from the shop's private link: remember it on this device so the app opens straight in next time
+  useEffect(() => {
+    if (!linkKey) return;
+    try {
+      localStorage.setItem(KEY_STORE, linkKey);
+    } catch {}
+    fetch("/api/trade/login", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ key: linkKey }),
+    }).catch(() => {});
+  }, [linkKey]);
   const lookup = useCallback(
     async (raw: string) => {
       const b = raw.trim();
@@ -52,7 +72,10 @@ export default function TradeApp({ shop }: { shop: string }) {
       setErr("");
       setImg(0);
       setView({ k: "loading", b });
-      const res = await fetch(`/api/trade/lookup?b=${encodeURIComponent(b)}`, { cache: "no-store" }).catch(() => null);
+      const res = await fetch(`/api/trade/lookup?b=${encodeURIComponent(b)}`, {
+        cache: "no-store",
+        headers: savedKey() ? { "x-trade-key": savedKey() } : {},
+      }).catch(() => null);
       if (!res) {
         setErr("لا يوجد اتصال بالإنترنت، تأكد من الشبكة وحاول مرة أخرى");
         return setView({ k: "home" });
@@ -81,13 +104,6 @@ export default function TradeApp({ shop }: { shop: string }) {
     },
     [lookup],
   );
-  async function logout() {
-    await fetch("/api/trade/login", { method: "DELETE" });
-    try {
-      localStorage.removeItem(RECENT);
-    } catch {}
-    r.refresh();
-  }
   const again = (
     <div className="grid grid-cols-2 gap-2">
       <button onClick={() => setScan(true)} className="btn btn-lg btn-lime">
@@ -112,9 +128,6 @@ export default function TradeApp({ shop }: { shop: string }) {
           <img src="/brand/logo-wordmark-white.png" alt="DYLLU" className="h-7 w-auto shrink-0" />
           <span className="text-[10px] font-extrabold text-ink bg-lime rounded-full px-2 py-0.5 tracking-wider">TRADE</span>
           <b className="ms-auto min-w-0 truncate text-sm text-white/80">{shop}</b>
-          <button onClick={logout} aria-label="تسجيل الخروج" className="btn-icon w-10 h-10 -me-2 hover:bg-white/10 shrink-0">
-            <Icon n="logout" s={20} />
-          </button>
         </div>
       </header>
       <main className="flex-1 w-full max-w-lg mx-auto px-4 py-5 pb-[max(1.5rem,env(safe-area-inset-bottom))] space-y-4">

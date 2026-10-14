@@ -42,14 +42,14 @@ export async function verifyRepSession(t?: string) {
 }
 
 export const TRADE_COOKIE = "dyllu_trade";
-export async function signTradeSession(codeId: number, ver: number) {
-  const p = `t.${codeId}.${ver}.${Date.now() + 90 * 864e5}`;
-  return `${p}.${await hmac(p)}`;
+// Private link key for a shop in the DYLLU Trade app: opening the link is the login.
+// It never expires on its own; disabling the shop or issuing a new link (sessionVersion + 1) kills it.
+export async function tradeKey(codeId: number, ver: number) {
+  return `${codeId}.${ver}.${(await hmac(`tl.${codeId}.${ver}`)).slice(0, 32)}`;
 }
-export async function verifyTradeSession(t?: string) {
-  if (!t || !sessionSecret()) return null;
-  const [k, id, ver, exp, sig] = t.split(".");
-  return k === "t" && Number(exp) > Date.now() && sig === (await hmac(`${k}.${id}.${ver}.${exp}`))
-    ? { id: Number(id), ver: Number(ver) }
-    : null;
+export async function verifyTradeKey(k?: string | null) {
+  if (!k || !sessionSecret()) return null;
+  const [id, ver, sig] = k.split(".");
+  if (!/^\d+$/.test(id ?? "") || !/^\d+$/.test(ver ?? "") || !sig) return null;
+  return sig === (await hmac(`tl.${id}.${ver}`)).slice(0, 32) ? { id: Number(id), ver: Number(ver) } : null;
 }
