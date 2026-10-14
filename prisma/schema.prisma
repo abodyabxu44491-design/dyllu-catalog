@@ -35,6 +35,7 @@ model Product {
   id             Int               @id @default(autoincrement())
   slug           String            @unique
   sku            String?           @unique
+  barcode        String?           @unique
   nameAr         String
   nameEn         String
   descriptionAr  String?
@@ -164,12 +165,31 @@ model AdminUser {
 }
 
 model WholesaleCode {
-  id        Int      @id @default(autoincrement())
-  code      String   @unique
-  name      String
-  isActive  Boolean  @default(true)
-  orders    Order[]
-  createdAt DateTime @default(now())
+  id             Int         @id @default(autoincrement())
+  code           String      @unique
+  name           String
+  isActive       Boolean     @default(true)
+  // DYLLU Trade app: shop owners log in with this code + phone to scan barcodes and see wholesale prices
+  phone          String?
+  tradeAccess    Boolean     @default(false)
+  sessionVersion Int         @default(0)
+  lastUsedAt     DateTime?
+  orders         Order[]
+  scans          TradeScan[]
+  createdAt      DateTime    @default(now())
+}
+
+model TradeScan {
+  id        Int           @id @default(autoincrement())
+  codeId    Int
+  code      WholesaleCode @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  barcode   String
+  productId Int?
+  found     Boolean       @default(false)
+  createdAt DateTime      @default(now())
+
+  @@index([codeId, createdAt])
+  @@index([createdAt])
 }
 
 model Rep {

@@ -16,6 +16,7 @@ const GROUPS: [string, Item[]][] = [
       ["/admin/customers", "العملاء", "user"],
       ["/admin/reps", "المناديب", "users"],
       ["/admin/codes", "أكواد الجملة", "key"],
+      ["/admin/trade", "تطبيق المحلات", "qr"],
     ],
   ],
   [

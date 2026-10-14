@@ -41,7 +41,7 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 export const viewport: Viewport = { width: "device-width", initialScale: 1, viewportFit: "cover", themeColor: brand.lime };
-const BOOT = `try{var d=document.documentElement;var pa=location.pathname;if(pa.indexOf("/order/")===0||pa.indexOf("/catalog")===0||pa.indexOf("/admin")===0||pa.indexOf("/rep")===0||sessionStorage.getItem("dy-splash")||matchMedia("(prefers-reduced-motion: reduce)").matches)d.classList.add("no-splash");else sessionStorage.setItem("dy-splash","1")}catch(e){}addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__bip=e;dispatchEvent(new Event("dy-bip"))});addEventListener("appinstalled",function(){window.__bip=null;dispatchEvent(new Event("dy-bip"))});`;
+const BOOT = `try{var d=document.documentElement;var pa=location.pathname;if(pa.indexOf("/order/")===0||pa.indexOf("/catalog")===0||pa.indexOf("/admin")===0||pa.indexOf("/rep")===0||pa.indexOf("/trade")===0||sessionStorage.getItem("dy-splash")||matchMedia("(prefers-reduced-motion: reduce)").matches)d.classList.add("no-splash");else sessionStorage.setItem("dy-splash","1")}catch(e){}addEventListener("beforeinstallprompt",function(e){e.preventDefault();window.__bip=e;dispatchEvent(new Event("dy-bip"))});addEventListener("appinstalled",function(){window.__bip=null;dispatchEvent(new Event("dy-bip"))});`;
 const SPARKS = [0, 30, 150, 180, 210, 330, 60, 120, 240, 300];
 const SPLASH: [number, number][] = [
   [12.67, 16.67],

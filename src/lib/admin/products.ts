@@ -2,12 +2,14 @@
 import { z } from "zod";
 import { db } from "../db";
 import { englishFor } from "../translate";
+import { barcodeVariants, normalizeBarcode } from "../barcode";
 const P = z
   .object({
     nameAr: z.string().trim(),
     nameEn: z.string().trim().optional(),
     slug: z.string().optional(),
     sku: z.string().nullish(),
+    barcode: z.string().nullish(),
     categoryId: z.number().int(),
     descriptionAr: z.string().nullish(),
     price: z.number().nullish(),
@@ -77,10 +79,36 @@ async function withEnglish(id: number | null, d: z.infer<typeof P>) {
   const documents = d.documents.map((x) => ({ title: x.title, titleEn: en[i++] || null, url: x.url }));
   return { ...d, nameEn: en[0], descriptionAr: d.descriptionAr || null, descriptionEn: en[1] || null, features, specs, documents };
 }
+// One barcode belongs to one product. UPC-A/EAN-13 forms of the same code count as the same barcode.
+export async function barcodeOwner(raw: string | null | undefined, exceptId?: number | null) {
+  const v = barcodeVariants(raw);
+  if (!v.length) return null;
+  return db.product.findFirst({
+    where: { barcode: { in: v }, ...(exceptId ? { id: { not: exceptId } } : {}) },
+    select: { id: true, nameAr: true },
+  });
+}
 export async function saveProduct(id: number | null, raw: unknown) {
-  const { images, specs, features, documents, slug, price, wholesalePrice, sku, videoUrl, ...d } = await withEnglish(id, P.parse(raw));
+  const parsed = P.parse(raw),
+    code = normalizeBarcode(parsed.barcode) || null,
+    owner = await barcodeOwner(code, id);
+  if (owner) throw new Error(`الباركود ${code} مستخدم للمنتج «${owner.nameAr}»`);
+  const {
+    images,
+    specs,
+    features,
+    documents,
+    slug,
+    price,
+    wholesalePrice,
+    sku,
+    videoUrl,
+    barcode: _b,
+    ...d
+  } = await withEnglish(id, parsed);
   const data = {
     ...d,
+    barcode: code,
     price: price ?? null,
     wholesalePrice: wholesalePrice ?? null,
     videoUrl: videoUrl || null,
@@ -126,6 +154,7 @@ export async function duplicateProduct(id: number) {
       nameEn: p.nameEn ? `${p.nameEn} (copy)` : "",
       isActive: false,
       isFeatured: false,
+      barcode: null,
       slug: `${p.slug}-copy-${Date.now().toString(36)}`,
       images: { create: strip(images) },
       specs: { create: strip(specs) },

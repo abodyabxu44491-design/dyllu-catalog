@@ -210,6 +210,7 @@ const ADMIN = [
   "/admin/reps",
   "/admin/qr",
   "/admin/codes",
+  "/admin/trade",
   "/admin/reports",
   "/admin/settings",
 ].filter(Boolean);
@@ -228,7 +229,7 @@ for (const dev of DEVICES) {
     for (const path of STORE) await checkPage(ctx, dev, path, { lang });
     if (lang === "ar") {
       await checkPage(ctx, dev, "/this-page-does-not-exist", { lang, expect: 404 });
-      for (const path of ["/admin-login", "/rep-login", "/catalog"]) await checkPage(ctx, dev, path, { lang, area: "page" });
+      for (const path of ["/admin-login", "/rep-login", "/catalog", "/trade"]) await checkPage(ctx, dev, path, { lang, area: "page" });
     }
     await ctx.close();
   }

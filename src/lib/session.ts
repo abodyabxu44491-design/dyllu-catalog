@@ -40,3 +40,16 @@ export async function verifyRepSession(t?: string) {
     ? { id: Number(id), ver: Number(ver) }
     : null;
 }
+
+export const TRADE_COOKIE = "dyllu_trade";
+export async function signTradeSession(codeId: number, ver: number) {
+  const p = `t.${codeId}.${ver}.${Date.now() + 90 * 864e5}`;
+  return `${p}.${await hmac(p)}`;
+}
+export async function verifyTradeSession(t?: string) {
+  if (!t || !sessionSecret()) return null;
+  const [k, id, ver, exp, sig] = t.split(".");
+  return k === "t" && Number(exp) > Date.now() && sig === (await hmac(`${k}.${id}.${ver}.${exp}`))
+    ? { id: Number(id), ver: Number(ver) }
+    : null;
+}

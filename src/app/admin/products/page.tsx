@@ -28,6 +28,7 @@ export default async function List({ searchParams }: { searchParams: { q?: strin
         { nameAr: { contains: q, mode: "insensitive" } },
         { nameEn: { contains: q, mode: "insensitive" } },
         { sku: { contains: q, mode: "insensitive" } },
+        { barcode: { contains: q.replace(/\s/g, "") } },
       ],
     }),
   };
@@ -90,7 +91,7 @@ export default async function List({ searchParams }: { searchParams: { q?: strin
         {st && <input type="hidden" name="st" value={st} />}
         <div className="relative flex-1 min-w-[200px]">
           <Icon n="search" s={18} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-steel" />
-          <input name="q" defaultValue={q} placeholder="بحث بالاسم أو رقم الموديل (SKU)" className="field ps-10 h-11" />
+          <input name="q" defaultValue={q} placeholder="بحث بالاسم أو الموديل أو الباركود" className="field ps-10 h-11" />
         </div>
         <select name="cat" aria-label="التصنيف" defaultValue={cat ?? ""} className="field h-11 w-auto min-w-[160px]">
           <option value="">كل التصنيفات</option>

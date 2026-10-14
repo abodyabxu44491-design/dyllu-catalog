@@ -13,7 +13,8 @@ const COLS: [string, string, RegExp, string][] = [
   ["التصنيف *", "category", /تصنيف|قسم|category/i, "العدد اليدوية"],
   ["السعر", "price", /^(?!.*جمل).*سعر|^price/i, "45"],
   ["سعر الجملة", "wholesale", /جمل|wholesale/i, "38"],
-  ["رقم الموديل", "sku", /موديل|sku|كود/i, "DTAW1110"],
+  ["رقم الموديل", "sku", /موديل|sku|^(?!.*(بار|bar)).*كود/i, "DTAW1110"],
+  ["الباركود", "barcode", /باركود|barcode|ean|upc/i, "6291234567890"],
   ["الوصف", "description", /وصف|description/i, "مفتاح من فولاذ C45 بفك قابل للضبط حتى 30 ملم"],
   ["المميزات (افصل بينها بـ |)", "features", /ميز|feature/i, "فولاذ عالي التحمل | فك دقيق الضبط"],
   ["المواصفات (الاسم: القيمة | ...)", "specs", /مواصف|spec/i, "الطول: 250 ملم | فتحة الفك: 0-30 ملم"],
@@ -29,6 +30,7 @@ type Row = {
   price: number | null;
   wholesale: number | null;
   sku: string | null;
+  barcode: string | null;
   description: string | null;
   features: string[];
   specs: [string, string][];
@@ -92,7 +94,7 @@ function parseCsv(text: string): string[][] {
   return out.filter((r) => r.some((c) => c.trim()));
 }
 
-export default function ImportManager({ skus, categories }: { skus: string[]; categories: string[] }) {
+export default function ImportManager({ skus, barcodes = [], categories }: { skus: string[]; barcodes?: string[]; categories: string[] }) {
   const r = useRouter(),
     input = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState(""),
@@ -103,6 +105,7 @@ export default function ImportManager({ skus, categories }: { skus: string[]; ca
     [done, setDone] = useState(0),
     [results, setResults] = useState<Result[] | null>(null);
   const skuSet = useMemo(() => new Set(skus.map((s) => s.toLowerCase())), [skus]),
+    bcSet = useMemo(() => new Set(barcodes), [barcodes]),
     catSet = useMemo(() => new Set(categories.map((c) => c.trim().toLowerCase())), [categories]);
 
   async function template() {
@@ -150,7 +153,8 @@ export default function ImportManager({ skus, categories }: { skus: string[]; ca
       }
       setMissing(["name", "category"].filter((k) => idx[k] == null).map((k) => COLS.find((c) => c[1] === k)![0]));
       const at = (row: unknown[], k: string) => (idx[k] == null ? null : row[idx[k]]);
-      const seen = new Set<string>();
+      const seen = new Set<string>(),
+        seenBc = new Set<string>();
       const out = grid
         .slice(1)
         .map((g, n): Checked => {
@@ -158,6 +162,10 @@ export default function ImportManager({ skus, categories }: { skus: string[]; ca
             price = num(at(g, "price")),
             wholesale = num(at(g, "wholesale")),
             sku = str(at(g, "sku")) || null,
+            barcode =
+              toAsciiDigits(str(at(g, "barcode")))
+                .replace(/[\s-]/g, "")
+                .toUpperCase() || null,
             image = str(at(g, "image")) || null;
           const specs = list(at(g, "specs")).map((x): [string, string] => {
             const m = x.match(/^(.+?)\s*[:：=]\s*(.+)$/);
@@ -170,6 +178,7 @@ export default function ImportManager({ skus, categories }: { skus: string[]; ca
             price: price ?? null,
             wholesale: wholesale ?? null,
             sku,
+            barcode,
             description: str(at(g, "description")) || null,
             features: list(at(g, "features")),
             specs: specs.filter(([a, b]) => a && b),
@@ -188,7 +197,11 @@ export default function ImportManager({ skus, categories }: { skus: string[]; ca
             if (seen.has(sku.toLowerCase())) errors.push("رقم الموديل مكرر في الملف");
             seen.add(sku.toLowerCase());
           }
-          return { ...row, errors, update: !!sku && skuSet.has(sku.toLowerCase()) };
+          if (barcode) {
+            if (seenBc.has(barcode)) errors.push("الباركود مكرر في الملف");
+            seenBc.add(barcode);
+          }
+          return { ...row, errors, update: sku ? skuSet.has(sku.toLowerCase()) : !!barcode && bcSet.has(barcode) };
         })
         .filter((x) => x.name || x.category || x.sku);
       setRows(out);

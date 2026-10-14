@@ -8,7 +8,7 @@ import { toast } from "@/store/toast";
 import { ask } from "@/store/confirm";
 import { AEmpty, Badge, PageHead } from "./ui";
 import Switch from "./Switch";
-type C = { id: number; code: string; name: string; isActive: boolean; orders: number };
+type C = { id: number; code: string; name: string; isActive: boolean; trade?: boolean; orders: number };
 export default function CodesManager({ initial }: { initial: C[] }) {
   const r = useRouter(),
     [name, setName] = useState(""),
@@ -86,6 +86,7 @@ export default function CodesManager({ initial }: { initial: C[] }) {
               <b className="block text-sm">{c.name}</b>
               <small className="text-xs text-steel">{c.orders} طلب</small>
               {!c.isActive && <Badge cls="bg-soft text-steel ms-2">موقوف</Badge>}
+              {c.trade && <Badge cls="bg-lime/30 text-ink ms-2">تطبيق المحلات</Badge>}
             </div>
             <button
               onClick={() => copy(c)}

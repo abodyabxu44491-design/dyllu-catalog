@@ -9,10 +9,12 @@ import { toast } from "@/store/toast";
 import { ask } from "@/store/confirm";
 import { Card, Field, PageHead } from "./ui";
 import Switch from "./Switch";
+import BarcodeScanner from "@/components/BarcodeScanner";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 const blank = {
   nameAr: "",
   sku: "",
+  barcode: "",
   descriptionAr: "",
   price: null,
   wholesalePrice: null,
@@ -101,7 +103,20 @@ export default function ProductForm({
   const [err, setErr] = useState(""),
     [busy, setBusy] = useState(false),
     [ups, setUps] = useState(0),
-    [drag, setDrag] = useState(false);
+    [drag, setDrag] = useState(false),
+    [scan, setScan] = useState(false),
+    [bcOwner, setBcOwner] = useState<{ id: number; nameAr: string } | null>(null);
+  useEffect(() => {
+    const b = String(p.barcode ?? "").trim();
+    if (!b) return setBcOwner(null);
+    const t = setTimeout(async () => {
+      const x = await fetch(`/api/admin/products?barcode=${encodeURIComponent(b)}&except=${p.id ?? ""}`)
+        .then((r) => r.json())
+        .catch(() => null);
+      setBcOwner(x?.owner ?? null);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [p.barcode, p.id]);
   const dirty = JSON.stringify(p) !== start.current;
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -219,6 +234,7 @@ export default function ProductForm({
     setErr("");
     if (!categories.length) return setErr("أضف تصنيفًا أولًا من صفحة التصنيفات ثم أضف المنتج");
     if (!p.nameAr.trim()) return setErr("اكتب اسم المنتج");
+    if (bcOwner) return setErr(`الباركود مستخدم للمنتج «${bcOwner.nameAr}»`);
     setBusy(true);
     const x = await post("/api/admin/products", {
       ...p,
@@ -637,6 +653,32 @@ export default function ProductForm({
               <Field label="رقم الموديل (SKU)">
                 <input className="field" dir="ltr" value={p.sku ?? ""} onChange={(e) => set("sku", e.target.value)} />
               </Field>
+              <Field label="الباركود" hint="الرقم المطبوع على العبوة. يظهر بعده سعر الجملة في تطبيق المحلات">
+                <div className="flex gap-2">
+                  <input
+                    className={`field flex-1 min-w-0 tracking-wider ${bcOwner ? "!border-accent" : ""}`}
+                    dir="ltr"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    placeholder="6291234567890"
+                    value={p.barcode ?? ""}
+                    onChange={(e) => set("barcode", e.target.value)}
+                  />
+                  <button type="button" onClick={() => setScan(true)} className="btn btn-md btn-dark shrink-0" aria-label="مسح بالكاميرا">
+                    <Icon n="qr" s={18} />
+                    <span className="hidden sm:inline">مسح</span>
+                  </button>
+                </div>
+              </Field>
+              {bcOwner && (
+                <p role="alert" className="-mt-1 text-xs font-bold text-accent leading-6">
+                  هذا الباركود مستخدم للمنتج{" "}
+                  <Link href={`/admin/products/${bcOwner.id}`} className="underline">
+                    «{bcOwner.nameAr}»
+                  </Link>
+                  . غيّره أو احذفه من المنتج الآخر أولًا.
+                </p>
+              )}
               <Field label="الترتيب" hint="الأصغر يظهر أولًا">
                 <input className="field" type="number" dir="ltr" value={p.sortOrder} onChange={(e) => set("sortOrder", e.target.value)} />
               </Field>
@@ -686,6 +728,16 @@ export default function ProductForm({
           </button>
         </div>
       </div>
+      {scan && (
+        <BarcodeScanner
+          onResult={(c) => {
+            setScan(false);
+            set("barcode", c);
+            toast(`تمت قراءة الباركود ${c}`);
+          }}
+          onClose={() => setScan(false)}
+        />
+      )}
     </div>
   );
 }

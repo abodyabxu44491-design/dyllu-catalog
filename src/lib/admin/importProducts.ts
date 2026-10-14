@@ -5,6 +5,7 @@ import { z } from "zod";
 import { db } from "../db";
 import { englishFor } from "../translate";
 import { saveUpload } from "../storage";
+import { barcodeVariants, normalizeBarcode } from "../barcode";
 export const ImportRow = z.object({
   row: z.number().int(),
   name: z.string().trim().min(1, "اسم المنتج فارغ"),
@@ -12,6 +13,7 @@ export const ImportRow = z.object({
   price: z.number().nonnegative().nullable(),
   wholesale: z.number().nonnegative().nullable(),
   sku: z.string().trim().max(60).nullable(),
+  barcode: z.string().trim().max(64).nullable().default(null),
   description: z.string().trim().max(5000).nullable(),
   features: z.array(z.string().trim().min(1)).max(30),
   specs: z.array(z.tuple([z.string().trim().min(1), z.string().trim()])).max(40),
@@ -92,9 +94,21 @@ export async function importRows(rows: ImportRowT[]): Promise<ImportResult[]> {
   for (const r of rows) {
     try {
       const catId = await categoryId(r.category, cats);
+      const code = normalizeBarcode(r.barcode) || null,
+        inc = { specs: true, features: true, images: { select: { id: true } } } as const;
+      // Existing product is matched by model number first, then by barcode
       const prev = r.sku
-        ? await db.product.findUnique({ where: { sku: r.sku }, include: { specs: true, features: true, images: { select: { id: true } } } })
-        : null;
+        ? await db.product.findUnique({ where: { sku: r.sku }, include: inc })
+        : code
+          ? await db.product.findFirst({ where: { barcode: { in: barcodeVariants(code) } }, include: inc })
+          : null;
+      if (code) {
+        const owner = await db.product.findFirst({
+          where: { barcode: { in: barcodeVariants(code) }, ...(prev ? { id: { not: prev.id } } : {}) },
+          select: { nameAr: true },
+        });
+        if (owner) throw new Error(`الباركود ${code} مستخدم للمنتج «${owner.nameAr}»`);
+      }
       const fe = new Map((prev?.features ?? []).map((f) => [f.textAr.trim(), f.textEn])),
         sn = new Map((prev?.specs ?? []).map((x) => [x.nameAr.trim(), x.nameEn])),
         sv = new Map((prev?.specs ?? []).map((x) => [x.value.trim(), x.valueEn ?? ""]));
@@ -133,6 +147,7 @@ export async function importRows(rows: ImportRowT[]): Promise<ImportResult[]> {
         ...(r.description != null && { descriptionAr: r.description, descriptionEn: en[1] || null }),
         ...(r.price != null && { price: r.price }),
         ...(r.wholesale != null && { wholesalePrice: r.wholesale }),
+        ...(code && { barcode: code }),
         ...(r.inStock != null && { inStock: r.inStock }),
         ...(r.isActive != null && { isActive: r.isActive }),
         ...(r.isFeatured != null && { isFeatured: r.isFeatured }),
@@ -167,7 +182,11 @@ export async function importRows(rows: ImportRowT[]): Promise<ImportResult[]> {
         out.push({ row: r.row, ok: true, action: "created", id: p.id, warning });
       }
     } catch (e) {
-      out.push({ row: r.row, ok: false, error: (e as { code?: string }).code === "P2002" ? "رقم الموديل مكرر" : (e as Error).message });
+      out.push({
+        row: r.row,
+        ok: false,
+        error: (e as { code?: string }).code === "P2002" ? "رقم الموديل أو الباركود مكرر" : (e as Error).message,
+      });
     }
   }
   return out;

@@ -4,7 +4,7 @@ import { errMsg } from "@/lib/apiError";
 import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { db } from "@/lib/db";
 import { searchWhere } from "@/lib/catalog";
-import { duplicateProduct, saveProduct } from "@/lib/admin/products";
+import { barcodeOwner, duplicateProduct, saveProduct } from "@/lib/admin/products";
 export const maxDuration = 30;
 export async function POST(req: Request) {
   const deny = await denyUnlessAdmin();
@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     if (b.action === "duplicate") return NextResponse.json(await duplicateProduct(Number(b.id)));
     return NextResponse.json(await saveProduct(b.id ?? null, b));
   } catch (e) {
-    return NextResponse.json({ error: errMsg(e, "رقم الموديل (SKU) أو الرابط مستخدم لمنتج آخر") }, { status: 400 });
+    return NextResponse.json({ error: errMsg(e, "رقم الموديل (SKU) أو الباركود أو الرابط مستخدم لمنتج آخر") }, { status: 400 });
   }
 }
 export async function GET(req: Request) {
@@ -23,6 +23,7 @@ export async function GET(req: Request) {
   const sp = new URL(req.url).searchParams,
     id = Number(sp.get("id")),
     q = sp.get("q")?.trim().slice(0, 60);
+  if (sp.has("barcode")) return NextResponse.json({ owner: await barcodeOwner(sp.get("barcode"), Number(sp.get("except")) || null) });
   if (id) {
     const p = await db.product.findUnique({
       where: { id },

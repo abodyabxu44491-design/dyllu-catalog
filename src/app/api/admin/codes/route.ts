@@ -1,16 +1,14 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { NextResponse } from "next/server";
 import { denyUnlessAdmin } from "@/lib/adminAuth";
-import { randomBytes } from "node:crypto";
 import { db } from "@/lib/db";
-const ALPHA = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-const gen = () => "DY-" + Array.from(randomBytes(6), (b) => ALPHA[b % ALPHA.length]).join("");
+import { genCode } from "@/lib/admin/codes";
 export async function POST(req: Request) {
   const deny = await denyUnlessAdmin();
   if (deny) return deny;
   const { name } = await req.json();
   if (!String(name ?? "").trim()) return NextResponse.json({ error: "اكتب اسم العميل" }, { status: 400 });
-  return NextResponse.json(await db.wholesaleCode.create({ data: { name: String(name).trim(), code: gen() } }));
+  return NextResponse.json(await db.wholesaleCode.create({ data: { name: String(name).trim(), code: genCode() } }));
 }
 export async function PUT(req: Request) {
   const deny = await denyUnlessAdmin();
