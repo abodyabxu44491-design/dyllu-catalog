@@ -32,7 +32,9 @@ export default async function CategoryPage({ params, searchParams }: { params: {
       <Crumbs items={[[t(L, "home"), "/"], [t(L, "categories"), "/categories"], [name]]} />
       <section className="relative overflow-hidden rounded-3xl bg-ink min-h-[150px] md:min-h-[220px] flex items-end isolate">
         {cat.image && <img src={cat.image} alt="" className="absolute inset-0 w-full h-full object-cover opacity-60 -z-10" />}
-        <div className="w-full p-5 md:p-10 bg-gradient-to-t md:bg-gradient-to-r rtl:md:bg-gradient-to-l from-ink/95 via-ink/60 to-transparent text-white">
+        {/* Shade covers the whole banner so there is no hard edge above the text */}
+        <span className="absolute inset-0 -z-10 bg-gradient-to-t md:bg-gradient-to-r rtl:md:bg-gradient-to-l from-ink/90 via-ink/45 to-transparent" />
+        <div className="w-full p-5 md:p-10 text-white">
           <i className="block w-12 h-1.5 bg-accent rounded mb-3" />
           <h1 className="text-2xl md:text-4xl">{name}</h1>
           {sub && <p className="text-lime font-bold mt-1 md:text-lg">{sub}</p>}
