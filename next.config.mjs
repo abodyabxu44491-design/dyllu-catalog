@@ -1,14 +1,12 @@
+// Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 /** @type {import('next').NextConfig} */
 export default {
   poweredByHeader: false,
-  eslint: { ignoreDuringBuilds: true }, // لا يوجد ESLint في المشروع؛ يمنع تحذير/توقف البناء بسببه
+  eslint: { ignoreDuringBuilds: true },
   experimental: { optimizePackageImports: ["zod"] },
   async headers() {
     return [
-      // الصور المرفوعة أسماؤها فريدة (UUID) ولا تتغير، فتُحفظ في المتصفح سنة كاملة
       { source: "/uploads/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }] },
-      // ملفات الهوية أسماؤها ثابتة وقد تُستبدل: أسبوع مع التحقق في الخلفية
-      // صور المنتجات الجاهزة (prisma/catalog): أسماؤها ثابتة، أسبوع مع التحقق في الخلفية
       { source: "/items/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }] },
       { source: "/brand/:path*", headers: [{ key: "Cache-Control", value: "public, max-age=604800, stale-while-revalidate=86400" }] },
     ];

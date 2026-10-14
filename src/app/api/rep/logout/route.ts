@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { NextResponse } from "next/server";
 import { REP_COOKIE } from "@/lib/session";
 export async function POST() {

@@ -1,3 +1,4 @@
+// Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { db } from "@/lib/db";
 import CategoryManager from "@/components/admin/CategoryManager";
 export const dynamic = "force-dynamic";

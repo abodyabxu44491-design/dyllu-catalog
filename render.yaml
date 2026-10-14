@@ -1,5 +1,5 @@
-# نشر DYLLU على Render بضغطة واحدة (Blueprint): موقع + قاعدة بيانات PostgreSQL
-# Render → New → Blueprint → اختر هذا المستودع. بعدها أكمل القيم المطلوبة (sync: false) من صفحة Environment.
+# Render Blueprint: web service + PostgreSQL. Render -> New -> Blueprint -> select this repository,
+# then fill the values marked "sync: false" on the Environment page.
 services:
   - type: web
     name: dyllu-catalog
@@ -7,7 +7,7 @@ services:
     plan: free
     region: frankfurt
     buildCommand: npm install --include=dev && npm run build
-    # قبل التشغيل: تحديث الجداول + إنشاء حساب الأدمن من ADMIN_EMAIL / ADMIN_PASSWORD (scripts/prestart.mjs)
+    # prestart: sync schema + create admin from ADMIN_EMAIL / ADMIN_PASSWORD (scripts/prestart.mjs)
     startCommand: npm start
     healthCheckPath: /api/health
     envVars:
