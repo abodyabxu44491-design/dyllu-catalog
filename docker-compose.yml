@@ -1,0 +1,17 @@
+# Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
+# Local PostgreSQL for development: docker compose up -d
+# DATABASE_URL=postgresql://dyllu:dyllu@localhost:5432/dyllu
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: dyllu
+      POSTGRES_PASSWORD: dyllu
+      POSTGRES_DB: dyllu
+    ports:
+      - "5432:5432"
+    volumes:
+      - dyllu-db:/var/lib/postgresql/data
+volumes:
+  dyllu-db:

@@ -129,7 +129,7 @@ export default async function Reports({ searchParams }: { searchParams: { r?: st
   return (
     <div className="space-y-4 md:space-y-5">
       <PageHead title="التقارير" desc="أداء المبيعات للفترة المختارة. الطلبات الملغاة لا تُحسب في المبيعات." />
-      <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex gap-2 overflow-x-auto no-scrollbar">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar">
         {RANGES.map(([k, l]) => (
           <Link key={k} href={`/admin/reports?r=${k}`} className={`chip h-9 ${range[0] === k ? "chip-on" : "chip-off"}`}>
             {l}
@@ -168,7 +168,7 @@ export default async function Reports({ searchParams }: { searchParams: { r?: st
           </div>
         )}
       </Card>
-      <div className="grid lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)] lg:grid-cols-2 gap-4">
         <Card title="الأكثر طلبًا" desc="حسب عدد القطع">
           <Rank
             unit="قطعة"
@@ -220,7 +220,7 @@ export default async function Reports({ searchParams }: { searchParams: { r?: st
           />
         </Card>
       </div>
-      <div className="grid md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-[minmax(0,1fr)] md:grid-cols-2 gap-4">
         <Card title="حالة الطلبات">
           <div className="space-y-2">
             {Object.entries(STATUS_AR).map(([k, l]) => {

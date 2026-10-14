@@ -12,11 +12,13 @@ const ITEMS: [string, IconName, TKey][] = [
   ["/products", "box", "products"],
   ["/cart", "cart", "cart"],
 ];
+// Pages with their own sticky buy bar hide the bottom nav (the header cart shows there instead)
+export const hidesBottomNav = (p: string) => /^\/(products\/[^/]+|order)/.test(p);
 export default function BottomNav() {
   const p = usePathname(),
     L = useLang(),
     count = useCartCount();
-  if (/^\/(products\/[^/]+|order)/.test(p)) return null;
+  if (hidesBottomNav(p)) return null;
   const on = (h: string) => (h === "/" ? p === "/" : p.startsWith(h));
   return (
     <>

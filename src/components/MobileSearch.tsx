@@ -29,7 +29,11 @@ export default function MobileSearch({
   }, [open]);
   return (
     <>
-      <button aria-label={t(L, "search")} onClick={() => setOpen(true)} className="md:hidden btn-icon w-11 h-11 bg-soft text-ink">
+      <button
+        aria-label={t(L, "search")}
+        onClick={() => setOpen(true)}
+        className="md:hidden btn-icon w-10 h-10 xs:w-11 xs:h-11 bg-soft text-ink"
+      >
         <Icon n="search" s={21} />
       </button>
       <Portal>

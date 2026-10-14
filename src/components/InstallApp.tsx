@@ -47,7 +47,7 @@ export default function InstallApp({ variant = "store", en = false }: { variant?
     variant === "store" ? (
       <button
         onClick={install}
-        className="btn btn-sm h-11 rounded-xl bg-ink text-lime hover:bg-black px-3"
+        className="btn btn-sm h-10 xs:h-11 rounded-xl bg-ink text-lime hover:bg-black px-2.5 xs:px-3"
         aria-label={label}
         title={label}
       >

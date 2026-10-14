@@ -29,9 +29,9 @@ export default async function RepCustomers() {
           <AEmpty icon="user" title="لا يوجد عملاء بعد" />
         </div>
       ) : (
-        <div className="grid sm:grid-cols-2 gap-3">
+        <div className="grid grid-cols-[minmax(0,1fr)] sm:grid-cols-2 gap-3">
           {rows.map((c) => (
-            <div key={c.id} className="card p-4 flex items-center gap-3">
+            <div key={c.id} className="card p-4 flex items-center gap-3 min-w-0">
               <span className="w-11 h-11 rounded-full bg-ink text-lime grid place-items-center font-extrabold shrink-0">{c.name[0]}</span>
               <span className="min-w-0 flex-1">
                 <b className="block text-sm truncate">

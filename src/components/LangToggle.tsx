@@ -8,14 +8,14 @@ export default function LangToggle({ className = "" }: { className?: string }) {
     L = useLang();
   return (
     <button
-      className={`btn btn-sm btn-ghost h-11 rounded-xl px-3 ${className}`}
+      className={`btn btn-sm btn-ghost h-10 xs:h-11 rounded-xl px-2 xs:px-3 ${className}`}
       aria-label={L === "en" ? "التبديل إلى العربية" : "Switch to English"}
       onClick={() => {
         document.cookie = `lang=${L === "en" ? "ar" : "en"}; path=/; max-age=31536000; samesite=lax`;
         r.refresh();
       }}
     >
-      <Icon n="globe" s={18} className="text-steel" />
+      <Icon n="globe" s={18} className="text-steel max-xs:hidden" />
       <span>{L === "en" ? "عربي" : "EN"}</span>
     </button>
   );

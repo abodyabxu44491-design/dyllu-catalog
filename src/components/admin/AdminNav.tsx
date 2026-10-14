@@ -129,8 +129,8 @@ export default function AdminNav({ newOrders, admin }: { newOrders: number; admi
           <button aria-label="القائمة" onClick={() => setOpen(true)} className="btn-icon w-10 h-10 -ms-2 hover:bg-white/10">
             <Icon n="menu" s={22} />
           </button>
-          <img src="/brand/logo-wordmark-white.png" alt="DYLLU" className="h-7 w-auto" />
-          <b className="ms-auto text-sm text-white/80 truncate">{current}</b>
+          <img src="/brand/logo-wordmark-white.png" alt="DYLLU" className="h-7 w-auto shrink-0" />
+          <b className="ms-auto min-w-0 text-sm text-white/80 truncate">{current}</b>
           <InstallApp variant="admin" />
         </div>
       </header>

@@ -27,14 +27,14 @@ export default async function SiteHeader() {
             <img
               src={s["logo.url"] || "/brand/logo-wordmark.png"}
               alt={s["site.name"] || "DYLLU"}
-              className="h-9 md:h-11 w-auto max-w-[150px] object-contain"
+              className="h-8 xs:h-9 md:h-11 w-auto max-w-[96px] xs:max-w-[150px] object-contain"
             />
           </LogoTap>
           <HeaderNav cats={cats} />
           <div className="hidden md:block flex-1 max-w-xl ms-auto">
             <SearchBox placeholder={ph} cur={cur} hidden={hidden} />
           </div>
-          <div className="flex items-center gap-2 ms-auto md:ms-0">
+          <div className="flex items-center gap-1.5 xs:gap-2 ms-auto md:ms-0">
             <InstallApp en={en} />
             <MobileSearch placeholder={ph} cur={cur} hidden={hidden} cats={cats} />
             <LangToggle />
