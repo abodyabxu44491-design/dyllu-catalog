@@ -1,8 +1,8 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { headers } from "next/headers";
-export function siteUrl() {
+export async function siteUrl() {
   try {
-    const h = headers(),
+    const h = await headers(),
       host = (h.get("x-forwarded-host") ?? h.get("host"))?.split(",")[0].trim();
     if (host) {
       const local = /^(localhost|127\.|0\.0\.0\.0|\[::1\])/.test(host);

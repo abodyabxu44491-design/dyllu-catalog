@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { SESSION_COOKIE, verifySession } from "@/lib/session";
 export async function POST(req: Request) {
   try {
-    const s = await verifySession(cookies().get(SESSION_COOKIE)?.value);
+    const s = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
     if (s) await db.adminUser.updateMany({ where: { id: s.id, sessionVersion: s.ver }, data: { sessionVersion: { increment: 1 } } });
   } catch (e) {
     console.error("[logout]", e);

@@ -11,7 +11,8 @@ import Icon from "@/components/Icon";
 import { STATUS_AR, STATUS_CLS, fmtDate, money } from "@/lib/admin/labels";
 export const dynamic = "force-dynamic";
 const PER = 25;
-export default async function Orders({ searchParams }: { searchParams: OrderFilters & { page?: string } }) {
+export default async function Orders(props: { searchParams: Promise<OrderFilters & { page?: string }> }) {
+  const searchParams = await props.searchParams;
   const { status, q, t, from, to, store } = searchParams,
     page = pageParam(searchParams.page),
     f = { status, q, t, from, to, store };

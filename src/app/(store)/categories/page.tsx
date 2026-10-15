@@ -6,10 +6,10 @@ import CategoryCard from "@/components/CategoryCard";
 import { Crumbs, Empty, SectionHead } from "@/components/ui";
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: t(getLang(), "categories") };
+  return { title: t(await getLang(), "categories") };
 }
 export default async function Categories() {
-  const L = getLang();
+  const L = await getLang();
   const cats = await db.category.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: "asc" },

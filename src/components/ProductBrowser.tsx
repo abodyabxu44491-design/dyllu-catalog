@@ -24,7 +24,7 @@ export type BrowseParams = {
 };
 const PER = 24;
 export default async function ProductBrowser({ sp, category }: { sp: BrowseParams; category?: { id: number; slug: string } }) {
-  const L = getLang(),
+  const L = await getLang(),
     en = L === "en",
     ws = !!(await getWholesale()),
     page = pageParam(sp.page);

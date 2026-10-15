@@ -9,9 +9,10 @@ import { Crumbs } from "@/components/ui";
 import Linkify from "@/components/Linkify";
 export const dynamic = "force-dynamic";
 const find = cache((slug: string) => db.category.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true } }));
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const c = await find(params.slug),
-    L = getLang();
+    L = await getLang();
   return c
     ? {
         title: pick(L, c.nameAr, c.nameEn),
@@ -20,8 +21,10 @@ export async function generateMetadata({ params }: { params: { slug: string } })
       }
     : {};
 }
-export default async function CategoryPage({ params, searchParams }: { params: { slug: string }; searchParams: BrowseParams }) {
-  const L = getLang(),
+export default async function CategoryPage(props: { params: Promise<{ slug: string }>; searchParams: Promise<BrowseParams> }) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
+  const L = await getLang(),
     en = L === "en",
     cat = await find(params.slug);
   if (!cat) notFound();

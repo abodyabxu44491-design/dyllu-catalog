@@ -16,7 +16,7 @@ import { SectionHead } from "@/components/ui";
 import { activeOffers, offerFor, onSaleWhere } from "@/lib/offers";
 export const dynamic = "force-dynamic";
 export default async function Home() {
-  const L = getLang(),
+  const L = await getLang(),
     en = L === "en",
     ws = !!(await getWholesale()),
     now = new Date();

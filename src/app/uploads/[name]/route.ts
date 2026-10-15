@@ -9,7 +9,8 @@ const TYPES: Record<string, string> = {
   ".gif": "image/gif",
   ".pdf": "application/pdf",
 };
-export async function GET(_: Request, { params }: { params: { name: string } }) {
+export async function GET(_: Request, props: { params: Promise<{ name: string }> }) {
+  const params = await props.params;
   const name = params.name;
   if (!/^[\w-]{8,64}\.(jpg|png|webp|gif|pdf)$/.test(name)) return new Response("Not found", { status: 404 });
   const head = (type: string, size: number) => ({

@@ -4,7 +4,8 @@ import TradeLocked from "@/components/trade/TradeLocked";
 import { verifyTradeKey } from "@/lib/session";
 import { currentTrade } from "@/lib/tradeAuth";
 export const dynamic = "force-dynamic";
-export default async function TradePage({ searchParams }: { searchParams: { k?: string } }) {
+export default async function TradePage(props: { searchParams: Promise<{ k?: string }> }) {
+  const searchParams = await props.searchParams;
   const k = typeof searchParams.k === "string" ? searchParams.k : null,
     shop = await currentTrade(k),
     fromLink = shop && k ? await verifyTradeKey(k) : null;

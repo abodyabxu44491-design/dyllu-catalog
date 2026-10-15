@@ -17,7 +17,8 @@ const TABS: [string, string, Prisma.ProductWhereInput][] = [
   ["featured", "مميز", { isFeatured: true }],
   ["nows", "بلا سعر جملة", { wholesalePrice: null }],
 ];
-export default async function List({ searchParams }: { searchParams: { q?: string; cat?: string; st?: string; page?: string } }) {
+export default async function List(props: { searchParams: Promise<{ q?: string; cat?: string; st?: string; page?: string }> }) {
+  const searchParams = await props.searchParams;
   const { q, cat, st } = searchParams,
     page = pageParam(searchParams.page),
     tab = TABS.find(([k]) => k === (st ?? "")) ?? TABS[0];

@@ -13,7 +13,7 @@ import MobileSearch from "./MobileSearch";
 import InstallApp from "./InstallApp";
 export default async function SiteHeader() {
   const [s, ws, cats] = await Promise.all([getSettings(), getWholesale(), getNavCategories()]);
-  const L = getLang(),
+  const L = await getLang(),
     en = L === "en",
     cur = en ? s["currency.en"] || "SAR" : s["currency.ar"],
     hidden = en ? "Contact us" : s["price.hiddenLabel.ar"],

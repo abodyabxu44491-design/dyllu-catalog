@@ -26,9 +26,9 @@ const ard = Cairo({
 });
 export async function generateMetadata(): Promise<Metadata> {
   const s = await getSettings(),
-    L = getLang(),
+    L = await getLang(),
     name = s["site.name"] || "DYLLU",
-    base = siteUrl();
+    base = await siteUrl();
   return {
     metadataBase: base ? new URL(base) : undefined,
     title: { default: `${name} | ${txt(s, L, "footer.text")}`, template: `%s | ${name}` },
@@ -50,8 +50,8 @@ const SPLASH: [number, number][] = [
   [59.33, 11.67],
   [71, 16.17],
 ];
-export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const l = getLang();
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const l = await getLang();
   return (
     <html lang={l} dir={l === "en" ? "ltr" : "rtl"} className={`${ar.variable} ${ard.variable}`} suppressHydrationWarning>
       <head>

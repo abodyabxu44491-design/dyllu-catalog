@@ -34,9 +34,10 @@ const find = cache((slug: string) =>
     },
   }),
 );
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const p = await find(params.slug),
-    L = getLang();
+    L = await getLang();
   return p
     ? {
         title: pick(L, p.nameAr, p.nameEn),
@@ -51,12 +52,13 @@ const Sec = ({ title, children, className = "" }: { title: string; children: Rea
     <div className="card overflow-hidden">{children}</div>
   </section>
 );
-export default async function ProductPage({ params }: { params: { slug: string } }) {
+export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const [s, p0] = await Promise.all([getSettings(), find(params.slug)]);
   if (!p0) notFound();
   const offer = offerFor(p0, await activeOffers()),
     p = { ...p0, offer };
-  const L = getLang(),
+  const L = await getLang(),
     en = L === "en",
     ws = !!(await getWholesale());
   const related = await db.product.findMany({
@@ -73,7 +75,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const desc = pick(L, p.descriptionAr, p.descriptionEn),
     cat = p.category,
     catName = pick(L, cat.nameAr, cat.nameEn),
-    base = siteUrl();
+    base = await siteUrl();
   const wa = s["whatsapp.number"],
     askUrl = isPhone(wa)
       ? waHref(

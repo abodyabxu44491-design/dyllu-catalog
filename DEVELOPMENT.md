@@ -9,7 +9,7 @@
 
 | الجزء | التقنية |
 | --- | --- |
-| الواجهة والسيرفر | Next.js 14 (App Router) + React 18 + TypeScript |
+| الواجهة والسيرفر | Next.js 15 (App Router) + React 19 + TypeScript |
 | التصميم | Tailwind CSS 3، اتجاه RTL، خطوط Cairo و IBM Plex Sans Arabic |
 | قاعدة البيانات | PostgreSQL عبر Prisma 5 |
 | التحقق من المدخلات | zod |
@@ -138,6 +138,8 @@ npm run check:site                   # CHECK_QUICK=1 لفحص سريع على 4 
 
 - الأهداف معرّفة في `browserslist` داخل `package.json`: iOS/Safari 14+، Chrome و Edge 90+، Firefox 90+، Samsung Internet 14+.
 - Next.js و autoprefixer يحوّلون الكود والـ CSS لهذه الأهداف تلقائيًا.
+- `scripts/postcss-legacy.cjs` يضيف بدائل للمتصفحات القديمة (iOS 14 وما قبل Chrome 88): `aspect-ratio` و `inset` والمواضع المنطقية (start/end) ووحدات `svh`. البدائل داخل `@supports not` فما تأثر على المتصفحات الحديثة.
+- `npm audit --omit=dev` يجب أن يرجع 0 ثغرات قبل أي نشر.
 - **قيد معروف:** تصميم الإعلانات يستخدم وحدات الحاويات (`cqw`/`cqh`)، ويحتاج iOS 16+ أو Chrome 105+ أو Firefox 110+. في الأجهزة الأقدم يظهر الإعلان، بس مقاسات النص فيه أقل دقة.
 
 ## 9) النشر

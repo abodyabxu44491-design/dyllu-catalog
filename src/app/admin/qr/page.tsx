@@ -4,7 +4,7 @@ import StoresManager from "@/components/admin/StoresManager";
 import { siteUrl } from "@/lib/siteUrl";
 export const dynamic = "force-dynamic";
 export default async function QR() {
-  const base = siteUrl();
+  const base = await siteUrl();
   const [stores, unassigned] = await Promise.all([
     db.store.findMany({ orderBy: [{ isActive: "desc" }, { createdAt: "desc" }], include: { _count: { select: { orders: true } } } }),
     db.order.count({ where: { storeId: null } }),

@@ -653,7 +653,7 @@ export default function ProductForm({
               <Field label="رقم الموديل (SKU)">
                 <input className="field" dir="ltr" value={p.sku ?? ""} onChange={(e) => set("sku", e.target.value)} />
               </Field>
-              <Field label="الباركود" hint="الرقم المطبوع على العبوة. يظهر بعده سعر الجملة في تطبيق المحلات">
+              <Field label="الباركود" hint="الرقم المطبوع على العبوة، ويُستخدم في تطبيق المحلات">
                 <div className="flex gap-2">
                   <input
                     className={`field flex-1 min-w-0 tracking-wider ${bcOwner ? "!border-accent" : ""}`}

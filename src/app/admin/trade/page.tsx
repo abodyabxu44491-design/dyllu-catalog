@@ -19,7 +19,7 @@ export default async function TradePage() {
   const names = new Map(
     (await db.product.findMany({ where: { id: { in: ids } }, select: { id: true, nameAr: true } })).map((p) => [p.id, p.nameAr]),
   );
-  const base = siteUrl(),
+  const base = await siteUrl(),
     links = new Map(
       await Promise.all(codes.map(async (c) => [c.id, `${base}/trade?k=${await tradeKey(c.id, c.sessionVersion)}`] as const)),
     );

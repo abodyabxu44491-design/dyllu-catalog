@@ -6,8 +6,9 @@ import { getLang, t, txt } from "@/lib/lang";
 import ProductBrowser, { type BrowseParams } from "@/components/ProductBrowser";
 import { Crumbs, SectionHead } from "@/components/ui";
 export const dynamic = "force-dynamic";
-export async function generateMetadata({ searchParams }: { searchParams: BrowseParams }): Promise<Metadata> {
-  const L = getLang();
+export async function generateMetadata(props: { searchParams: Promise<BrowseParams> }): Promise<Metadata> {
+  const searchParams = await props.searchParams;
+  const L = await getLang();
   return {
     title: searchParams.sale
       ? L === "en"
@@ -18,13 +19,14 @@ export async function generateMetadata({ searchParams }: { searchParams: BrowseP
         : t(L, "all"),
   };
 }
-export default async function Products({ searchParams }: { searchParams: BrowseParams }) {
+export default async function Products(props: { searchParams: Promise<BrowseParams> }) {
+  const searchParams = await props.searchParams;
   if (searchParams.category) {
     const { category, ...rest } = searchParams;
     const p = new URLSearchParams(rest as Record<string, string>).toString();
     redirect(`/categories/${encodeURIComponent(category)}${p ? `?${p}` : ""}`);
   }
-  const L = getLang(),
+  const L = await getLang(),
     s = await getSettings();
   const title = searchParams.sale
     ? L === "en"

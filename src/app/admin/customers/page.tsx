@@ -15,7 +15,8 @@ const SORTS: [string, string, AggSort][] = [
   ["orders", "الأكثر طلبات", { _count: { id: "desc" } }],
   ["total", "الأعلى قيمة", { _sum: { total: "desc" } }],
 ];
-export default async function Customers({ searchParams }: { searchParams: { q?: string; sort?: string; page?: string } }) {
+export default async function Customers(props: { searchParams: Promise<{ q?: string; sort?: string; page?: string }> }) {
+  const searchParams = await props.searchParams;
   const { q } = searchParams,
     page = pageParam(searchParams.page),
     sort = SORTS.find(([k]) => k === (searchParams.sort ?? "")) ?? SORTS[0];

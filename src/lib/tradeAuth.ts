@@ -8,8 +8,8 @@ import { TRADE_COOKIE, verifyTradeKey } from "./session";
 export const currentTrade = cache(async (fromUrl?: string | null) => {
   const s =
     (await verifyTradeKey(fromUrl)) ??
-    (await verifyTradeKey(headers().get("x-trade-key"))) ??
-    (await verifyTradeKey(cookies().get(TRADE_COOKIE)?.value));
+    (await verifyTradeKey((await headers()).get("x-trade-key"))) ??
+    (await verifyTradeKey((await cookies()).get(TRADE_COOKIE)?.value));
   if (!s) return null;
   const c = await db.wholesaleCode.findUnique({
     where: { id: s.id },

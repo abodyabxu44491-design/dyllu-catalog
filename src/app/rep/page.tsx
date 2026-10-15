@@ -26,7 +26,7 @@ export default async function RepHome() {
     db.order.groupBy({ by: ["customerId"], where: mine }).then((r) => r.length),
     db.order.findMany({ where: mine, include: { customer: { select: { name: true, phone: true } } }, orderBy: { id: "desc" }, take: 5 }),
   ]);
-  const base = siteUrl(),
+  const base = await siteUrl(),
     link = `${base}/?rep=${rep.id}`;
   const qr = await QRCode.toString(link, { type: "svg", margin: 0, errorCorrectionLevel: "M", color: { dark: brand.ink, light: "#0000" } });
   const share = `https://wa.me/?text=${encodeURIComponent(`تصفّح كتالوج DYLLU واطلب مباشرة، وطلبك يوصلني:\n${link}`)}`;

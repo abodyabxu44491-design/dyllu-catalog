@@ -3,7 +3,9 @@ import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
 import ProductForm from "@/components/admin/ProductForm";
 export const dynamic = "force-dynamic";
-export default async function Edit({ params, searchParams }: { params: { id: string }; searchParams: { cat?: string; t?: string } }) {
+export default async function Edit(props: { params: Promise<{ id: string }>; searchParams: Promise<{ cat?: string; t?: string }> }) {
+  const searchParams = await props.searchParams;
+  const params = await props.params;
   const categories = await db.category.findMany({ orderBy: { sortOrder: "asc" } });
   if (params.id !== "new" && !Number.isInteger(Number(params.id))) notFound();
   const p =

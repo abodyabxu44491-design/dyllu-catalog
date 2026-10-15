@@ -12,7 +12,7 @@ export async function POST(req: Request) {
   try {
     const order = await createOrder(await req.json(), await getWholesale());
     const s = await getSettings(),
-      base = siteUrl();
+      base = await siteUrl();
     const msg = buildWhatsAppMessage(order, s["currency.ar"], s["price.hiddenLabel.ar"], base ? `${base}/order/${order.token}` : undefined);
     return NextResponse.json({
       number: order.number,
