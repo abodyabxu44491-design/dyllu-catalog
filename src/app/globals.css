@@ -220,9 +220,20 @@
   }
 }
 
-.admin input[type="datetime-local"] {
+.admin input[type="datetime-local"],
+.admin input[type="date"] {
   -webkit-appearance: none;
   appearance: none;
+  min-width: 0;
+}
+.admin input[type="date"]::-webkit-date-and-time-value {
+  margin: 0;
+  text-align: start;
+}
+.admin input[type="date"]::-webkit-calendar-picker-indicator {
+  margin: 0;
+  opacity: 0.55;
+  cursor: pointer;
 }
 
 @media print {

@@ -103,7 +103,7 @@ scripts/                    أوامر التشغيل والفحص (prestart، �
 - **التصنيفات المتعددة:** `categoryId` هو الرئيسي و`categories` الإضافية. للفلترة استخدم `inCategory(id)` من `src/lib/catalog.ts`، وللعدّ `catCount`.
 - **إيقاف الطلبات:** `orderingState()` في `src/lib/ordering.ts` (إعداد `orders.enabled`)، يُفحص في `/api/orders` قبل أي شيء.
 - **ربط العميل بالمندوب:** `Customer.repId`. `createOrder()` يستخدم مندوب العميل المرتبط ويتجاهل أي مندوب آخر، و`/api/reps/assigned` يخبر السلة به.
-- **أرشفة الطلبات:** `Order.archivedAt`، و`orderWhere()` يخفي المؤرشف إلا مع `archived=1`. الحذف عبر `DELETE /api/admin/orders` للمؤرشف فقط.
+- **أرشفة الطلبات:** `Order.archivedAt`، و`orderWhere()` يخفي المؤرشف إلا مع `archived=1`. الحذف والأرشفة لطلب واحد أو عدة طلبات عبر `DELETE`/`PATCH /api/admin/orders` (`ids`)، وعناصر الطلب تُحذف معه.
 - **النصوص:** نصوص المتجر الثابتة في `src/lib/i18n.ts`، والنصوص اللي تتعدّل من الإعدادات في `config/brand.ts` (`defaultSettings`).
 - **الروابط المطلقة:** `siteUrl()` يأخذ الدومين من الطلب نفسه، فروابط QR والفواتير تطابق الدومين اللي فُتح عليه الموقع.
 

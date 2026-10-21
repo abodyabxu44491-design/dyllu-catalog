@@ -13,21 +13,23 @@ export async function PATCH(req: Request) {
     const r = await db.order.updateMany({ where: { archivedAt: null, status: { in: [...DONE] } }, data: { archivedAt: new Date() } });
     return NextResponse.json({ ok: true, count: r.count });
   }
-  const id = Number(b.id);
-  if (!id || typeof b.archive !== "boolean") return NextResponse.json({ error: "bad request" }, { status: 400 });
-  await db.order.update({ where: { id }, data: { archivedAt: b.archive ? new Date() : null } });
-  return NextResponse.json({ ok: true });
+  const ids = idList(b.ids ?? [b.id]);
+  if (!ids.length || typeof b.archive !== "boolean") return NextResponse.json({ error: "bad request" }, { status: 400 });
+  const r = await db.order.updateMany({ where: { id: { in: ids } }, data: { archivedAt: b.archive ? new Date() : null } });
+  return NextResponse.json({ ok: true, count: r.count });
 }
-// Permanent delete is allowed only for archived orders; customers and products are not touched
+const idList = (v: unknown) =>
+  [...new Set((Array.isArray(v) ? v : []).map(Number))].filter((n) => Number.isInteger(n) && n > 0).slice(0, 500);
+// Permanent delete of one order (?id=) or several ({ ids }). Order items go with the order; customers and products stay.
 export async function DELETE(req: Request) {
   const deny = await denyUnlessAdmin();
   if (deny) return deny;
-  const id = Number(new URL(req.url).searchParams.get("id"));
-  const o = id ? await db.order.findUnique({ where: { id }, select: { archivedAt: true } }) : null;
-  if (!o) return NextResponse.json({ error: "الطلب غير موجود" }, { status: 404 });
-  if (!o.archivedAt) return NextResponse.json({ error: "أرشف الطلب أولًا ثم احذفه" }, { status: 400 });
-  await db.order.delete({ where: { id } });
-  return NextResponse.json({ ok: true });
+  const one = new URL(req.url).searchParams.get("id");
+  const ids = idList(one ? [one] : (await req.json().catch(() => ({}))).ids);
+  if (!ids.length) return NextResponse.json({ error: "اختر طلبًا واحدًا على الأقل" }, { status: 400 });
+  const r = await db.order.deleteMany({ where: { id: { in: ids } } });
+  if (!r.count) return NextResponse.json({ error: "الطلب غير موجود" }, { status: 404 });
+  return NextResponse.json({ ok: true, count: r.count });
 }
 export async function PUT(req: Request) {
   const deny = await denyUnlessAdmin();
