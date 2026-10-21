@@ -4,6 +4,8 @@ import { db } from "@/lib/db";
 import { STATUS_AR, STATUS_CLS, fmtDate, money } from "@/lib/admin/labels";
 import { Badge, Card, Stat } from "@/components/admin/ui";
 import Icon, { type IconName } from "@/components/Icon";
+import OrdersSwitch from "@/components/admin/OrdersSwitch";
+import { orderingState } from "@/lib/ordering";
 export const dynamic = "force-dynamic";
 const DAYS = 14;
 export default async function Dash() {
@@ -81,8 +83,10 @@ export default async function Dash() {
     [noWs > 0 && codes > 0, `${noWs} منتج بلا سعر جملة (عملاء الجملة يرون السعر العادي)`, "/admin/products?st=nows"],
     [pAll === 0, "لم تضف أي منتج بعد", "/admin/products/new"],
   ];
+  const ordering = await orderingState();
   return (
     <div className="space-y-5 md:space-y-6">
+      <OrdersSwitch open={ordering.open} message={ordering.ar} />
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <p className="text-sm text-steel">

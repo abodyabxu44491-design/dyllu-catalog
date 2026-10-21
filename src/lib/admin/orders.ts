@@ -1,8 +1,8 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import type { OrderStatus, Prisma } from "@prisma/client";
 import { STATUS_AR } from "./labels";
-export type OrderFilters = { status?: string; q?: string; t?: string; from?: string; to?: string; store?: string };
-export function orderWhere({ status, q, t, from, to, store }: OrderFilters, withStatus = true): Prisma.OrderWhereInput {
+export type OrderFilters = { status?: string; q?: string; t?: string; from?: string; to?: string; store?: string; archived?: string };
+export function orderWhere({ status, q, t, from, to, store, archived }: OrderFilters, withStatus = true): Prisma.OrderWhereInput {
   const d = (v?: string, end = false) => {
     if (!v || !/^\d{4}-\d{2}-\d{2}$/.test(v)) return undefined;
     const x = new Date(`${v}T00:00:00`);
@@ -12,6 +12,8 @@ export function orderWhere({ status, q, t, from, to, store }: OrderFilters, with
   const gte = d(from),
     lt = d(to, true);
   return {
+    // Archived orders are kept for records and search, but hidden from the main list
+    archivedAt: archived === "1" ? { not: null } : null,
     ...(withStatus && status && status in STATUS_AR && { status: status as OrderStatus }),
     ...(t === "ws" && { isWholesale: true }),
     ...(t === "retail" && { isWholesale: false }),

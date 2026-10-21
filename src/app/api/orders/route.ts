@@ -7,8 +7,11 @@ import { getWholesale } from "@/lib/wholesale";
 import { ipOf, limited } from "@/lib/ratelimit";
 import { buildWhatsAppMessage, whatsappUrl } from "@/lib/whatsapp";
 import { siteUrl } from "@/lib/siteUrl";
+import { orderingState } from "@/lib/ordering";
 export async function POST(req: Request) {
   if (limited(`ord:${ipOf(req)}`, 10, 60_000)) return NextResponse.json({ error: "محاولات كثيرة" }, { status: 429 });
+  const state = await orderingState();
+  if (!state.open) return NextResponse.json({ error: state.ar, errorEn: state.en, paused: true }, { status: 503 });
   try {
     const order = await createOrder(await req.json(), await getWholesale());
     const s = await getSettings(),

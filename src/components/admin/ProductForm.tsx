@@ -15,6 +15,9 @@ const blank = {
   nameAr: "",
   sku: "",
   barcode: "",
+  stock: "",
+  extraCategoryIds: [],
+  alternatives: [],
   descriptionAr: "",
   price: null,
   wholesalePrice: null,
@@ -86,6 +89,64 @@ function CopyFrom({ onPick, onClose }: { onPick: (id: number, name: string) => v
     </div>
   );
 }
+type Pick = { id: number; nameAr: string; inStock: boolean; image: string | null };
+function ProductPicker({ exclude, onPick, onClose }: { exclude: (number | undefined)[]; onPick: (p: Pick) => void; onClose: () => void }) {
+  const [q, setQ] = useState(""),
+    [list, setList] = useState<(Brief & { inStock: boolean })[]>([]);
+  useEffect(() => {
+    const c = new AbortController();
+    const t = setTimeout(
+      () =>
+        fetch(`/api/admin/products?q=${encodeURIComponent(q)}`, { signal: c.signal })
+          .then((x) => x.json())
+          .then((x) => setList(Array.isArray(x) ? x : []))
+          .catch(() => {}),
+      200,
+    );
+    return () => {
+      clearTimeout(t);
+      c.abort();
+    };
+  }, [q]);
+  return (
+    <div className="rounded-2xl border border-line overflow-hidden">
+      <div className="flex items-center gap-2 p-2 border-b border-line bg-soft">
+        <Icon n="search" s={18} className="text-steel ms-1" />
+        <input
+          autoFocus
+          className="flex-1 bg-transparent outline-none h-9 text-sm"
+          placeholder="ابحث بالاسم أو كود المنتج"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <button type="button" onClick={onClose} aria-label="إغلاق" className="btn-icon w-8 h-8 text-steel">
+          <Icon n="close" s={16} />
+        </button>
+      </div>
+      <div className="max-h-56 overflow-y-auto divide-y divide-line">
+        {list
+          .filter((x) => !exclude.includes(x.id))
+          .map((x) => (
+            <button
+              type="button"
+              key={x.id}
+              onClick={() => onPick({ id: x.id, nameAr: x.nameAr || x.nameEn, inStock: x.inStock, image: x.images[0] ?? null })}
+              className="w-full flex items-center gap-3 p-2 text-start hover:bg-soft"
+            >
+              <span className="w-9 h-9 rounded-lg bg-soft overflow-hidden shrink-0">
+                {x.images[0] && <img src={x.images[0]} alt="" className="w-full h-full object-contain" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <b className="block text-sm truncate">{x.nameAr || x.nameEn}</b>
+                <small className="text-xs text-steel">{x.category}</small>
+              </span>
+              {!x.inStock && <small className="text-xs font-bold text-accent">غير متوفر</small>}
+            </button>
+          ))}
+      </div>
+    </div>
+  );
+}
 export default function ProductForm({
   initial,
   categories,
@@ -117,6 +178,22 @@ export default function ProductForm({
     }, 350);
     return () => clearTimeout(t);
   }, [p.barcode, p.id]);
+  const [skuOwner, setSkuOwner] = useState<{ id: number; nameAr: string } | null>(null),
+    [altPick, setAltPick] = useState(false),
+    [mutual, setMutual] = useState(false);
+  useEffect(() => {
+    const k = String(p.sku ?? "").trim();
+    if (!k) return setSkuOwner(null);
+    const t = setTimeout(async () => {
+      const x = await fetch(`/api/admin/products?sku=${encodeURIComponent(k)}&except=${p.id ?? ""}`)
+        .then((r) => r.json())
+        .catch(() => null);
+      setSkuOwner(x?.owner ?? null);
+    }, 350);
+    return () => clearTimeout(t);
+  }, [p.sku, p.id]);
+  const tracked = p.stock !== "" && p.stock != null,
+    stockN = tracked ? Number(p.stock) : null;
   const dirty = JSON.stringify(p) !== start.current;
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -187,7 +264,7 @@ export default function ProductForm({
     [(p.price !== null && p.price !== "") || !p.showPrice, "السعر"],
     [!!(p.descriptionAr ?? "").trim(), "الوصف"],
     [p.specs.some((x: any) => x.value), "مواصفة واحدة على الأقل"],
-    [!!(p.sku ?? "").trim(), "رقم الموديل"],
+    [!!(p.sku ?? "").trim(), "كود المنتج"],
   ];
   const ready = Math.round((checks.filter(([ok]) => ok).length / checks.length) * 100);
   useEffect(() => {
@@ -234,10 +311,18 @@ export default function ProductForm({
     setErr("");
     if (!categories.length) return setErr("أضف تصنيفًا أولًا من صفحة التصنيفات ثم أضف المنتج");
     if (!p.nameAr.trim()) return setErr("اكتب اسم المنتج");
+    if (!String(p.sku ?? "").trim()) return setErr("اكتب كود المنتج (رقم الموديل)");
+    if (skuOwner) return setErr(`كود المنتج مستخدم للمنتج «${skuOwner.nameAr}»`);
     if (bcOwner) return setErr(`الباركود مستخدم للمنتج «${bcOwner.nameAr}»`);
+    if (tracked && (!Number.isInteger(stockN) || (stockN as number) < 0)) return setErr("الكمية رقم صحيح من صفر وأكبر");
     setBusy(true);
+    const { alternatives, ...rest } = p;
     const x = await post("/api/admin/products", {
-      ...p,
+      ...rest,
+      stock: tracked ? stockN : null,
+      extraCategoryIds: (p.extraCategoryIds ?? []).map(Number),
+      alternativeIds: (alternatives ?? []).map((a: any) => a.id),
+      mutualAlternatives: mutual,
       categoryId: Number(p.categoryId),
       price: num(p.price),
       wholesalePrice: num(p.wholesalePrice),
@@ -546,6 +631,52 @@ export default function ProductForm({
               رفع ملف PDF
             </label>
           </Card>
+          <Card title="المنتجات البديلة" desc="تظهر للعميل عندما يكون هذا المنتج غير متوفر. البدائل غير المتوفرة لا تظهر.">
+            <div className="space-y-2">
+              {(p.alternatives ?? []).map((a: any) => (
+                <div key={a.id} className="flex items-center gap-3 rounded-xl border border-line p-2">
+                  <span className="w-10 h-10 rounded-lg bg-soft overflow-hidden shrink-0">
+                    {a.image && <img src={a.image} alt="" className="w-full h-full object-contain" />}
+                  </span>
+                  <b className="flex-1 min-w-0 truncate text-sm">{a.nameAr}</b>
+                  <span className={`text-xs font-bold ${a.inStock ? "text-[#586000]" : "text-accent"}`}>
+                    {a.inStock ? "متوفر" : "غير متوفر"}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label={`إزالة ${a.nameAr}`}
+                    onClick={() =>
+                      set(
+                        "alternatives",
+                        p.alternatives.filter((x: any) => x.id !== a.id),
+                      )
+                    }
+                    className="btn-icon w-8 h-8 text-steel hover:text-accent"
+                  >
+                    <Icon n="close" s={16} />
+                  </button>
+                </div>
+              ))}
+              {altPick ? (
+                <ProductPicker
+                  exclude={[p.id, ...(p.alternatives ?? []).map((a: any) => a.id)]}
+                  onPick={(a) => {
+                    set("alternatives", [...(p.alternatives ?? []), a]);
+                    setAltPick(false);
+                  }}
+                  onClose={() => setAltPick(false)}
+                />
+              ) : (
+                <button type="button" onClick={() => setAltPick(true)} className="btn btn-md btn-ghost w-full">
+                  <Icon n="plus" s={18} />
+                  إضافة بديل
+                </button>
+              )}
+              {(p.alternatives ?? []).length > 0 && (
+                <Switch label="ربط متبادل" hint="هذا المنتج يصير بديلًا أيضًا في صفحات البدائل المختارة" on={mutual} onChange={setMutual} />
+              )}
+            </div>
+          </Card>
         </div>
 
         <div className="space-y-4 md:space-y-5 lg:sticky lg:top-6">
@@ -576,8 +707,31 @@ export default function ProductForm({
               <div className="py-2">
                 <Switch label="مميز" hint="يظهر في الرئيسية" on={p.isFeatured} onChange={(v) => set("isFeatured", v)} />
               </div>
-              <div className="py-2">
-                <Switch label="متوفر" on={p.inStock} onChange={(v) => set("inStock", v)} />
+              <div className="py-2 space-y-2">
+                <Field
+                  label="الكمية في المخزون"
+                  hint="العميل لا يرى الرقم، يرى «متوفر» أو «غير متوفر». اتركها فارغة إذا ما تتابع مخزون هذا المنتج."
+                >
+                  <input
+                    className="field"
+                    type="number"
+                    inputMode="numeric"
+                    min="0"
+                    step="1"
+                    dir="ltr"
+                    placeholder="غير متتبَّع"
+                    value={p.stock ?? ""}
+                    onChange={(e) => set("stock", e.target.value.replace(/[^\d]/g, ""))}
+                  />
+                </Field>
+                {tracked ? (
+                  <p className={`flex items-center gap-2 text-sm font-bold ${stockN ? "text-[#586000]" : "text-accent"}`}>
+                    <Icon n={stockN ? "check" : "alert"} s={16} />
+                    {stockN ? "يظهر للعملاء: متوفر" : "يظهر للعملاء: غير متوفر حاليًا، ولا يمكن طلبه"}
+                  </p>
+                ) : (
+                  <Switch label="متوفر" hint="يُحدَّد يدويًا لأن المخزون غير متتبَّع" on={p.inStock} onChange={(v) => set("inStock", v)} />
+                )}
               </div>
               <div className="py-2">
                 <Switch label="السماح بالإضافة للسلة" on={p.allowCart} onChange={(v) => set("allowCart", v)} />
@@ -635,7 +789,26 @@ export default function ProductForm({
           </Card>
           <Card title="التنظيم">
             <div className="space-y-3">
-              <Field label="التصنيف">
+              <Field label="كود المنتج (رقم الموديل) *" hint="المعرّف الأساسي للمنتج، وبه يتطابق المنتج عند التحديث من Excel">
+                <input
+                  className={`field tracking-wide ${skuOwner ? "!border-accent" : ""}`}
+                  dir="ltr"
+                  autoComplete="off"
+                  placeholder="DR-1005"
+                  value={p.sku ?? ""}
+                  onChange={(e) => set("sku", e.target.value)}
+                />
+              </Field>
+              {skuOwner && (
+                <p role="alert" className="-mt-1 text-xs font-bold text-accent leading-6">
+                  هذا الكود مستخدم للمنتج{" "}
+                  <Link href={`/admin/products/${skuOwner.id}`} className="underline">
+                    «{skuOwner.nameAr}»
+                  </Link>
+                  .
+                </p>
+              )}
+              <Field label="التصنيف الرئيسي">
                 {categories.length ? (
                   <select className="field" value={p.categoryId} onChange={(e) => set("categoryId", e.target.value)}>
                     {categories.map((c) => (
@@ -650,9 +823,38 @@ export default function ProductForm({
                   </Link>
                 )}
               </Field>
-              <Field label="رقم الموديل (SKU)">
-                <input className="field" dir="ltr" value={p.sku ?? ""} onChange={(e) => set("sku", e.target.value)} />
-              </Field>
+              {categories.length > 1 && (
+                <div>
+                  <b className="block text-sm font-bold mb-1">يظهر أيضًا في</b>
+                  <small className="block text-xs text-steel mb-2">اختر تصنيفات إضافية، والمنتج يظهر فيها بدون نسخ.</small>
+                  <div className="flex flex-wrap gap-1.5">
+                    {categories
+                      .filter((c) => c.id !== Number(p.categoryId))
+                      .map((c) => {
+                        const on = (p.extraCategoryIds ?? []).map(Number).includes(c.id);
+                        return (
+                          <button
+                            type="button"
+                            key={c.id}
+                            aria-pressed={on}
+                            onClick={() =>
+                              set(
+                                "extraCategoryIds",
+                                on
+                                  ? (p.extraCategoryIds ?? []).filter((x: number) => Number(x) !== c.id)
+                                  : [...(p.extraCategoryIds ?? []), c.id],
+                              )
+                            }
+                            className={`chip h-8 text-xs ${on ? "chip-on" : "chip-off"}`}
+                          >
+                            {on && <Icon n="check" s={13} stroke={3} />}
+                            {c.nameAr}
+                          </button>
+                        );
+                      })}
+                  </div>
+                </div>
+              )}
               <Field label="الباركود" hint="الرقم المطبوع على العبوة، ويُستخدم في تطبيق المحلات">
                 <div className="flex gap-2">
                   <input

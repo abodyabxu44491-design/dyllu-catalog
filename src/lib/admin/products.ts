@@ -8,8 +8,12 @@ const P = z
     nameAr: z.string().trim(),
     nameEn: z.string().trim().optional(),
     slug: z.string().optional(),
-    sku: z.string().nullish(),
+    sku: z.string({ required_error: "اكتب كود المنتج" }).trim().min(1, "اكتب كود المنتج").max(60),
     barcode: z.string().nullish(),
+    stock: z.number().int().min(0, "الكمية لا تكون بالسالب").nullish(),
+    extraCategoryIds: z.array(z.number().int()).max(30).default([]),
+    alternativeIds: z.array(z.number().int()).max(20).default([]),
+    mutualAlternatives: z.boolean().default(false),
     categoryId: z.number().int(),
     descriptionAr: z.string().nullish(),
     price: z.number().nullish(),
@@ -79,6 +83,21 @@ async function withEnglish(id: number | null, d: z.infer<typeof P>) {
   const documents = d.documents.map((x) => ({ title: x.title, titleEn: en[i++] || null, url: x.url }));
   return { ...d, nameEn: en[0], descriptionAr: d.descriptionAr || null, descriptionEn: en[1] || null, features, specs, documents };
 }
+// Product code (model number) is the main identifier: trimmed, single spaces, upper case
+export const normalizeSku = (raw?: string | null) =>
+  String(raw ?? "")
+    .trim()
+    .replace(/\s+/g, " ")
+    .toUpperCase()
+    .slice(0, 60);
+export async function skuOwner(raw: string | null | undefined, exceptId?: number | null) {
+  const sku = normalizeSku(raw);
+  if (!sku) return null;
+  return db.product.findFirst({
+    where: { sku: { equals: sku, mode: "insensitive" }, ...(exceptId ? { id: { not: exceptId } } : {}) },
+    select: { id: true, nameAr: true },
+  });
+}
 // One barcode belongs to one product. UPC-A/EAN-13 forms of the same code count as the same barcode.
 export async function barcodeOwner(raw: string | null | undefined, exceptId?: number | null) {
   const v = barcodeVariants(raw);
@@ -91,7 +110,11 @@ export async function barcodeOwner(raw: string | null | undefined, exceptId?: nu
 export async function saveProduct(id: number | null, raw: unknown) {
   const parsed = P.parse(raw),
     code = normalizeBarcode(parsed.barcode) || null,
-    owner = await barcodeOwner(code, id);
+    skuCode = normalizeSku(parsed.sku),
+    owner = await barcodeOwner(code, id),
+    skuTaken = await skuOwner(skuCode, id);
+  if (!skuCode) throw new Error("اكتب كود المنتج");
+  if (skuTaken) throw new Error(`كود المنتج ${skuCode} مستخدم للمنتج «${skuTaken.nameAr}»`);
   if (owner) throw new Error(`الباركود ${code} مستخدم للمنتج «${owner.nameAr}»`);
   const {
     images,
@@ -101,18 +124,27 @@ export async function saveProduct(id: number | null, raw: unknown) {
     slug,
     price,
     wholesalePrice,
-    sku,
+    sku: _s,
     videoUrl,
     barcode: _b,
+    stock,
+    extraCategoryIds,
+    alternativeIds,
+    mutualAlternatives,
     ...d
   } = await withEnglish(id, parsed);
+  const extra = [...new Set(extraCategoryIds)].filter((c) => c !== d.categoryId),
+    alts = [...new Set(alternativeIds)].filter((a) => a !== id);
   const data = {
     ...d,
     barcode: code,
+    stock: stock ?? null,
+    // A tracked quantity decides availability; untracked products keep the manual switch
+    inStock: stock == null ? d.inStock : stock > 0,
     price: price ?? null,
     wholesalePrice: wholesalePrice ?? null,
     videoUrl: videoUrl || null,
-    sku: sku || null,
+    sku: skuCode,
     slug:
       slug ||
       `${
@@ -128,7 +160,19 @@ export async function saveProduct(id: number | null, raw: unknown) {
     features: { create: features.filter((x) => x.textAr).map((x, i) => ({ ...x, sortOrder: i })) },
     documents: { create: documents.filter((x) => x.url) },
   };
-  if (!id) return db.product.create({ data: { ...data, ...nested } });
+  const links = (set: boolean) => ({
+    categories: set ? { set: extra.map((c) => ({ id: c })) } : { connect: extra.map((c) => ({ id: c })) },
+    alternatives: set ? { set: alts.map((a) => ({ id: a })) } : { connect: alts.map((a) => ({ id: a })) },
+  });
+  const mutual = async (pid: number) => {
+    if (mutualAlternatives)
+      for (const a of alts) await db.product.update({ where: { id: a }, data: { alternatives: { connect: { id: pid } } } });
+  };
+  if (!id) {
+    const created = await db.product.create({ data: { ...data, ...nested, ...links(false) } });
+    await mutual(created.id);
+    return created;
+  }
   const w = { where: { productId: id } };
   const [, , , , p] = await db.$transaction([
     db.productImage.deleteMany(w),
@@ -137,10 +181,11 @@ export async function saveProduct(id: number | null, raw: unknown) {
     db.productDocument.deleteMany(w),
     db.product.update({
       where: { id },
-      data: { ...data, ...nested },
+      data: { ...data, ...nested, ...links(true) },
       include: { features: { orderBy: { sortOrder: "asc" } }, specs: { orderBy: { sortOrder: "asc" } } },
     }),
   ]);
+  await mutual(id);
   return p;
 }
 export async function duplicateProduct(id: number) {

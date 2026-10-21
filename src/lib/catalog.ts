@@ -2,6 +2,9 @@
 import { cache } from "react";
 import { db } from "./db";
 import type { Prisma } from "@prisma/client";
+// A product belongs to a category through its primary category or one of its extra categories
+export const inCategory = (id: number): Prisma.ProductWhereInput => ({ OR: [{ categoryId: id }, { categories: { some: { id } } }] });
+export const catCount = { select: { products: { where: { isActive: true } }, extraProducts: { where: { isActive: true } } } } as const;
 export function searchWhere(q?: string | null): Prisma.ProductWhereInput {
   const s = q?.trim();
   if (!s) return {};

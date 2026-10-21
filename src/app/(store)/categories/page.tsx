@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import type { Metadata } from "next";
 import { db } from "@/lib/db";
+import { catCount } from "@/lib/catalog";
 import { getLang, t } from "@/lib/lang";
 import CategoryCard from "@/components/CategoryCard";
 import { Crumbs, Empty, SectionHead } from "@/components/ui";
@@ -13,7 +14,7 @@ export default async function Categories() {
   const cats = await db.category.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: "asc" },
-    include: { _count: { select: { products: { where: { isActive: true } } } } },
+    include: { _count: catCount },
   });
   return (
     <div className="wrap pt-5 md:pt-8 space-y-5 md:space-y-7">

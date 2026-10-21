@@ -75,7 +75,7 @@ export default async function ProductCard({ p: p0, s, ws = false }: { p: P; s: R
           </span>
         </div>
       </Link>
-      {p.allowCart && (
+      {p.allowCart && p.inStock !== false && (
         <div className="px-3 pb-3 sm:px-4 sm:pb-4 -mt-1">
           <AddToCart productId={p.id} name={name} />
         </div>

@@ -7,6 +7,7 @@ import { prettyPhone, telHref, waHref } from "@/lib/phone";
 import { fmtDate, money } from "@/lib/admin/labels";
 import { AEmpty, APager, Badge, PageHead } from "@/components/admin/ui";
 import Icon from "@/components/Icon";
+import CustomerRep from "@/components/admin/CustomerRep";
 export const dynamic = "force-dynamic";
 const PER = 30;
 type AggSort = { _max?: { createdAt: "desc" }; _count?: { id: "desc" }; _sum?: { total: "desc" } };
@@ -30,6 +31,7 @@ export default async function Customers(props: { searchParams: Promise<{ q?: str
         ],
       }
     : {};
+  const reps = await db.rep.findMany({ orderBy: [{ sortOrder: "asc" }, { id: "asc" }], select: { id: true, name: true } });
   const [total, stats, all] = await Promise.all([
     db.customer.count({ where: { ...cw, orders: { some: { status: { not: "CANCELLED" } } } } }),
     db.order.groupBy({
@@ -123,7 +125,8 @@ export default async function Customers(props: { searchParams: Promise<{ q?: str
                   <small className="text-xs text-steel">ريال</small>
                 </div>
               </div>
-              <div className="flex gap-1 w-full sm:w-auto justify-end">
+              <div className="flex flex-wrap items-center gap-1 w-full sm:w-auto justify-end">
+                <CustomerRep id={c.id} repId={c.repId} reps={reps} />
                 <a
                   href={waHref(c.phone, `السلام عليكم${c.name !== "بدون اسم" ? ` ${c.name}` : ""}، معك DYLLU`)}
                   target="_blank"

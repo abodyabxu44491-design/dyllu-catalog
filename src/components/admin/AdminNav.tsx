@@ -41,7 +41,15 @@ const TABS: Item[] = [
   ["/admin/orders", "الطلبات", "orders"],
   ["/admin/products", "المنتجات", "box"],
 ];
-export default function AdminNav({ newOrders, admin }: { newOrders: number; admin: { name: string; email: string } }) {
+export default function AdminNav({
+  newOrders,
+  paused = false,
+  admin,
+}: {
+  newOrders: number;
+  paused?: boolean;
+  admin: { name: string; email: string };
+}) {
   const path = usePathname(),
     [open, setOpen] = useState(false),
     on = (h: string) => (h === "/admin" ? path === h : path.startsWith(h));
@@ -121,6 +129,12 @@ export default function AdminNav({ newOrders, admin }: { newOrders: number; admi
         <div className="p-5 pb-4">
           <img src="/brand/logo-wordmark-white.png" alt="DYLLU" className="h-9 w-auto" />
           <span className="inline-block mt-2 text-[11px] font-bold text-ink bg-lime rounded-full px-2.5 py-0.5">لوحة التحكم</span>
+          {paused && (
+            <Link href="/admin" className="mt-3 flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-xs font-bold">
+              <Icon n="clock" s={14} />
+              الطلبات متوقفة مؤقتًا
+            </Link>
+          )}
         </div>
         <div className="flex-1 overflow-y-auto px-3 py-2">{nav}</div>
         <div className="px-3 pb-4">{foot}</div>
@@ -134,6 +148,12 @@ export default function AdminNav({ newOrders, admin }: { newOrders: number; admi
           <b className="ms-auto min-w-0 text-sm text-white/80 truncate">{current}</b>
           <InstallApp variant="admin" />
         </div>
+        {paused && (
+          <Link href="/admin" className="flex items-center justify-center gap-2 bg-accent text-xs font-bold py-1.5">
+            <Icon n="clock" s={14} />
+            استقبال الطلبات متوقف مؤقتًا
+          </Link>
+        )}
       </header>
       {open && (
         <div className="lg:hidden fixed inset-0 z-50">
