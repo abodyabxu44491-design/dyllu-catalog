@@ -92,7 +92,7 @@ export default async function Reports(props: { searchParams: Promise<{ r?: strin
     db.$queryRaw<{ id: number; name: string; qty: bigint; rev: Prisma.Decimal | null }[]>`
       SELECT oi."productId" AS id, MAX(oi."nameSnapshot") AS name, SUM(oi.quantity) AS qty, SUM(oi.quantity * COALESCE(oi."unitPrice", 0)) AS rev
       FROM "OrderItem" oi JOIN "Order" o ON o.id = oi."orderId"
-      WHERE o.status <> 'CANCELLED' AND o."createdAt" >= ${fromSql}
+      WHERE o.status <> 'CANCELLED' AND o."createdAt" >= ${fromSql} AND oi."productId" IS NOT NULL
       GROUP BY oi."productId" ORDER BY qty DESC, rev DESC LIMIT 10`,
     db.$queryRaw<{ d: Date; n: bigint; t: Prisma.Decimal | null }[]>`
       SELECT date_trunc(${monthly ? "month" : "day"}, o."createdAt" AT TIME ZONE 'Asia/Riyadh') AS d, COUNT(*) AS n, SUM(o.total) AS t

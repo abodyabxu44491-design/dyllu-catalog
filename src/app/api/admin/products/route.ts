@@ -71,10 +71,9 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
   const deny = await denyUnlessAdmin();
   if (deny) return deny;
-  try {
-    await db.product.delete({ where: { id: Number(new URL(req.url).searchParams.get("id")) } });
-    return NextResponse.json({ ok: true });
-  } catch {
-    return NextResponse.json({ error: "المنتج مرتبط بطلبات، أخفِه بدل الحذف" }, { status: 400 });
-  }
+  // Past order lines keep their name, code and price snapshot; only the link to the product is cleared
+  const id = Number(new URL(req.url).searchParams.get("id"));
+  const r = Number.isInteger(id) && id > 0 ? await db.product.deleteMany({ where: { id } }) : { count: 0 };
+  if (!r.count) return NextResponse.json({ error: "المنتج غير موجود" }, { status: 404 });
+  return NextResponse.json({ ok: true });
 }
