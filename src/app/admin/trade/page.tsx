@@ -25,6 +25,7 @@ export default async function TradePage() {
     );
   return (
     <TradeManager
+      now={Date.now()}
       coverage={{ withBarcode, total }}
       shops={codes.map((c) => ({
         id: c.id,

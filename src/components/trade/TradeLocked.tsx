@@ -1,14 +1,12 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 "use client";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Icon from "@/components/Icon";
 import { KEY_STORE } from "./TradeApp";
 // Shown when the app is opened without a valid private link. If this device was set up before,
 // the saved key restores access silently; otherwise the shop asks DYLLU for its link.
 export default function TradeLocked() {
-  const r = useRouter(),
-    [checking, setChecking] = useState(true);
+  const [checking, setChecking] = useState(true);
   useEffect(() => {
     let key = "";
     try {
@@ -17,14 +15,14 @@ export default function TradeLocked() {
     if (!key) return setChecking(false);
     fetch("/api/trade/login", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ key }) })
       .then((x) => {
-        if (x.ok) return r.refresh();
+        if (x.ok) return window.location.reload();
         try {
           localStorage.removeItem(KEY_STORE);
         } catch {}
         setChecking(false);
       })
       .catch(() => setChecking(false));
-  }, [r]);
+  }, []);
   return (
     <div className="min-h-screen bg-ink text-white flex flex-col">
       <div className="flex-1 flex flex-col justify-center items-center text-center max-w-sm w-full mx-auto px-6 py-10">

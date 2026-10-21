@@ -22,22 +22,27 @@ type Shop = {
   scans: number;
 };
 type Scan = { id: number; shop: string; barcode: string; product: string | null; productId: number | null; at: string };
-const when = (iso: string | null) => {
+// "now" comes from the server render so the server HTML and the browser produce the same text
+const when = (iso: string | null, now: number) => {
   if (!iso) return "لم يفتح التطبيق بعد";
-  const m = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  const d = new Date(iso),
+    m = Math.round((now - d.getTime()) / 60000);
   if (m < 1) return "الآن";
   if (m < 60) return `قبل ${m} دقيقة`;
   if (m < 1440) return `قبل ${Math.round(m / 60)} ساعة`;
-  return new Date(iso).toLocaleDateString("ar-SA-u-nu-latn", { day: "numeric", month: "short", year: "numeric" });
+  const r = new Date(d.getTime() + 3 * 3600e3);
+  return `${r.getUTCDate()}/${r.getUTCMonth() + 1}/${r.getUTCFullYear()}`;
 };
 const message = (s: Shop) =>
   `أهلًا ${s.name} 👋\nهذا رابط تطبيق DYLLU Trade الخاص بمحلك لمعرفة أسعار الجملة:\n${s.link}\n\nافتحه وثبّته على جوالك:\n• آيفون: من Safari ← زر المشاركة ← «إضافة إلى الشاشة الرئيسية»\n• أندرويد: من Chrome ← «تثبيت التطبيق»\n\nبعدها امسح باركود أي منتج DYLLU ويظهر لك سعر الجملة.\nالرابط خاص بمحلك، لا تشاركه مع أحد.`;
 const waFor = (s: Shop) => (s.phone ? waHref(s.phone, message(s)) : `https://wa.me/?text=${encodeURIComponent(message(s))}`);
 export default function TradeManager({
+  now,
   shops,
   scans,
   coverage,
 }: {
+  now: number;
   shops: Shop[];
   scans: Scan[];
   coverage: { withBarcode: number; total: number };
@@ -170,7 +175,7 @@ export default function TradeManager({
                       {!s.isActive && <Badge cls="bg-soft text-steel ms-2">الكود موقوف</Badge>}
                     </b>
                     <small className="text-xs text-steel">
-                      {s.tradeAccess ? `${when(s.lastUsedAt)} · ${s.scans} مسح` : "التطبيق غير مفعّل"}
+                      {s.tradeAccess ? `${when(s.lastUsedAt, now)} · ${s.scans} مسح` : "التطبيق غير مفعّل"}
                     </small>
                   </div>
                   <Switch
@@ -276,7 +281,7 @@ export default function TradeManager({
                     <Badge cls="bg-accent/10 text-accent">غير موجود</Badge>
                   )}
                 </span>
-                <small className="text-xs text-steel">{when(s.at)}</small>
+                <small className="text-xs text-steel">{when(s.at, now)}</small>
               </div>
             ))}
           </div>

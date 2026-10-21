@@ -41,7 +41,7 @@ export default function LogoTap({ children }: { children: React.ReactNode }) {
       });
       if (!res.ok) return setErr((await res.json().catch(() => ({}))).error ?? (en ? "Invalid code" : "الكود غير صحيح"));
       setOpen(false);
-      r.refresh();
+      window.location.reload();
     } catch {
       setErr(en ? "Connection problem" : "تعذر الاتصال");
     } finally {
