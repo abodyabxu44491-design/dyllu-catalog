@@ -93,7 +93,10 @@ export default async function List(props: { searchParams: Promise<{ q?: string; 
           إضافة منتج
         </Link>
       </PageHead>
-      <section aria-label="حالة البيانات" className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 mb-4">
+      <section
+        aria-label="حالة البيانات"
+        className="-mx-4 px-4 sm:mx-0 sm:px-0 flex sm:grid sm:grid-cols-3 lg:grid-cols-5 gap-2 overflow-x-auto no-scrollbar mb-4"
+      >
         {(
           [
             ["active", "منتجات نشطة", health[0], "bg-white"],
@@ -103,7 +106,11 @@ export default async function List(props: { searchParams: Promise<{ q?: string; 
             ["stale", `لم تُحدَّث منذ ${STALE_DAYS} يوم`, health[4], "bg-white"],
           ] as const
         ).map(([k, l, n, c]) => (
-          <Link key={l} href={href({ st: k, page: undefined })} className={`rounded-2xl border border-line p-3 hover:border-ink/30 ${c}`}>
+          <Link
+            key={l}
+            href={href({ st: k, page: undefined })}
+            className={`shrink-0 min-w-[8.5rem] sm:min-w-0 rounded-2xl border border-line px-3 py-2.5 sm:p-3 hover:border-ink/30 ${c}`}
+          >
             <small className="block text-xs font-bold opacity-75">{l}</small>
             <b className="block font-display text-xl">{n}</b>
           </Link>
@@ -219,48 +226,88 @@ export default async function List(props: { searchParams: Promise<{ q?: string; 
           </div>
           <div className="lg:hidden grid sm:grid-cols-2 gap-3">
             {ps.map((p) => (
-              <div key={p.id} className={`card p-3 space-y-3 ${p.isActive ? "" : "opacity-80"}`}>
-                <Link href={`/admin/products/${p.id}`} className="flex gap-3">
-                  <Thumb p={p} />
-                  <span className="min-w-0 flex-1">
-                    <b className="block text-sm line-clamp-2">{p.nameAr}</b>
-                    <small className="block text-xs text-steel">{p.category.nameAr}</small>
-                    <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs mt-1">
-                      <span>
-                        الكود: <b dir="ltr">{p.sku ?? "—"}</b>
+              <article key={p.id} className={`card overflow-hidden flex flex-col ${p.isActive ? "" : "bg-soft/40"}`}>
+                <Link href={`/admin/products/${p.id}`} className="flex gap-3 p-3 pb-2.5">
+                  <span className="relative w-[84px] h-[84px] rounded-2xl bg-soft shrink-0 overflow-hidden border border-line">
+                    {p.images[0] ? (
+                      <img src={p.images[0].url} alt="" className="w-full h-full object-contain p-1" />
+                    ) : (
+                      <Icon n="image" s={26} className="absolute inset-0 m-auto text-steel/35" />
+                    )}
+                    {!p.isActive && (
+                      <span className="absolute inset-x-0 bottom-0 bg-ink/80 text-white text-[10px] font-bold text-center py-0.5">
+                        مخفي
                       </span>
-                      <span>
-                        الباركود: <b dir="ltr">{p.barcode ?? "—"}</b>
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1 flex flex-col">
+                    <b className="text-[15px] leading-6 line-clamp-2">{p.nameAr}</b>
+                    <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-md bg-soft px-2 py-0.5 text-[11px] font-bold text-steel truncate max-w-[10rem]">
+                        {p.category.nameAr}
                       </span>
+                      {p.isFeatured && (
+                        <span className="rounded-md bg-lime px-1.5 py-0.5 text-[11px] font-extrabold inline-flex items-center gap-0.5">
+                          <Icon n="star" s={11} />
+                          مميز
+                        </span>
+                      )}
                     </span>
-                    <span className="flex flex-wrap gap-x-3 gap-y-0.5 text-xs mt-0.5">
-                      <span>
-                        عادي: <b>{num(p.price)}</b>
-                      </span>
-                      <span>
-                        جملة: <b>{num(p.wholesalePrice)}</b>
-                      </span>
-                      <span>
-                        المخزون: <b>{p.stock ?? "غير متتبَّع"}</b>
-                      </span>
+                    <span className="mt-auto pt-1.5 flex items-baseline gap-2 flex-wrap">
+                      {p.price != null ? (
+                        <b className="font-display text-lg leading-none">
+                          {num(p.price)}
+                          <small className="text-[11px] font-sans font-bold text-steel ms-1">ر.س</small>
+                        </b>
+                      ) : (
+                        <span className="text-xs font-bold text-steel">بدون سعر</span>
+                      )}
+                      <small className="text-xs text-steel">
+                        جملة <b className="text-ink">{num(p.wholesalePrice)}</b>
+                      </small>
+                      {!p.showPrice && p.price != null && <Badge cls="bg-soft text-steel">السعر مخفي</Badge>}
                     </span>
                   </span>
                 </Link>
-                <ProductToggles
-                  id={p.id}
-                  tracked={p.stock != null}
-                  init={{
-                    isActive: p.isActive,
-                    inStock: p.inStock,
-                    isFeatured: p.isFeatured,
-                    showPrice: p.showPrice,
-                    allowCart: p.allowCart,
-                  }}
-                />
-                <div className="border-t border-line pt-2 flex justify-end">
+                <dl className="mx-3 grid grid-cols-3 rounded-xl border border-line bg-soft/50 divide-x divide-x-reverse divide-line text-center">
+                  <div className="py-2 px-1 min-w-0">
+                    <dt className="text-[10px] font-bold text-steel">كود المنتج</dt>
+                    <dd dir="ltr" className={`text-xs font-extrabold truncate ${p.sku ? "" : "text-accent"}`}>
+                      {p.sku ?? "بدون"}
+                    </dd>
+                  </div>
+                  <div className="py-2 px-1 min-w-0">
+                    <dt className="text-[10px] font-bold text-steel">الباركود</dt>
+                    <dd dir="ltr" className={`text-xs font-bold truncate ${p.barcode ? "" : "text-steel/70"}`}>
+                      {p.barcode ?? "—"}
+                    </dd>
+                  </div>
+                  <div className="py-2 px-1 min-w-0">
+                    <dt className="text-[10px] font-bold text-steel">المخزون</dt>
+                    <dd className="text-xs font-extrabold flex items-center justify-center gap-1">
+                      <span aria-hidden className={`w-1.5 h-1.5 rounded-full shrink-0 ${p.inStock ? "bg-[#7C8700]" : "bg-accent"}`} />
+                      {p.stock ?? (p.inStock ? "متوفر" : "نفد")}
+                      <span className="sr-only">{p.inStock ? "متوفر" : "غير متوفر"}</span>
+                    </dd>
+                  </div>
+                </dl>
+                <div className="px-3 pt-2.5 pb-1">
+                  <ProductToggles
+                    id={p.id}
+                    tracked={p.stock != null}
+                    init={{
+                      isActive: p.isActive,
+                      inStock: p.inStock,
+                      isFeatured: p.isFeatured,
+                      showPrice: p.showPrice,
+                      allowCart: p.allowCart,
+                    }}
+                  />
+                </div>
+                <div className="mt-auto border-t border-line mx-3 py-1.5 flex justify-end">
                   <RowActions id={p.id} slug={p.slug} live={p.isActive} />
                 </div>
-              </div>
+              </article>
             ))}
           </div>
           <p className="text-xs text-steel text-center mt-3">{total} منتج</p>
