@@ -40,7 +40,7 @@ export default async function Dash() {
       db.orderItem.groupBy({
         by: ["productId"],
         _sum: { quantity: true },
-        where: { order: { createdAt: { gte: d30 }, ...live } },
+        where: { productId: { not: null }, order: { createdAt: { gte: d30 }, ...live } },
         orderBy: { _sum: { quantity: "desc" } },
         take: 5,
       }),
@@ -48,7 +48,7 @@ export default async function Dash() {
       db.order.findMany({ where: { createdAt: { gte: from } }, select: { createdAt: true } }),
     ]);
   const names = new Map(
-    (await db.product.findMany({ where: { id: { in: top.map((t) => t.productId) } }, select: { id: true, nameAr: true } })).map((p) => [
+    (await db.product.findMany({ where: { id: { in: top.map((t) => t.productId!) } }, select: { id: true, nameAr: true } })).map((p) => [
       p.id,
       p.nameAr,
     ]),
@@ -198,9 +198,9 @@ export default async function Dash() {
           ) : (
             <div className="space-y-3">
               {top.map((t) => (
-                <div key={t.productId} className="group" title={`${names.get(t.productId)}: ${t._sum.quantity}`}>
+                <div key={t.productId} className="group" title={`${names.get(t.productId!)}: ${t._sum.quantity}`}>
                   <div className="flex justify-between gap-2 text-sm mb-1">
-                    <span className="truncate">{names.get(t.productId)}</span>
+                    <span className="truncate">{names.get(t.productId!)}</span>
                     <b>{t._sum.quantity}</b>
                   </div>
                   <div className="h-2 bg-soft rounded-full">
