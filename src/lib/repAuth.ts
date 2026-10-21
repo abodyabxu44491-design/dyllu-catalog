@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 import { db } from "./db";
 import { REP_COOKIE, verifyRepSession } from "./session";
 export const currentRep = cache(async () => {
-  const s = await verifyRepSession(cookies().get(REP_COOKIE)?.value);
+  const s = await verifyRepSession((await cookies()).get(REP_COOKIE)?.value);
   if (!s) return null;
   const a = await db.repAccount.findUnique({
     where: { repId: s.id },

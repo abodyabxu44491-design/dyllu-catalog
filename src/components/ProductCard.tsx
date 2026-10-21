@@ -24,7 +24,7 @@ type P = {
 export default async function ProductCard({ p: p0, s, ws = false }: { p: P; s: Record<string, string>; ws?: boolean }) {
   const p = { ...p0, offer: offerFor(p0, await activeOffers()) },
     off = discountOf(p, ws);
-  const L = getLang(),
+  const L = await getLang(),
     en = L === "en",
     name = pick(L, p.nameAr, p.nameEn),
     other = en || p.nameEn === name ? "" : p.nameEn;
@@ -75,7 +75,7 @@ export default async function ProductCard({ p: p0, s, ws = false }: { p: P; s: R
           </span>
         </div>
       </Link>
-      {p.allowCart && (
+      {p.allowCart && p.inStock !== false && (
         <div className="px-3 pb-3 sm:px-4 sm:pb-4 -mt-1">
           <AddToCart productId={p.id} name={name} />
         </div>

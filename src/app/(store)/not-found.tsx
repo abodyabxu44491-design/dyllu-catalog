@@ -2,8 +2,8 @@
 import Link from "next/link";
 import { getLang, t } from "@/lib/lang";
 import Icon from "@/components/Icon";
-export default function NotFound() {
-  const L = getLang();
+export default async function NotFound() {
+  const L = await getLang();
   return (
     <div className="wrap py-16 md:py-24 text-center">
       <b className="block font-display text-7xl md:text-9xl text-lime [-webkit-text-stroke:2px_theme(colors.steel)]">404</b>

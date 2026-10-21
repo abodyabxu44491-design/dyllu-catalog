@@ -12,7 +12,8 @@ import Linkify from "@/components/Linkify";
 import Icon from "@/components/Icon";
 export const dynamic = "force-dynamic";
 const PER = 20;
-export default async function RepOrders({ searchParams }: { searchParams: { st?: string; q?: string; page?: string } }) {
+export default async function RepOrders(props: { searchParams: Promise<{ st?: string; q?: string; page?: string }> }) {
+  const searchParams = await props.searchParams;
   const rep = (await currentRep())!,
     page = pageParam(searchParams.page),
     q = searchParams.q?.trim().slice(0, 60),

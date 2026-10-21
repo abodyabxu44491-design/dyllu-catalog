@@ -4,7 +4,7 @@ import { errMsg } from "@/lib/apiError";
 import { denyUnlessAdmin } from "@/lib/adminAuth";
 import { db } from "@/lib/db";
 import { searchWhere } from "@/lib/catalog";
-import { barcodeOwner, duplicateProduct, saveProduct } from "@/lib/admin/products";
+import { barcodeOwner, duplicateProduct, saveProduct, skuOwner } from "@/lib/admin/products";
 export const maxDuration = 30;
 export async function POST(req: Request) {
   const deny = await denyUnlessAdmin();
@@ -23,6 +23,7 @@ export async function GET(req: Request) {
   const sp = new URL(req.url).searchParams,
     id = Number(sp.get("id")),
     q = sp.get("q")?.trim().slice(0, 60);
+  if (sp.has("sku")) return NextResponse.json({ owner: await skuOwner(sp.get("sku"), Number(sp.get("except")) || null) });
   if (sp.has("barcode")) return NextResponse.json({ owner: await barcodeOwner(sp.get("barcode"), Number(sp.get("except")) || null) });
   if (id) {
     const p = await db.product.findUnique({
@@ -49,6 +50,7 @@ export async function GET(req: Request) {
       nameEn: p.nameEn,
       price: p.price == null ? null : Number(p.price),
       showPrice: p.showPrice,
+      inStock: p.inStock,
       images: p.images.map((i) => i.url),
       category: p.category.nameAr,
     })),
@@ -60,6 +62,10 @@ export async function PATCH(req: Request) {
   if (deny) return deny;
   const { id, ...b } = await req.json(),
     data = Object.fromEntries(Object.entries(b).filter(([k, v]) => FLAGS.includes(k) && typeof v === "boolean"));
+  if ("inStock" in data) {
+    const cur = await db.product.findUnique({ where: { id: Number(id) }, select: { stock: true } });
+    if (cur?.stock != null) return NextResponse.json({ error: "التوفر يتحدد من الكمية في المخزون" }, { status: 400 });
+  }
   return NextResponse.json(await db.product.update({ where: { id: Number(id) }, data }));
 }
 export async function DELETE(req: Request) {

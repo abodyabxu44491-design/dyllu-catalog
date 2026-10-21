@@ -50,7 +50,8 @@ function Rank({ rows, unit, empty }: { rows: Row[]; unit: string; empty: string 
     </ol>
   );
 }
-export default async function Reports({ searchParams }: { searchParams: { r?: string } }) {
+export default async function Reports(props: { searchParams: Promise<{ r?: string }> }) {
+  const searchParams = await props.searchParams;
   const range = RANGES.find(([k]) => k === searchParams.r) ?? RANGES[1],
     days = range[2],
     now = new Date();

@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getLang, pick, txt } from "@/lib/lang";
 import { getWholesale } from "@/lib/wholesale";
-import { cardInclude } from "@/lib/catalog";
+import { cardInclude, catCount } from "@/lib/catalog";
 import { oldPriceOf, priceLabel, priceOf } from "@/lib/format";
 import ProductCard from "@/components/ProductCard";
 import CategoryCard from "@/components/CategoryCard";
@@ -16,7 +16,7 @@ import { SectionHead } from "@/components/ui";
 import { activeOffers, offerFor, onSaleWhere } from "@/lib/offers";
 export const dynamic = "force-dynamic";
 export default async function Home() {
-  const L = getLang(),
+  const L = await getLang(),
     en = L === "en",
     ws = !!(await getWholesale()),
     now = new Date();
@@ -26,7 +26,7 @@ export default async function Home() {
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
       take: 12,
-      include: { _count: { select: { products: { where: { isActive: true } } } } },
+      include: { _count: catCount },
     }),
     db.product.findMany({
       where: { isActive: true, isFeatured: true },

@@ -6,16 +6,23 @@ import { telHref, waHref } from "@/lib/phone";
 import Linkify from "@/components/Linkify";
 import { orderWhere, type OrderFilters } from "@/lib/admin/orders";
 import StatusSelect from "@/components/admin/StatusSelect";
+import { ArchiveDone, OrderActions } from "@/components/admin/OrderActions";
 import { AEmpty, APager, Badge, PageHead } from "@/components/admin/ui";
 import Icon from "@/components/Icon";
 import { STATUS_AR, STATUS_CLS, fmtDate, money } from "@/lib/admin/labels";
 export const dynamic = "force-dynamic";
 const PER = 25;
-export default async function Orders({ searchParams }: { searchParams: OrderFilters & { page?: string } }) {
+export default async function Orders(props: { searchParams: Promise<OrderFilters & { page?: string }> }) {
+  const searchParams = await props.searchParams;
   const { status, q, t, from, to, store } = searchParams,
+    archived = searchParams.archived === "1" ? "1" : undefined,
     page = pageParam(searchParams.page),
-    f = { status, q, t, from, to, store };
+    f = { status, q, t, from, to, store, archived };
   const where = orderWhere(f);
+  const [archivedCount, doneCount] = await Promise.all([
+    db.order.count({ where: { archivedAt: { not: null } } }),
+    db.order.count({ where: { archivedAt: null, status: { in: ["COMPLETED", "CANCELLED"] } } }),
+  ]);
   const [total, os, counts, sum, stores] = await Promise.all([
     db.order.count({ where }),
     db.order.findMany({
@@ -38,11 +45,28 @@ export default async function Orders({ searchParams }: { searchParams: OrderFilt
   return (
     <div>
       <PageHead title="الطلبات" desc="كل طلب يُنشأ عند إرسال العميل للسلة. حدّث حالته بعد التواصل مع العميل.">
+        {!archived && <ArchiveDone count={doneCount} />}
         <a href={`/api/admin/orders/export?${qs({ page: undefined })}`} className="btn btn-md btn-ghost">
           <Icon n="download" s={18} />
           تصدير Excel
         </a>
       </PageHead>
+      <div className="inline-flex rounded-2xl bg-white border border-line p-1 mb-3">
+        <Link
+          href={href({ archived: undefined, status: undefined, page: undefined })}
+          className={`px-4 h-9 rounded-xl grid place-items-center text-sm font-bold ${!archived ? "bg-ink text-white" : "text-steel"}`}
+        >
+          الطلبات الحالية
+        </Link>
+        <Link
+          href={href({ archived: "1", status: undefined, page: undefined })}
+          className={`px-4 h-9 rounded-xl flex items-center gap-1.5 text-sm font-bold ${archived ? "bg-ink text-white" : "text-steel"}`}
+        >
+          <Icon n="download" s={15} />
+          الأرشيف
+          <small className={`rounded-md px-1.5 text-[11px] ${archived ? "bg-white/20" : "bg-soft"}`}>{archivedCount}</small>
+        </Link>
+      </div>
       <div className="-mx-4 px-4 sm:mx-0 sm:px-0 flex gap-2 overflow-x-auto no-scrollbar mb-3">
         <Link href={href({ status: undefined, page: undefined })} className={`chip h-9 ${!status ? "chip-on" : "chip-off"}`}>
           الكل<small className={`rounded-md px-1.5 text-[11px] ${!status ? "bg-white/20" : "bg-soft"}`}>{all}</small>
@@ -60,6 +84,7 @@ export default async function Orders({ searchParams }: { searchParams: OrderFilt
       </div>
       <form className="card p-3 grid grid-cols-2 md:grid-cols-[1fr_auto_auto_auto_auto_auto] gap-2 mb-4">
         {status && <input type="hidden" name="status" value={status} />}
+        {archived && <input type="hidden" name="archived" value="1" />}
         <div className="relative col-span-2 md:col-span-1">
           <Icon n="search" s={18} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-steel" />
           <input name="q" defaultValue={q} placeholder="رقم الطلب، الاسم، الجوال، الشركة، مصدر QR" className="field ps-10 h-11" />
@@ -109,7 +134,18 @@ export default async function Orders({ searchParams }: { searchParams: OrderFilt
 
       {os.length === 0 ? (
         <div className="card">
-          <AEmpty icon="orders" title={filtered || status ? "لا توجد طلبات مطابقة" : "لا توجد طلبات بعد"} />
+          <AEmpty
+            icon="orders"
+            title={
+              archived
+                ? filtered || status
+                  ? "لا توجد طلبات مؤرشفة مطابقة"
+                  : "الأرشيف فارغ"
+                : filtered || status
+                  ? "لا توجد طلبات مطابقة"
+                  : "لا توجد طلبات بعد"
+            }
+          />
         </div>
       ) : (
         <div className="space-y-2">
@@ -238,6 +274,9 @@ export default async function Orders({ searchParams }: { searchParams: OrderFilt
                       <Icon n="print" s={16} />
                       الفاتورة / PDF
                     </Link>
+                    <span className="ms-auto flex flex-wrap gap-2">
+                      <OrderActions id={o.id} number={o.number} archived={!!o.archivedAt} />
+                    </span>
                   </div>
                 </div>
               </details>

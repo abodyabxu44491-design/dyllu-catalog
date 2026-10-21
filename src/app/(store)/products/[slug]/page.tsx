@@ -34,9 +34,10 @@ const find = cache((slug: string) =>
     },
   }),
 );
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
+  const params = await props.params;
   const p = await find(params.slug),
-    L = getLang();
+    L = await getLang();
   return p
     ? {
         title: pick(L, p.nameAr, p.nameEn),
@@ -51,14 +52,39 @@ const Sec = ({ title, children, className = "" }: { title: string; children: Rea
     <div className="card overflow-hidden">{children}</div>
   </section>
 );
-export default async function ProductPage({ params }: { params: { slug: string } }) {
+export default async function ProductPage(props: { params: Promise<{ slug: string }> }) {
+  const params = await props.params;
   const [s, p0] = await Promise.all([getSettings(), find(params.slug)]);
   if (!p0) notFound();
   const offer = offerFor(p0, await activeOffers()),
     p = { ...p0, offer };
-  const L = getLang(),
+  const L = await getLang(),
     en = L === "en",
     ws = !!(await getWholesale());
+  // Alternatives are shown only while this product is out of stock, and only those that can be ordered
+  const alternatives = p.inStock
+    ? []
+    : await db.product.findMany({
+        where: { isActive: true, inStock: true, alternativeOf: { some: { id: p.id } } },
+        include: cardInclude,
+        orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }],
+        take: 8,
+      });
+  const canOrder = p.allowCart && p.inStock;
+  const unavailable = (
+    <div className="space-y-2">
+      <span className="flex items-center justify-center gap-2 h-12 rounded-2xl bg-soft text-steel font-bold">
+        <Icon n="clock" s={18} />
+        {t(L, "unavailableBox")}
+      </span>
+      {alternatives.length > 0 && (
+        <a href="#alternatives" className="btn btn-md btn-dark w-full">
+          {t(L, "seeAlternatives")}
+          <Icon n="chev" s={16} className="flip-rtl rotate-90" />
+        </a>
+      )}
+    </div>
+  );
   const related = await db.product.findMany({
     where: { categoryId: p.categoryId, isActive: true, id: { not: p.id } },
     include: cardInclude,
@@ -73,7 +99,7 @@ export default async function ProductPage({ params }: { params: { slug: string }
   const desc = pick(L, p.descriptionAr, p.descriptionEn),
     cat = p.category,
     catName = pick(L, cat.nameAr, cat.nameEn),
-    base = siteUrl();
+    base = await siteUrl();
   const wa = s["whatsapp.number"],
     askUrl = isPhone(wa)
       ? waHref(
@@ -147,8 +173,10 @@ export default async function ProductPage({ params }: { params: { slug: string }
               </div>
             </div>
             <div className="hidden md:block">
-              {p.allowCart ? (
+              {canOrder ? (
                 <AddToCart productId={p.id} name={name} full />
+              ) : p.allowCart ? (
+                unavailable
               ) : (
                 <p className="text-steel font-bold">{t(L, "contactToOrder")}</p>
               )}
@@ -169,6 +197,28 @@ export default async function ProductPage({ params }: { params: { slug: string }
           <ShareButtons title={name} askUrl={askUrl} callUrl={call ? telHref(call) : undefined} />
         </div>
       </div>
+
+      {alternatives.length > 0 && (
+        <section
+          id="alternatives"
+          className="mt-10 md:mt-14 scroll-mt-24 rounded-3xl border-2 border-lime/60 bg-lime/10 p-4 md:p-6 space-y-4"
+        >
+          <div className="flex items-start gap-3">
+            <span className="w-11 h-11 rounded-2xl bg-lime grid place-items-center shrink-0">
+              <Icon n="bolt" s={20} />
+            </span>
+            <div>
+              <h2 className="font-sans font-extrabold text-lg">{t(L, "alternatives")}</h2>
+              <p className="text-sm text-steel leading-6">{t(L, "altNote")}</p>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-4">
+            {alternatives.map((r) => (
+              <ProductCard key={r.id} p={r} s={s} ws={ws} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 mt-10 md:mt-14 items-start">
         {desc && (
@@ -280,8 +330,19 @@ export default async function ProductPage({ params }: { params: { slug: string }
             {old != null && <s className="block text-[11px] text-steel leading-tight">{priceLabel({ ...p, offer: null }, s, L, ws)}</s>}
           </div>
           <div className="flex-1">
-            {p.allowCart ? (
+            {canOrder ? (
               <AddToCart productId={p.id} name={name} full />
+            ) : p.allowCart ? (
+              alternatives.length > 0 ? (
+                <a href="#alternatives" className="btn btn-lg btn-dark w-full">
+                  {t(L, "seeAlternatives")}
+                </a>
+              ) : (
+                <span className="flex items-center justify-center gap-2 h-12 rounded-2xl bg-soft text-steel text-sm font-bold">
+                  <Icon n="clock" s={16} />
+                  {t(L, "unavailableBox")}
+                </span>
+              )
             ) : askUrl ? (
               <a href={askUrl} target="_blank" rel="noopener noreferrer" className="btn btn-lg btn-lime w-full">
                 <Icon n="whatsapp" s={20} />

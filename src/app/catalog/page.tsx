@@ -13,10 +13,11 @@ import SortSelect from "@/components/SortSelect";
 import { activeOffers, offerFor } from "@/lib/offers";
 export const dynamic = "force-dynamic";
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: getLang() === "en" ? "Price list" : "قائمة الأسعار" };
+  return { title: (await getLang()) === "en" ? "Price list" : "قائمة الأسعار" };
 }
-export default async function Catalog({ searchParams }: { searchParams: { cat?: string; img?: string } }) {
-  const L = getLang(),
+export default async function Catalog(props: { searchParams: Promise<{ cat?: string; img?: string }> }) {
+  const searchParams = await props.searchParams;
+  const L = await getLang(),
     en = L === "en",
     ws = await getWholesale(),
     imgs = searchParams.img !== "0";

@@ -3,6 +3,8 @@ import { getNavCategories } from "@/lib/catalog";
 import { getSettings } from "@/lib/settings";
 import { getLang, txt } from "@/lib/lang";
 import { getWholesale } from "@/lib/wholesale";
+import { orderingState } from "@/lib/ordering";
+import Icon from "./Icon";
 import LangToggle from "./LangToggle";
 import CartButton from "./CartButton";
 import LogoTap from "./LogoTap";
@@ -12,8 +14,8 @@ import SearchBox from "./SearchBox";
 import MobileSearch from "./MobileSearch";
 import InstallApp from "./InstallApp";
 export default async function SiteHeader() {
-  const [s, ws, cats] = await Promise.all([getSettings(), getWholesale(), getNavCategories()]);
-  const L = getLang(),
+  const [s, ws, cats, ordering] = await Promise.all([getSettings(), getWholesale(), getNavCategories(), orderingState()]);
+  const L = await getLang(),
     en = L === "en",
     cur = en ? s["currency.en"] || "SAR" : s["currency.ar"],
     hidden = en ? "Contact us" : s["price.hiddenLabel.ar"],
@@ -21,6 +23,14 @@ export default async function SiteHeader() {
   return (
     <div className="sticky top-0 z-40 no-print">
       {ws && <WsBar name={ws.name} />}
+      {!ordering.open && (
+        <div role="status" className="bg-accent text-white text-xs sm:text-sm font-bold">
+          <div className="wrap flex items-center gap-2 min-h-9 py-1.5">
+            <Icon n="clock" s={16} className="shrink-0" />
+            <span className="leading-5">{en ? ordering.en : ordering.ar}</span>
+          </div>
+        </div>
+      )}
       <header className="bg-white/95 backdrop-blur">
         <div className="wrap flex items-center gap-2 sm:gap-4 h-16 md:h-[76px]">
           <LogoTap>

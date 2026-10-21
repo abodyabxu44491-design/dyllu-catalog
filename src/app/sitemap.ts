@@ -4,7 +4,7 @@ import { db } from "@/lib/db";
 import { siteUrl } from "@/lib/siteUrl";
 export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = siteUrl();
+  const base = await siteUrl();
   const [cats, products] = await Promise.all([
     db.category.findMany({ where: { isActive: true }, select: { slug: true } }),
     db.product.findMany({ where: { isActive: true }, select: { slug: true, updatedAt: true } }),

@@ -14,7 +14,7 @@ const SOCIAL: [string, string, (h: string) => string][] = [
 const url = (v: string, f: (h: string) => string) => (/^https?:\/\//.test(v) ? v : f(v.replace(/^@/, "")));
 export default async function SiteFooter() {
   const [s, cats] = await Promise.all([getSettings(), getNavCategories().then((c) => c.slice(0, 8))]);
-  const L = getLang(),
+  const L = await getLang(),
     name = s["site.name"] || "DYLLU",
     wa = s["whatsapp.number"],
     hasWa = isPhone(wa),

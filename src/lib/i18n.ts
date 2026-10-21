@@ -40,6 +40,13 @@ const T = {
   qty: ["الكمية", "Qty"],
   price: ["السعر", "Price"],
   contactToOrder: ["تواصل معنا للطلب", "Contact us to order"],
+  alternatives: ["بدائل مقترحة", "Suggested alternatives"],
+  altNote: [
+    "هذا المنتج غير متوفر حاليًا، وهذه بدائل متوفرة يمكنك طلبها:",
+    "This product is currently unavailable. These available alternatives can be ordered:",
+  ],
+  seeAlternatives: ["شاهد البدائل المتوفرة", "See available alternatives"],
+  unavailableBox: ["غير متوفر حاليًا", "Currently unavailable"],
   share: ["مشاركة", "Share"],
   copyLink: ["نسخ الرابط", "Copy link"],
   copied: ["تم نسخ الرابط", "Link copied"],

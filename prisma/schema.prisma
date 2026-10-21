@@ -29,6 +29,7 @@ model Category {
   sortOrder     Int       @default(0)
   isActive      Boolean   @default(true)
   products      Product[]
+  extraProducts Product[] @relation("ProductExtraCategories")
 }
 
 model Product {
@@ -49,8 +50,15 @@ model Product {
   inStock        Boolean           @default(true)
   isFeatured     Boolean           @default(false)
   sortOrder      Int               @default(0)
+  // Quantity in stock (never shown to customers). null = not tracked; 0 = out of stock
+  stock          Int?
   categoryId     Int
   category       Category          @relation(fields: [categoryId], references: [id])
+  // Extra categories the product also appears in (the primary one is categoryId)
+  categories     Category[]        @relation("ProductExtraCategories")
+  // Products suggested when this one is out of stock (chosen by the admin, one direction)
+  alternatives   Product[]         @relation("ProductAlternatives")
+  alternativeOf  Product[]         @relation("ProductAlternatives")
   images         ProductImage[]
   specs          ProductSpec[]
   features       ProductFeature[]
@@ -109,6 +117,9 @@ model Customer {
   phoneKey  String?  @unique
   company   String?
   city      String?
+  // Representative responsible for this customer; their orders go to this rep only
+  repId     Int?
+  rep       Rep?     @relation(fields: [repId], references: [id], onDelete: SetNull)
   orders    Order[]
   createdAt DateTime @default(now())
 }
@@ -132,9 +143,11 @@ model Order {
   storeId         Int?
   store           Store?         @relation(fields: [storeId], references: [id])
   items           OrderItem[]
+  archivedAt      DateTime?
   createdAt       DateTime       @default(now())
 
   @@index([createdAt])
+  @@index([archivedAt])
   @@index([status])
   @@index([storeId])
 }
@@ -201,6 +214,7 @@ model Rep {
   sortOrder Int         @default(0)
   isActive  Boolean     @default(true)
   orders    Order[]
+  customers Customer[]
   account   RepAccount?
 }
 
@@ -280,4 +294,21 @@ model Offer {
   endsAt           DateTime?
   isActive         Boolean   @default(true)
   createdAt        DateTime  @default(now())
+}
+
+// Excel import history; "changes" keeps previous and new values so the last import can be undone
+model ImportLog {
+  id        Int       @id @default(autoincrement())
+  kind      String
+  fileName  String
+  adminName String
+  created   Int       @default(0)
+  updated   Int       @default(0)
+  rejected  Int       @default(0)
+  changes   Json
+  undoneAt  DateTime?
+  undoneBy  String?
+  createdAt DateTime  @default(now())
+
+  @@index([createdAt])
 }

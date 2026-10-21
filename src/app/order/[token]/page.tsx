@@ -23,7 +23,8 @@ const STATUS: Record<string, [string, string, string]> = {
   COMPLETED: ["مكتمل", "Completed", "bg-ink text-lime"],
   CANCELLED: ["ملغي", "Cancelled", "bg-soft text-steel"],
 };
-export default async function OrderPage({ params }: { params: { token: string } }) {
+export default async function OrderPage(props: { params: Promise<{ token: string }> }) {
+  const params = await props.params;
   const [s, o] = await Promise.all([
     getSettings(),
     db.order.findUnique({
@@ -32,11 +33,11 @@ export default async function OrderPage({ params }: { params: { token: string } 
     }),
   ]);
   if (!o) notFound();
-  const en = getLang() === "en",
+  const en = (await getLang()) === "en",
     cur = en ? s["currency.en"] || "SAR" : s["currency.ar"],
     hidden = en ? "On request" : s["price.hiddenLabel.ar"];
   const money = (n: number) => `${n.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${cur}`,
-    base = siteUrl(),
+    base = await siteUrl(),
     link = base ? `${base}/order/${o.token}` : "";
   const wa = whatsappUrl(
     o.rep?.phone ?? s["whatsapp.number"],

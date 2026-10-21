@@ -5,7 +5,7 @@ import { db } from "@/lib/db";
 import { getSettings } from "@/lib/settings";
 import { getWholesale } from "@/lib/wholesale";
 import { pageParam } from "@/lib/format";
-import { cardInclude, getNavCategories, orderByFor, searchWhere } from "@/lib/catalog";
+import { cardInclude, getNavCategories, orderByFor, searchWhere, inCategory } from "@/lib/catalog";
 import { onSaleWhere } from "@/lib/offers";
 import { getLang, pick, t, txt } from "@/lib/lang";
 import ProductCard from "./ProductCard";
@@ -24,7 +24,7 @@ export type BrowseParams = {
 };
 const PER = 24;
 export default async function ProductBrowser({ sp, category }: { sp: BrowseParams; category?: { id: number; slug: string } }) {
-  const L = getLang(),
+  const L = await getLang(),
     en = L === "en",
     ws = !!(await getWholesale()),
     page = pageParam(sp.page);
@@ -51,17 +51,18 @@ export default async function ProductBrowser({ sp, category }: { sp: BrowseParam
     ...(sale && !saleW && { id: -1 }),
     AND: [searchWhere(q), ...(saleW ? [saleW] : [])],
   };
-  const where: Prisma.ProductWhereInput = { ...common, ...(category && { categoryId: category.id }) };
-  const [s, cats, counts, total, products] = await Promise.all([
+  const where: Prisma.ProductWhereInput = category ? { AND: [common, inCategory(category.id)] } : common;
+  const navCats = await getNavCategories();
+  const [s, cats, counts, all, total, products] = await Promise.all([
     getSettings(),
-    getNavCategories(),
-    db.product.groupBy({ by: ["categoryId"], where: common, _count: true }),
+    navCats,
+    Promise.all(navCats.map(async (c) => ({ id: c.id, n: await db.product.count({ where: { AND: [common, inCategory(c.id)] } }) }))),
+    db.product.count({ where: common }),
     db.product.count({ where }),
     db.product.findMany({ where, include: cardInclude, orderBy: orderByFor(sort, en), skip: (page - 1) * PER, take: PER }),
   ]);
   const pages = Math.max(1, Math.ceil(total / PER)),
-    cnt = (id: number) => counts.find((c) => c.categoryId === id)?._count ?? 0,
-    all = counts.reduce((n, c) => n + c._count, 0);
+    cnt = (id: number) => counts.find((c) => c.id === id)?.n ?? 0;
   const sorts = [
     ["", "sortDefault"],
     ["new", "sortNew"],

@@ -9,7 +9,7 @@
 
 | الجزء | التقنية |
 | --- | --- |
-| الواجهة والسيرفر | Next.js 14 (App Router) + React 18 + TypeScript |
+| الواجهة والسيرفر | Next.js 15 (App Router) + React 19 + TypeScript |
 | التصميم | Tailwind CSS 3، اتجاه RTL، خطوط Cairo و IBM Plex Sans Arabic |
 | قاعدة البيانات | PostgreSQL عبر Prisma 5 |
 | التحقق من المدخلات | zod |
@@ -98,6 +98,12 @@ scripts/                    أوامر التشغيل والفحص (prestart، �
 - **الترجمة:** الإدارة تكتب بالعربي فقط. عند الحفظ `englishFor()` في `src/lib/translate.ts` يولّد الإنجليزي، ويحتفظ بالترجمة القديمة إذا ما تغيّر العربي.
 - **تطبيق المحلات (DYLLU Trade):** صفحة `/trade` ومكوّناتها في `src/components/trade/`. كل محل (كود جملة عليه `tradeAccess`) له رابط خاص `/trade?k=KEY`، والمفتاح موقّع HMAC من `tradeKey()` في `session.ts` ويتغيّر برفع `sessionVersion`. يُحفظ في الجوال (كوكي + localStorage)، و`currentTrade()` في `src/lib/tradeAuth.ts` يتحقق منه مقابل قاعدة البيانات في كل طلب. سعر الجملة يخرج فقط من `/api/trade/lookup`. تطبيع الباركود ومطابقة UPC/EAN في `src/lib/barcode.ts`، والماسح المشترك (التطبيق والأدمن) `BarcodeScanner.tsx`.
 - **باركود المحلات:** رابط المحل `?src=CODE` يُحفظ في المتصفح (`SourceCapture.tsx`)، وكل طلب بعده ينحسب للمحل.
+- **استيراد Excel:** المنطق كله في `src/lib/admin/excelImport.ts` (`analyze` للمعاينة بدون حفظ، `prepare` للترجمة وتنزيل الصور على دفعات، `commit` يحفظ داخل `$transaction` واحدة ويسجّل لقطة القيم السابقة في `ImportLog`، و`undoPlan`/`undo` للتراجع عن آخر عملية). الواجهة `ImportManager.tsx` والـ API `/api/admin/import`. كود المنتج يُطبَّع بـ `normalizeSku()` في `src/lib/admin/products.ts`.
+- **المخزون والتوفر:** `stock` (فارغ = غير متتبَّع). عند وجود كمية تُحسب `inStock = stock > 0` في الحفظ والاستيراد، و`createOrder()` يرفض أي منتج غير متوفر. لا تُرسل `stock` لأي صفحة عامة.
+- **التصنيفات المتعددة:** `categoryId` هو الرئيسي و`categories` الإضافية. للفلترة استخدم `inCategory(id)` من `src/lib/catalog.ts`، وللعدّ `catCount`.
+- **إيقاف الطلبات:** `orderingState()` في `src/lib/ordering.ts` (إعداد `orders.enabled`)، يُفحص في `/api/orders` قبل أي شيء.
+- **ربط العميل بالمندوب:** `Customer.repId`. `createOrder()` يستخدم مندوب العميل المرتبط ويتجاهل أي مندوب آخر، و`/api/reps/assigned` يخبر السلة به.
+- **أرشفة الطلبات:** `Order.archivedAt`، و`orderWhere()` يخفي المؤرشف إلا مع `archived=1`. الحذف عبر `DELETE /api/admin/orders` للمؤرشف فقط.
 - **النصوص:** نصوص المتجر الثابتة في `src/lib/i18n.ts`، والنصوص اللي تتعدّل من الإعدادات في `config/brand.ts` (`defaultSettings`).
 - **الروابط المطلقة:** `siteUrl()` يأخذ الدومين من الطلب نفسه، فروابط QR والفواتير تطابق الدومين اللي فُتح عليه الموقع.
 
@@ -138,6 +144,8 @@ npm run check:site                   # CHECK_QUICK=1 لفحص سريع على 4 
 
 - الأهداف معرّفة في `browserslist` داخل `package.json`: iOS/Safari 14+، Chrome و Edge 90+، Firefox 90+، Samsung Internet 14+.
 - Next.js و autoprefixer يحوّلون الكود والـ CSS لهذه الأهداف تلقائيًا.
+- `scripts/postcss-legacy.cjs` يضيف بدائل للمتصفحات القديمة (iOS 14 وما قبل Chrome 88): `aspect-ratio` و `inset` والمواضع المنطقية (start/end) ووحدات `svh`. البدائل داخل `@supports not` فما تأثر على المتصفحات الحديثة.
+- `npm audit --omit=dev` يجب أن يرجع 0 ثغرات قبل أي نشر.
 - **قيد معروف:** تصميم الإعلانات يستخدم وحدات الحاويات (`cqw`/`cqh`)، ويحتاج iOS 16+ أو Chrome 105+ أو Firefox 110+. في الأجهزة الأقدم يظهر الإعلان، بس مقاسات النص فيه أقل دقة.
 
 ## 9) النشر

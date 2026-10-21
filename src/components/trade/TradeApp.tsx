@@ -1,7 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import BarcodeScanner from "@/components/BarcodeScanner";
 import Icon from "@/components/Icon";
 import InstallApp from "@/components/InstallApp";
@@ -45,8 +44,7 @@ function readRecent(): Recent[] {
   }
 }
 export default function TradeApp({ shop, linkKey }: { shop: string; linkKey: string | null }) {
-  const r = useRouter(),
-    [view, setView] = useState<View>({ k: "home" }),
+  const [view, setView] = useState<View>({ k: "home" }),
     [scan, setScan] = useState(false),
     [manual, setManual] = useState(""),
     [err, setErr] = useState(""),
@@ -65,38 +63,35 @@ export default function TradeApp({ shop, linkKey }: { shop: string; linkKey: str
       body: JSON.stringify({ key: linkKey }),
     }).catch(() => {});
   }, [linkKey]);
-  const lookup = useCallback(
-    async (raw: string) => {
-      const b = raw.trim();
-      if (!b) return;
-      setErr("");
-      setImg(0);
-      setView({ k: "loading", b });
-      const res = await fetch(`/api/trade/lookup?b=${encodeURIComponent(b)}`, {
-        cache: "no-store",
-        headers: savedKey() ? { "x-trade-key": savedKey() } : {},
-      }).catch(() => null);
-      if (!res) {
-        setErr("لا يوجد اتصال بالإنترنت، تأكد من الشبكة وحاول مرة أخرى");
-        return setView({ k: "home" });
-      }
-      if (res.status === 401) return r.refresh();
-      const x = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setErr(x.error ?? "تعذر البحث، حاول مرة أخرى");
-        return setView({ k: "home" });
-      }
-      if (!x.found) return setView({ k: "missing", b: x.barcode ?? b });
-      setView({ k: "found", p: x.product, b });
-      const next = [{ b, name: x.product.name }, ...readRecent().filter((i) => i.b !== b)].slice(0, 6);
-      setRecent(next);
-      try {
-        localStorage.setItem(RECENT, JSON.stringify(next));
-      } catch {}
-      window.scrollTo({ top: 0 });
-    },
-    [r],
-  );
+  const lookup = useCallback(async (raw: string) => {
+    const b = raw.trim();
+    if (!b) return;
+    setErr("");
+    setImg(0);
+    setView({ k: "loading", b });
+    const res = await fetch(`/api/trade/lookup?b=${encodeURIComponent(b)}`, {
+      cache: "no-store",
+      headers: savedKey() ? { "x-trade-key": savedKey() } : {},
+    }).catch(() => null);
+    if (!res) {
+      setErr("لا يوجد اتصال بالإنترنت، تأكد من الشبكة وحاول مرة أخرى");
+      return setView({ k: "home" });
+    }
+    if (res.status === 401) return window.location.reload();
+    const x = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      setErr(x.error ?? "تعذر البحث، حاول مرة أخرى");
+      return setView({ k: "home" });
+    }
+    if (!x.found) return setView({ k: "missing", b: x.barcode ?? b });
+    setView({ k: "found", p: x.product, b });
+    const next = [{ b, name: x.product.name }, ...readRecent().filter((i) => i.b !== b)].slice(0, 6);
+    setRecent(next);
+    try {
+      localStorage.setItem(RECENT, JSON.stringify(next));
+    } catch {}
+    window.scrollTo({ top: 0 });
+  }, []);
   const onScan = useCallback(
     (code: string) => {
       setScan(false);

@@ -9,7 +9,7 @@ type C = {
   subtitleAr?: string | null;
   subtitleEn?: string | null;
   image: string | null;
-  _count: { products: number };
+  _count: { products: number; extraProducts?: number };
 };
 export default function CategoryCard({ c, L }: { c: C; L: Lang }) {
   const sub = pick(L, c.subtitleAr, c.subtitleEn);
@@ -31,7 +31,7 @@ export default function CategoryCard({ c, L }: { c: C; L: Lang }) {
           <b className="block font-display text-[15px] sm:text-lg leading-tight">{pick(L, c.nameAr, c.nameEn)}</b>
           {sub && <span className="block text-xs text-white/75 line-clamp-1 mt-0.5">{sub}</span>}
           <small className="inline-block mt-1.5 bg-lime text-ink text-[11px] font-extrabold rounded-md px-1.5 py-0.5">
-            {c._count.products} {t(L, "productsCount")}
+            {c._count.products + (c._count.extraProducts ?? 0)} {t(L, "productsCount")}
           </small>
         </span>
         <span className="hidden sm:grid place-items-center w-9 h-9 rounded-full bg-white/15 group-hover:bg-lime group-hover:text-ink transition shrink-0">

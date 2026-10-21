@@ -21,15 +21,24 @@ export const orderInput = z.object({
   repId: z.number().int().optional(),
   items: z.array(z.object({ productId: z.number().int(), quantity: z.number().int().min(1).max(999) })).min(1),
 });
+// A customer already assigned to an active rep always orders through that rep
+export async function assignedRep(phone: string) {
+  const c = await db.customer.findUnique({ where: { phoneKey: normalizePhone(phone) }, select: { rep: true } });
+  return c?.rep && c.rep.isActive ? c.rep : null;
+}
 export async function createOrder(raw: unknown, ws: { id: number } | null = null) {
   const input = orderInput.parse(raw);
-  const rep = input.repId ? await db.rep.findFirst({ where: { id: input.repId, isActive: true } }) : null;
-  if (input.repId && !rep) throw new Error("مندوب غير متاح");
+  const bound = await assignedRep(input.customer.phone);
+  const chosen = !bound && input.repId ? await db.rep.findFirst({ where: { id: input.repId, isActive: true } }) : null;
+  if (!bound && input.repId && !chosen) throw new Error("مندوب غير متاح");
+  const rep = bound ?? chosen;
   const products = await withOffers(
     await db.product.findMany({ where: { id: { in: input.items.map((i) => i.productId) }, isActive: true, allowCart: true } }),
   );
   const map = new Map(products.map((p) => [p.id, p]));
   if (input.items.some((i) => !map.has(i.productId))) throw new Error("منتج غير متاح");
+  const out = input.items.map((i) => map.get(i.productId)!).find((p) => !p.inStock);
+  if (out) throw new Error(`«${out.nameAr}» غير متوفر حاليًا، احذفه من السلة`);
   let total = 0,
     hasUnpriced = false;
   const items = input.items.map((i) => {
@@ -44,7 +53,12 @@ export async function createOrder(raw: unknown, ws: { id: number } | null = null
     const { name, phone, company, city } = input.customer,
       phoneKey = normalizePhone(phone);
     const fresh = Object.fromEntries(Object.entries({ name, phone, company, city }).filter(([, v]) => v));
-    const customer = await tx.customer.upsert({ where: { phoneKey }, update: fresh, create: { ...fresh, phone, phoneKey, name } });
+    // The first rep a customer orders through becomes their assigned rep
+    const customer = await tx.customer.upsert({
+      where: { phoneKey },
+      update: { ...fresh, ...(chosen && { repId: chosen.id }) },
+      create: { ...fresh, phone, phoneKey, name, repId: rep?.id ?? null },
+    });
     const o = await tx.order.create({
       data: {
         number: crypto.randomUUID(),
