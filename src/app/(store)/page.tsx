@@ -19,8 +19,8 @@ export default async function Home() {
   const L = await getLang(),
     en = L === "en",
     ws = !!(await getWholesale()),
-    now = new Date(Math.floor(Date.now() / 300_000) * 300_000);
-  const [s, cats, featured, latest, banners] = await Promise.all([
+    now = Date.now();
+  const [s, cats, featured, latest, allBanners] = await Promise.all([
     getSettings(),
     cdb.category.findMany({
       where: { isActive: true },
@@ -35,17 +35,16 @@ export default async function Home() {
       take: 8,
     }),
     cdb.product.findMany({ where: { isActive: true }, include: cardInclude, orderBy: { id: "desc" }, take: 8 }),
+    // All active banners come from the cache; the schedule is checked here so the cache key never changes with time
     cdb.banner.findMany({
-      where: {
-        isActive: true,
-        AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }],
-      },
+      where: { isActive: true },
       orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       include: {
         product: { include: { images: { orderBy: { sortOrder: "asc" }, take: 1 }, category: { select: { nameAr: true, nameEn: true } } } },
       },
     }),
   ]);
+  const banners = allBanners.filter((b) => (!b.startsAt || +b.startsAt <= now) && (!b.endsAt || +b.endsAt >= now));
   const [offers, saleWhere] = await Promise.all([activeOffers(), onSaleWhere()]);
   const sale = saleWhere
     ? await cdb.product.findMany({

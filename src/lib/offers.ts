@@ -2,16 +2,11 @@
 import { cache } from "react";
 import type { Offer, Prisma } from "@prisma/client";
 import { cdb } from "./cache";
+// All enabled offers come from the cache; start and end times are checked here, so offers switch on and off on time
 export const activeOffers = cache(async () => {
-  // Rounded to 5 minutes so the cached result is shared; offers start and end within 5 minutes of their time
-  const now = new Date(Math.floor(Date.now() / 300_000) * 300_000);
-  return cdb.offer.findMany({
-    where: {
-      isActive: true,
-      AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gt: now } }] }],
-    },
-    orderBy: { percent: "desc" },
-  });
+  const now = Date.now();
+  const all = await cdb.offer.findMany({ where: { isActive: true }, orderBy: { percent: "desc" } });
+  return all.filter((o) => (!o.startsAt || +o.startsAt <= now) && (!o.endsAt || +o.endsAt > now));
 });
 export type AppliedOffer = { pct: number; nameAr: string; nameEn: string; wholesale: boolean; endsAt: string | null };
 const applies = (o: Offer, p: { id: number; categoryId: number }) =>
