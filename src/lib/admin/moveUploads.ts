@@ -30,6 +30,16 @@ export async function moveBatch(size = 10) {
     }
     const from = `/uploads/${r.name}`,
       to = publicUrl(r.name);
+    // Read the copy back from its public address before touching anything: a wrong S3_PUBLIC_URL or a private bucket stops here
+    let check: Response | null = null;
+    try {
+      check = await fetch(to, { cache: "no-store" });
+    } catch {}
+    const got = check?.ok ? new Uint8Array(await check.arrayBuffer()).length : -1;
+    if (got !== r.size && got !== r.data.length)
+      throw new Error(
+        `الصورة حُفظت لكن لا تظهر من الرابط العام (${to}). تأكد من S3_PUBLIC_URL وأن الـ Bucket عام للقراءة، ولم يُحذف أي ملف`,
+      );
     await db.$transaction([
       ...REFS.map(([t, c]) => db.$executeRawUnsafe(`UPDATE "${t}" SET "${c}" = $1 WHERE "${c}" = $2`, to, from)),
       db.upload.delete({ where: { id: r.id } }),
