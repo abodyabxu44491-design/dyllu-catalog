@@ -8,7 +8,8 @@ import { db } from "./db";
 // Visitors then rarely touch the database, so a serverless database can sleep and stays within free limits.
 // Any admin change clears the cache (see bustStore), so edits still appear immediately.
 export const STORE_TAG = "store";
-const TTL = 900;
+// Admin changes clear the cache immediately; this expiry only covers changes made outside the admin panel
+const TTL = 6 * 3600;
 
 const encode = (v: unknown) =>
   JSON.stringify(v, function (this: Record<string, unknown>, k, val) {
