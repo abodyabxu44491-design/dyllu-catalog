@@ -1,10 +1,11 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { cache } from "react";
 import type { Offer, Prisma } from "@prisma/client";
-import { db } from "./db";
+import { cdb } from "./cache";
 export const activeOffers = cache(async () => {
-  const now = new Date();
-  return db.offer.findMany({
+  // Rounded to 5 minutes so the cached result is shared; offers start and end within 5 minutes of their time
+  const now = new Date(Math.floor(Date.now() / 300_000) * 300_000);
+  return cdb.offer.findMany({
     where: {
       isActive: true,
       AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gt: now } }] }],

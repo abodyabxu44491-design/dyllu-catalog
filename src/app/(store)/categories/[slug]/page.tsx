@@ -2,13 +2,13 @@
 import type { Metadata } from "next";
 import { cache } from "react";
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
+import { cdb } from "@/lib/cache";
 import { getLang, pick, t } from "@/lib/lang";
 import ProductBrowser, { type BrowseParams } from "@/components/ProductBrowser";
 import { Crumbs } from "@/components/ui";
 import Linkify from "@/components/Linkify";
 export const dynamic = "force-dynamic";
-const find = cache((slug: string) => db.category.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true } }));
+const find = cache((slug: string) => cdb.category.findFirst({ where: { slug: decodeURIComponent(slug), isActive: true } }));
 export async function generateMetadata(props: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const params = await props.params;
   const c = await find(params.slug),

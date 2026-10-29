@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import Link from "next/link";
 import type { Prisma } from "@prisma/client";
-import { db } from "@/lib/db";
+import { cdb } from "@/lib/cache";
 import { getSettings } from "@/lib/settings";
 import { getWholesale } from "@/lib/wholesale";
 import { pageParam } from "@/lib/format";
@@ -56,10 +56,10 @@ export default async function ProductBrowser({ sp, category }: { sp: BrowseParam
   const [s, cats, counts, all, total, products] = await Promise.all([
     getSettings(),
     navCats,
-    Promise.all(navCats.map(async (c) => ({ id: c.id, n: await db.product.count({ where: { AND: [common, inCategory(c.id)] } }) }))),
-    db.product.count({ where: common }),
-    db.product.count({ where }),
-    db.product.findMany({ where, include: cardInclude, orderBy: orderByFor(sort, en), skip: (page - 1) * PER, take: PER }),
+    Promise.all(navCats.map(async (c) => ({ id: c.id, n: await cdb.product.count({ where: { AND: [common, inCategory(c.id)] } }) }))),
+    cdb.product.count({ where: common }),
+    cdb.product.count({ where }),
+    cdb.product.findMany({ where, include: cardInclude, orderBy: orderByFor(sort, en), skip: (page - 1) * PER, take: PER }),
   ]);
   const pages = Math.max(1, Math.ceil(total / PER)),
     cnt = (id: number) => counts.find((c) => c.id === id)?.n ?? 0;

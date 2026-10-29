@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { NextResponse } from "next/server";
-import { db } from "@/lib/db";
+import { cdb } from "@/lib/cache";
 import { oldPriceOf, pageParam, priceOf } from "@/lib/format";
 import { getWholesale } from "@/lib/wholesale";
 import { searchWhere } from "@/lib/catalog";
@@ -19,7 +19,7 @@ export async function GET(req: Request) {
     ...searchWhere(q),
   };
   const rows = await withOffers(
-    await db.product.findMany({
+    await cdb.product.findMany({
       where,
       include: { images: { orderBy: { sortOrder: "asc" } } },
       orderBy: { sortOrder: "asc" },

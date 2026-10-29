@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import type { Metadata } from "next";
-import { db } from "@/lib/db";
+import { cdb } from "@/lib/cache";
 import { catCount } from "@/lib/catalog";
 import { getLang, t } from "@/lib/lang";
 import CategoryCard from "@/components/CategoryCard";
@@ -11,7 +11,7 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 export default async function Categories() {
   const L = await getLang();
-  const cats = await db.category.findMany({
+  const cats = await cdb.category.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: "asc" },
     include: { _count: catCount },
