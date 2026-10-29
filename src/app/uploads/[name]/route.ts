@@ -17,6 +17,9 @@ export async function GET(_: Request, props: { params: Promise<{ name: string }>
     "Content-Type": type,
     "Content-Length": String(size),
     "Cache-Control": "public, max-age=31536000, immutable",
+    // Let the hosting CDN keep a copy, so each image is read from the database once instead of on every visit
+    "CDN-Cache-Control": "public, max-age=31536000, immutable",
+    "Vercel-CDN-Cache-Control": "public, max-age=31536000, immutable",
     "X-Content-Type-Options": "nosniff",
   });
   const f = await db.upload.findUnique({ where: { name } });
