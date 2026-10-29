@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { currentAdmin } from "@/lib/adminAuth";
 import { db } from "@/lib/db";
+import { bustStore } from "@/lib/cache";
 import { errMsg } from "@/lib/apiError";
 import { analyze, commit, prepare, undo, undoPlan, type RawRow } from "@/lib/admin/excelImport";
 export const maxDuration = 60;
@@ -32,6 +33,7 @@ const Body = z.discriminatedUnion("action", [
 export async function POST(req: Request) {
   const admin = await currentAdmin();
   if (!admin) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  bustStore();
   const b = Body.safeParse(await req.json().catch(() => null));
   if (!b.success) return NextResponse.json({ error: "بيانات الملف غير صحيحة" }, { status: 400 });
   const x = b.data,

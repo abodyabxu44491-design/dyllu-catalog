@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { cdb } from "@/lib/cache";
 import { getSettings } from "@/lib/settings";
 import { getLang, pick, txt } from "@/lib/lang";
 import { getWholesale } from "@/lib/wholesale";
@@ -19,23 +19,23 @@ export default async function Home() {
   const L = await getLang(),
     en = L === "en",
     ws = !!(await getWholesale()),
-    now = new Date();
+    now = new Date(Math.floor(Date.now() / 300_000) * 300_000);
   const [s, cats, featured, latest, banners] = await Promise.all([
     getSettings(),
-    db.category.findMany({
+    cdb.category.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
       take: 12,
       include: { _count: catCount },
     }),
-    db.product.findMany({
+    cdb.product.findMany({
       where: { isActive: true, isFeatured: true },
       include: cardInclude,
       orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
       take: 8,
     }),
-    db.product.findMany({ where: { isActive: true }, include: cardInclude, orderBy: { id: "desc" }, take: 8 }),
-    db.banner.findMany({
+    cdb.product.findMany({ where: { isActive: true }, include: cardInclude, orderBy: { id: "desc" }, take: 8 }),
+    cdb.banner.findMany({
       where: {
         isActive: true,
         AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gte: now } }] }],
@@ -48,7 +48,7 @@ export default async function Home() {
   ]);
   const [offers, saleWhere] = await Promise.all([activeOffers(), onSaleWhere()]);
   const sale = saleWhere
-    ? await db.product.findMany({
+    ? await cdb.product.findMany({
         where: {
           isActive: true,
           AND: [saleWhere, { OR: [{ showPrice: true, price: { not: null } }, ...(ws ? [{ wholesalePrice: { not: null } }] : [])] }],

@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { cache } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { db } from "@/lib/db";
+import { cdb } from "@/lib/cache";
 import { getSettings } from "@/lib/settings";
 import Price from "@/components/Price";
 import { isWsPrice, oldPriceOf, priceLabel, priceOf } from "@/lib/format";
@@ -23,7 +23,7 @@ import { Crumbs, SectionHead } from "@/components/ui";
 import { siteUrl } from "@/lib/siteUrl";
 export const dynamic = "force-dynamic";
 const find = cache((slug: string) =>
-  db.product.findFirst({
+  cdb.product.findFirst({
     where: { slug: decodeURIComponent(slug), isActive: true },
     include: {
       images: { orderBy: { sortOrder: "asc" } },
@@ -64,7 +64,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
   // Alternatives are shown only while this product is out of stock, and only those that can be ordered
   const alternatives = p.inStock
     ? []
-    : await db.product.findMany({
+    : await cdb.product.findMany({
         where: { isActive: true, inStock: true, alternativeOf: { some: { id: p.id } } },
         include: cardInclude,
         orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }],
@@ -85,7 +85,7 @@ export default async function ProductPage(props: { params: Promise<{ slug: strin
       )}
     </div>
   );
-  const related = await db.product.findMany({
+  const related = await cdb.product.findMany({
     where: { categoryId: p.categoryId, isActive: true, id: { not: p.id } },
     include: cardInclude,
     orderBy: [{ isFeatured: "desc" }, { sortOrder: "asc" }],

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import type { Metadata } from "next";
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { cdb } from "@/lib/cache";
 import { getSettings } from "@/lib/settings";
 import { getWholesale } from "@/lib/wholesale";
 import { getLang, pick } from "@/lib/lang";
@@ -23,7 +23,7 @@ export default async function Catalog(props: { searchParams: Promise<{ cat?: str
     imgs = searchParams.img !== "0";
   const [s, cats] = await Promise.all([
     getSettings(),
-    db.category.findMany({
+    cdb.category.findMany({
       where: { isActive: true, ...(searchParams.cat && { slug: searchParams.cat }) },
       orderBy: { sortOrder: "asc" },
       include: {
@@ -37,7 +37,7 @@ export default async function Catalog(props: { searchParams: Promise<{ cat?: str
   ]);
   const offers = await activeOffers(),
     withOffer = <T extends { id: number; categoryId: number }>(p: T) => ({ ...p, offer: offerFor(p, offers) });
-  const all = await db.category.findMany({
+  const all = await cdb.category.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: "asc" },
     select: { slug: true, nameAr: true, nameEn: true },

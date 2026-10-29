@@ -1,13 +1,13 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import type { MetadataRoute } from "next";
-import { db } from "@/lib/db";
+import { cdb } from "@/lib/cache";
 import { siteUrl } from "@/lib/siteUrl";
 export const dynamic = "force-dynamic";
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = await siteUrl();
   const [cats, products] = await Promise.all([
-    db.category.findMany({ where: { isActive: true }, select: { slug: true } }),
-    db.product.findMany({ where: { isActive: true }, select: { slug: true, updatedAt: true } }),
+    cdb.category.findMany({ where: { isActive: true }, select: { slug: true } }),
+    cdb.product.findMany({ where: { isActive: true }, select: { slug: true, updatedAt: true } }),
   ]);
   return [
     { url: base, priority: 1 },

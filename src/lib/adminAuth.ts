@@ -3,6 +3,7 @@ import { cache } from "react";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { db } from "./db";
+import { bustStore } from "./cache";
 import { SESSION_COOKIE, verifySession } from "./session";
 export const currentAdmin = cache(async () => {
   const s = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
@@ -11,5 +12,7 @@ export const currentAdmin = cache(async () => {
   return u && u.sessionVersion === s.ver ? u : null;
 });
 export async function denyUnlessAdmin() {
-  return (await currentAdmin()) ? null : NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  if (!(await currentAdmin())) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+  bustStore();
+  return null;
 }

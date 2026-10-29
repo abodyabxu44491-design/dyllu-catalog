@@ -2,9 +2,14 @@
 import { execSync } from "node:child_process";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 
-import { readFileSync } from "node:fs";
+import { readFileSync, rmSync } from "node:fs";
 
 const log = (m) => console.log(`[DYLLU] ${m}`);
+// Cached store data is refreshed on every admin change; a self-hosted server keeps those refreshes in memory,
+// so start each run with an empty data cache instead of reusing entries from before a restart
+try {
+  rmSync(".next/cache/fetch-cache", { recursive: true, force: true });
+} catch {}
 try {
   for (const l of readFileSync(".env", "utf8").split(/\r?\n/)) {
     const m = l.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
