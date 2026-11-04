@@ -6,7 +6,7 @@
 //   undo     -> restores the previous values of the latest import
 // Products that are not in the file are never touched.
 import type { Prisma } from "@/generated/prisma/client";
-import { db } from "../db";
+import { db, sqlAll } from "../db";
 import { englishFor } from "../translate";
 import { saveUpload } from "../storage";
 import { toAsciiDigits } from "../phone";
@@ -188,7 +188,7 @@ export async function analyze(mode: Mode, raw: RawRow[], createCategories = fals
   // D1 limits values per query: match codes in memory, then load the matching products in small batches
   const wanted = new Set(skus);
   const ids = skus.length
-    ? (await db.product.findMany({ where: { sku: { not: null } }, select: { id: true, sku: true } }))
+    ? (await sqlAll<{ id: number; sku: string }>(`SELECT "id", "sku" FROM "Product" WHERE "sku" IS NOT NULL`))
         .filter((r) => wanted.has(normalizeSku(r.sku)))
         .map((r) => r.id)
     : [];
@@ -433,19 +433,39 @@ export async function commitStart(mode: Mode, raw: RawRow[], opts: { createCateg
   const a = await analyze(mode, raw, opts.createCategories);
   const todo = a.results.filter((r) => r.action === "create" || r.action === "update");
   if (!todo.length) throw new Error("لا توجد صفوف صالحة للحفظ");
-  if (await db.importLog.findFirst({ where: { status: "running" }, select: { id: true } }))
-    throw new Error("توجد عملية استيراد لم تكتمل. تراجع عنها من السجل أولًا");
-  const log = await db.importLog.create({
-    data: {
-      kind: mode,
-      fileName: opts.fileName.slice(0, 200) || "ملف",
-      adminName: opts.admin,
-      rejected: a.summary.errors,
-      status: "running",
-      changes: { createdCategories: [] },
-    },
-  });
-  const createdCategories: number[] = [];
+  let running = await db.importLog.findFirst({ where: { status: "running" } });
+  // An import cut off more than 15 minutes ago (connection or server stop): its saved rows stay as they are and
+  // can still be undone from the history; it no longer blocks a new import (sending the same file again is safe)
+  if (running && Date.now() - running.createdAt.getTime() > 15 * 60_000) {
+    await db.importLog.update({ where: { id: running.id }, data: { status: "done" } });
+    running = null;
+  }
+  // The same start sent again after a dropped or cut-off response: continue with the log it already created
+  const fileName = opts.fileName.slice(0, 200) || "ملف";
+  const repeat =
+    running &&
+    running.fileName === fileName &&
+    running.adminName === opts.admin &&
+    running.kind === mode &&
+    !running.created &&
+    !running.updated &&
+    Date.now() - running.createdAt.getTime() < 3 * 60_000 &&
+    !(await db.importChange.count({ where: { logId: running.id } }));
+  if (running && !repeat) throw new Error("توجد عملية استيراد لم تكتمل. تراجع عنها من السجل أولًا");
+  const log =
+    repeat && running
+      ? running
+      : await db.importLog.create({
+          data: {
+            kind: mode,
+            fileName,
+            adminName: opts.admin,
+            rejected: a.summary.errors,
+            status: "running",
+            changes: { createdCategories: [] },
+          },
+        });
+  const createdCategories: number[] = ids(meta(log).createdCategories);
   if (mode === "full" && opts.createCategories)
     for (const name of a.newCategories) {
       const [nameEn] = await englishFor([{ ar: name, title: true }]);

@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import Link from "next/link";
-import { db } from "@/lib/db";
+import { db, sqlAll, sqlFirst } from "@/lib/db";
 import { STATUS_AR, STATUS_CLS, fmtDate, money } from "@/lib/admin/labels";
 import { Badge, Card, Stat } from "@/components/admin/ui";
 import Icon, { type IconName } from "@/components/Icon";
@@ -14,51 +14,61 @@ export default async function Dash() {
     month = new Date(now.getFullYear(), now.getMonth(), 1),
     d30 = new Date(Date.now() - 30 * 864e5),
     from = new Date(day.getTime() - (DAYS - 1) * 864e5);
-  const live = { status: { not: "CANCELLED" as const } };
-  const [pAll, pOn, cats, oDay, oMonth, oNew, wsMonth, sales, codes, reps, noWs, outStock, byStatus, bySrc, top, latest, recent] =
-    await Promise.all([
-      db.product.count(),
-      db.product.count({ where: { isActive: true } }),
-      db.category.count(),
-      db.order.count({ where: { createdAt: { gte: day } } }),
-      db.order.count({ where: { createdAt: { gte: month } } }),
-      db.order.count({ where: { status: "NEW" } }),
-      db.order.count({ where: { createdAt: { gte: month }, isWholesale: true } }),
-      db.order.aggregate({ _sum: { total: true }, where: { createdAt: { gte: month }, ...live } }),
-      db.wholesaleCode.count({ where: { isActive: true } }),
-      db.rep.count({ where: { isActive: true } }),
-      db.product.count({ where: { isActive: true, wholesalePrice: null } }),
-      db.product.count({ where: { isActive: true, inStock: false } }),
-      db.order.groupBy({ by: ["status"], _count: true }),
-      db.order.groupBy({
-        by: ["storeId"],
-        _count: true,
-        where: { storeId: { not: null } },
-        orderBy: { _count: { storeId: "desc" } },
-        take: 6,
-      }),
-      db.orderItem.groupBy({
-        by: ["productId"],
-        _sum: { quantity: true },
-        where: { productId: { not: null }, order: { createdAt: { gte: d30 }, ...live } },
-        orderBy: { _sum: { quantity: "desc" } },
-        take: 5,
-      }),
-      db.order.findMany({ include: { customer: true, rep: true }, orderBy: { id: "desc" }, take: 6 }),
-      db.order.findMany({ where: { createdAt: { gte: from } }, select: { createdAt: true } }),
-    ]);
-  const names = new Map(
-    (await db.product.findMany({ where: { id: { in: top.map((t) => t.productId!) } }, select: { id: true, nameAr: true } })).map((p) => [
-      p.id,
-      p.nameAr,
-    ]),
-  );
-  const storeNames = new Map(
-    (await db.store.findMany({ where: { id: { in: bySrc.map((x) => x.storeId!) } }, select: { id: true, name: true } })).map((x) => [
-      x.id,
-      x.name,
-    ]),
-  );
+  // A few direct SQL reads instead of ~20 separate queries (free-plan CPU per request)
+  const at = (d: Date) => d.toISOString().replace("Z", "+00:00"); // same text form Prisma stores dates in
+  type Num = number | null;
+  const [c, byStatus, bySrc, topRows, latest, recentRows] = await Promise.all([
+    sqlFirst<Record<string, Num>>(
+      `SELECT
+        (SELECT count(*) FROM "Product") pAll,
+        (SELECT count(*) FROM "Product" WHERE "isActive" = 1) pOn,
+        (SELECT count(*) FROM "Category") cats,
+        (SELECT count(*) FROM "Order" WHERE "createdAt" >= ?1) oDay,
+        (SELECT count(*) FROM "Order" WHERE "createdAt" >= ?2) oMonth,
+        (SELECT count(*) FROM "Order" WHERE "status" = 'NEW') oNew,
+        (SELECT count(*) FROM "Order" WHERE "createdAt" >= ?2 AND "isWholesale" = 1) wsMonth,
+        (SELECT sum("total") FROM "Order" WHERE "createdAt" >= ?2 AND "status" <> 'CANCELLED') sales,
+        (SELECT count(*) FROM "WholesaleCode" WHERE "isActive" = 1) codes,
+        (SELECT count(*) FROM "Rep" WHERE "isActive" = 1) reps,
+        (SELECT count(*) FROM "Product" WHERE "isActive" = 1 AND "wholesalePrice" IS NULL) noWs,
+        (SELECT count(*) FROM "Product" WHERE "isActive" = 1 AND "inStock" = 0) outStock`,
+      at(day),
+      at(month),
+    ),
+    sqlAll<{ status: string; _count: number }>(`SELECT "status", count(*) "_count" FROM "Order" GROUP BY "status"`),
+    sqlAll<{ storeId: number; name: string | null; _count: number }>(
+      `SELECT o."storeId", s."name", count(*) "_count" FROM "Order" o LEFT JOIN "Store" s ON s."id" = o."storeId"
+       WHERE o."storeId" IS NOT NULL GROUP BY o."storeId" ORDER BY "_count" DESC LIMIT 6`,
+    ),
+    sqlAll<{ productId: number; name: string | null; qty: number }>(
+      `SELECT i."productId", p."nameAr" "name", sum(i."quantity") qty FROM "OrderItem" i
+       JOIN "Order" o ON o."id" = i."orderId" LEFT JOIN "Product" p ON p."id" = i."productId"
+       WHERE i."productId" IS NOT NULL AND o."createdAt" >= ? AND o."status" <> 'CANCELLED'
+       GROUP BY i."productId" ORDER BY qty DESC LIMIT 5`,
+      at(d30),
+    ),
+    db.order.findMany({ include: { customer: true, rep: true }, orderBy: { id: "desc" }, take: 6 }),
+    sqlAll<{ createdAt: string }>(`SELECT "createdAt" FROM "Order" WHERE "createdAt" >= ?`, at(from)),
+  ]);
+  const n = (k: string) => Number(c?.[k] ?? 0);
+  const [pAll, cats, oDay, oMonth, oNew, wsMonth, codes, reps, noWs, outStock] = [
+    "pAll",
+    "cats",
+    "oDay",
+    "oMonth",
+    "oNew",
+    "wsMonth",
+    "codes",
+    "reps",
+    "noWs",
+    "outStock",
+  ].map(n);
+  const pOn = n("pOn"),
+    sales = { _sum: { total: c?.sales ?? 0 } };
+  const top = topRows.map((t) => ({ productId: t.productId, _sum: { quantity: Number(t.qty) } }));
+  const names = new Map(topRows.map((t) => [t.productId, t.name ?? "—"]));
+  const storeNames = new Map(bySrc.map((x) => [x.storeId, x.name ?? "—"]));
+  const recent = recentRows.map((r) => ({ createdAt: new Date(r.createdAt) }));
   const maxTop = Math.max(1, ...top.map((t) => t._sum.quantity ?? 0)),
     stat = (s: string) => byStatus.find((x) => x.status === s)?._count ?? 0;
   const series = Array.from({ length: DAYS }, (_, i) => {

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import Link from "next/link";
 import type { Prisma } from "@/generated/prisma/client";
-import { db } from "@/lib/db";
+import { db, sqlFirst } from "@/lib/db";
 import { pageParam } from "@/lib/format";
 import { inCategory } from "@/lib/catalog";
 import ProductToggles from "@/components/admin/ProductToggles";
@@ -14,19 +14,26 @@ const STALE_DAYS = 90;
 const stale = () => new Date(Date.now() - STALE_DAYS * 864e5);
 // Missing data the team should fill in: code, barcode, price or image
 const REVIEW: Prisma.ProductWhereInput = { OR: [{ sku: null }, { barcode: null }, { price: null }, { images: { none: {} } }] };
-const TABS: [string, string, () => Prisma.ProductWhereInput][] = [
-  ["", "الكل", () => ({})],
-  ["active", "ظاهر", () => ({ isActive: true })],
-  ["hidden", "مخفي", () => ({ isActive: false })],
-  ["out", "غير متوفر", () => ({ inStock: false })],
-  ["withbc", "لها باركود", () => ({ barcode: { not: null } })],
-  ["nobc", "بدون باركود", () => ({ barcode: null })],
-  ["nosku", "بدون كود", () => ({ sku: null })],
-  ["review", "تحتاج مراجعة", () => REVIEW],
-  ["featured", "مميز", () => ({ isFeatured: true })],
-  ["nows", "بلا سعر جملة", () => ({ wholesalePrice: null })],
-  ["stale", `لم تُحدَّث منذ ${STALE_DAYS} يوم`, () => ({ updatedAt: { lt: stale() } })],
+// [key, label, Prisma filter for the list, the same filter in SQL for the counters]
+const TABS: [string, string, () => Prisma.ProductWhereInput, string][] = [
+  ["", "الكل", () => ({}), "1"],
+  ["active", "ظاهر", () => ({ isActive: true }), `p."isActive" = 1`],
+  ["hidden", "مخفي", () => ({ isActive: false }), `p."isActive" = 0`],
+  ["out", "غير متوفر", () => ({ inStock: false }), `p."inStock" = 0`],
+  ["withbc", "لها باركود", () => ({ barcode: { not: null } }), `p."barcode" IS NOT NULL`],
+  ["nobc", "بدون باركود", () => ({ barcode: null }), `p."barcode" IS NULL`],
+  ["nosku", "بدون كود", () => ({ sku: null }), `p."sku" IS NULL`],
+  [
+    "review",
+    "تحتاج مراجعة",
+    () => REVIEW,
+    `(p."sku" IS NULL OR p."barcode" IS NULL OR p."price" IS NULL OR NOT EXISTS (SELECT 1 FROM "ProductImage" i WHERE i."productId" = p."id"))`,
+  ],
+  ["featured", "مميز", () => ({ isFeatured: true }), `p."isFeatured" = 1`],
+  ["nows", "بلا سعر جملة", () => ({ wholesalePrice: null }), `p."wholesalePrice" IS NULL`],
+  ["stale", `لم تُحدَّث منذ ${STALE_DAYS} يوم`, () => ({ updatedAt: { lt: stale() } }), `p."updatedAt" < ?3`],
 ];
+const like = (v: string) => `%${v.replace(/[\\%_]/g, (c) => "\\" + c)}%`;
 export default async function List(props: { searchParams: Promise<{ q?: string; cat?: string; st?: string; page?: string }> }) {
   const searchParams = await props.searchParams;
   const { q, cat, st } = searchParams,
@@ -44,9 +51,15 @@ export default async function List(props: { searchParams: Promise<{ q?: string; 
     }),
   };
   const where: Prisma.ProductWhereInput = { AND: [base, tab[2]()] };
-  const [cats, total, ps, counts] = await Promise.all([
+  // Every counter (tabs and catalogue health) in one SQL read instead of ~17 separate queries
+  const catId = Number.isInteger(Number(cat)) && cat ? Number(cat) : null;
+  // Every value is always referenced (?1 category, ?2 / ?4 search, ?3 stale date) so the bindings always match
+  const baseSql =
+    `(?1 IS NULL OR p."categoryId" = ?1 OR p."id" IN (SELECT "B" FROM "_ProductExtraCategories" WHERE "A" = ?1)) AND ` +
+    `(?2 = '%%' OR p."nameAr" LIKE ?2 ESCAPE '\\' OR p."nameEn" LIKE ?2 ESCAPE '\\' OR p."sku" LIKE ?2 ESCAPE '\\' OR p."barcode" LIKE ?4 ESCAPE '\\')`;
+  const staleAt = stale().toISOString().replace("Z", "+00:00");
+  const [cats, ps, c] = await Promise.all([
     db.category.findMany({ orderBy: { sortOrder: "asc" } }),
-    db.product.count({ where }),
     db.product.findMany({
       where,
       include: { category: true, images: { orderBy: { sortOrder: "asc" }, take: 1 } },
@@ -54,15 +67,20 @@ export default async function List(props: { searchParams: Promise<{ q?: string; 
       skip: (page - 1) * PER,
       take: PER,
     }),
-    Promise.all(TABS.map(([, , w]) => db.product.count({ where: { AND: [base, w()] } }))),
+    sqlFirst<Record<string, number | null>>(
+      `SELECT ${TABS.map(([, , , w], i) => `sum(CASE WHEN ${baseSql} AND ${w} THEN 1 ELSE 0 END) t${i}`).join(", ")},
+        sum(p."isActive" = 1) h0, sum(p."isActive" = 1 AND p."inStock" = 0) h1, sum(p."barcode" IS NULL) h2,
+        sum(p."sku" IS NULL) h3, sum(p."updatedAt" < ?3) h4
+       FROM "Product" p`,
+      catId,
+      like(q ?? ""),
+      staleAt,
+      like((q ?? "").replace(/\s/g, "")),
+    ),
   ]);
-  const health = await Promise.all([
-    db.product.count({ where: { isActive: true } }),
-    db.product.count({ where: { isActive: true, inStock: false } }),
-    db.product.count({ where: { barcode: null } }),
-    db.product.count({ where: { sku: null } }),
-    db.product.count({ where: { updatedAt: { lt: stale() } } }),
-  ]);
+  const counts = TABS.map((_, i) => Number(c?.[`t${i}`] ?? 0)),
+    total = counts[TABS.indexOf(tab)],
+    health = [0, 1, 2, 3, 4].map((i) => Number(c?.[`h${i}`] ?? 0));
   const pages = Math.max(1, Math.ceil(total / PER)),
     href = (o: Record<string, string | undefined>) =>
       "/admin/products?" + new URLSearchParams(Object.entries({ q, cat, st, ...o }).filter(([, v]) => v) as [string, string][]).toString();

@@ -40,7 +40,7 @@ const Body = z.discriminatedUnion("action", [
 export async function POST(req: Request) {
   const admin = await currentAdmin();
   if (!admin) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  bustStore();
+  await bustStore();
   const b = Body.safeParse(await req.json().catch(() => null));
   if (!b.success) return NextResponse.json({ error: "بيانات الملف غير صحيحة" }, { status: 400 });
   const x = b.data,

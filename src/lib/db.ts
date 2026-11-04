@@ -20,7 +20,8 @@ function sortRows(rows: Row[], orderBy: unknown) {
   if (!keys.length || keys.some(([, dir]) => dir !== "asc" && dir !== "desc")) return rows;
   return rows.sort((x, y) => {
     for (const [k, dir] of keys) {
-      const a = sortKey(x[k]), b = sortKey(y[k]);
+      const a = sortKey(x[k]),
+        b = sortKey(y[k]);
       if (a === b) continue;
       const c = a == null ? -1 : b == null ? 1 : (a as number) < (b as number) ? -1 : 1; // SQLite puts NULL first
       return dir === "asc" ? c : -c;
@@ -43,7 +44,12 @@ async function safeFindMany(d: Delegate, a: Args): Promise<Row[]> {
     const list = [...new Set((w[key] as { in: unknown[] }).in)];
     const rows: Row[] = [];
     for (let i = 0; i < list.length; i += PART) {
-      const part = { ...a, where: { ...w, [key]: { ...(w[key] as object), in: list.slice(i, i + PART) } }, skip: undefined, take: undefined };
+      const part = {
+        ...a,
+        where: { ...w, [key]: { ...(w[key] as object), in: list.slice(i, i + PART) } },
+        skip: undefined,
+        take: undefined,
+      };
       rows.push(...(await readPart(d, part)));
     }
     const from = a.skip ?? 0;
@@ -74,8 +80,7 @@ async function readPart(d: Delegate, a: Args) {
 }
 
 function withSafeCount(base: PrismaClient): PrismaClient {
-  const delegateOf = (model: string) =>
-    (base as unknown as Record<string, Delegate>)[model.charAt(0).toLowerCase() + model.slice(1)];
+  const delegateOf = (model: string) => (base as unknown as Record<string, Delegate>)[model.charAt(0).toLowerCase() + model.slice(1)];
   return base.$extends({
     query: {
       $allModels: {
@@ -108,6 +113,24 @@ function client(): PrismaClient {
     h.client = withSafeCount(new PrismaClient({ adapter: new PrismaD1(binding) }));
   }
   return h.client;
+}
+// Direct D1 access for a few hot reads (counts, code index): far less CPU than going through Prisma
+export const d1 = () => getCloudflareContext().env.DB;
+export async function sqlAll<T>(query: string, ...values: unknown[]): Promise<T[]> {
+  return ((
+    await d1()
+      .prepare(query)
+      .bind(...values)
+      .all<T>()
+  ).results ?? []) as T[];
+}
+export async function sqlFirst<T>(query: string, ...values: unknown[]): Promise<T | null> {
+  return (
+    (await d1()
+      .prepare(query)
+      .bind(...values)
+      .first<T>()) ?? null
+  );
 }
 export const db = new Proxy({} as PrismaClient, {
   get(_t, key) {

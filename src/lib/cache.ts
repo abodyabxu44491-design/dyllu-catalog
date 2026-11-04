@@ -1,6 +1,7 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { unstable_cache, revalidateTag } from "next/cache";
 import { after } from "next/server";
+import { headers } from "next/headers";
 import { Prisma } from "@/generated/prisma/client";
 import { db } from "./db";
 
@@ -57,8 +58,13 @@ export const cdb = new Proxy({} as Pick<typeof db, Model>, {
     ),
 });
 
-// Called on every admin API request: cleared right away and again once the response is sent (after the change is saved)
-export function bustStore() {
+// Called on every admin API request: cleared right away and again once the response is sent (after the change is saved).
+// Reads (GET) change nothing, so they leave the cache alone; worker.ts passes the real method in x-dyllu-method.
+export async function bustStore() {
+  try {
+    const m = (await headers()).get("x-dyllu-method");
+    if (m === "GET" || m === "HEAD") return;
+  } catch {}
   revalidateTag(STORE_TAG);
   try {
     after(() => revalidateTag(STORE_TAG));

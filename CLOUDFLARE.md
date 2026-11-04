@@ -47,3 +47,16 @@ node scripts/migrate-to-d1.mjs verify out --remote            # مقارنة ع�
 - الإرسال على دفعات صغيرة (8 أجهزة لكل طلب) ليبقى ضمن حدود الخطة المجانية؛ إذا أُغلقت الصفحة أثناء الإرسال يظهر زر «أكمل الإرسال» في السجل.
 - المفاتيح `VAPID_PUBLIC_KEY` و`VAPID_PRIVATE_KEY` تُنشأ تلقائيًا داخل Cloudflare في أول نشر ولا تُغيَّر بعدها (تغييرها يفصل كل الأجهزة المشتركة).
 - الملفات: `public/sw.js`، `src/lib/webpush.ts` (التشفير والتوقيع)، `src/lib/push.ts`، `src/app/api/push`، `src/app/api/admin/push`، `src/components/admin/NotificationsManager.tsx`.
+
+## Free-plan CPU (error 1102) — how the site stays within it
+
+- **Startup preload**: `routePreloadingBehavior: "onStart"` (open-next.config.ts) + `worker.ts` importing the server
+  module: all pages load while the Worker starts (1 s startup limit) instead of inside a visitor's request.
+- **Edge copies** of public pages (worker.ts), refreshed in the background after admin saves.
+- **Fewer queries**: dashboard, product list counters, admin/rep session checks and the import code index use direct
+  SQL (`sqlFirst` / `sqlAll` in src/lib/db.ts) instead of many Prisma queries.
+- **Excel import**: 5 rows per request with a short pause; every step is retried automatically and is safe to repeat;
+  an import cut off for more than 15 minutes no longer blocks a new one.
+- **Browser retry** (public/sw.js): pages and reads answered with a temporary 5xx (1102 = 503) are retried
+  automatically; if the server stays busy a friendly page keeps retrying. Orders and saves are never repeated.
+- **Diagnose**: Actions → Cloudflare → `logs` lists real failed requests and CPU per path from Workers Logs.

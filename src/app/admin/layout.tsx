@@ -2,7 +2,7 @@
 import { redirect } from "next/navigation";
 import AdminNav from "@/components/admin/AdminNav";
 import { currentAdmin } from "@/lib/adminAuth";
-import { db } from "@/lib/db";
+import { sqlFirst } from "@/lib/db";
 import { orderingState } from "@/lib/ordering";
 export const metadata = {
   title: "لوحة التحكم",
@@ -14,7 +14,10 @@ export const dynamic = "force-dynamic";
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const admin = await currentAdmin();
   if (!admin) redirect("/admin-login");
-  const [newOrders, ordering] = await Promise.all([db.order.count({ where: { status: "NEW" } }), orderingState()]);
+  const [newOrders, ordering] = await Promise.all([
+    sqlFirst<{ n: number }>(`SELECT count(*) n FROM "Order" WHERE "status" = 'NEW'`).then((r) => r?.n ?? 0),
+    orderingState(),
+  ]);
   return (
     <div dir="rtl" lang="ar" className="admin min-h-screen bg-soft lg:flex">
       <AdminNav newOrders={newOrders} paused={!ordering.open} admin={{ name: admin.name, email: admin.email }} />

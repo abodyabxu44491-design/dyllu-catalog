@@ -22,7 +22,7 @@ export const b64u = {
 const concat = (...parts: Uint8Array[]): Bytes => {
   const out = new Uint8Array(parts.reduce((n, p) => n + p.length, 0));
   let o = 0;
-  for (const p of parts) out.set(p, o), (o += p.length);
+  for (const p of parts) (out.set(p, o), (o += p.length));
   return out;
 };
 const subtle = () => crypto.subtle;

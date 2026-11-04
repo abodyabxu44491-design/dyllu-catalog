@@ -97,15 +97,30 @@ function parseCsv(text: string): string[][] {
   }
   return out.filter((r) => r.some((c) => c.trim()));
 }
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+// A busy server (Cloudflare 503 / error 1102) or a dropped connection is temporary: wait and send the same step again.
+// Every step can be repeated safely: rows already saved are found by their code and simply updated again.
+const WAITS = [1000, 2500, 5000, 9000, 15000];
+const STEP = 5; // rows saved per request
 async function api<T>(body: object): Promise<T> {
-  const res = await fetch("/api/admin/import", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-  const d = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(d.error || "تعذر الاتصال، حاول مرة أخرى");
-  return d as T;
+  for (let i = 0; ; i++) {
+    let res: Response | null = null;
+    try {
+      res = await fetch("/api/admin/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+    } catch {}
+    const temporary = !res || res.status >= 500 || !(res.headers.get("content-type") ?? "").includes("json");
+    if (temporary && i < WAITS.length) {
+      await sleep(WAITS[i]);
+      continue;
+    }
+    const d = res ? await res.json().catch(() => ({})) : {};
+    if (!res || !res.ok) throw new Error(d.error || "تعذر الاتصال، حاول مرة أخرى");
+    return d as T;
+  }
 }
 const ACTION: Record<Result["action"], [string, string]> = {
   create: ["جديد", "bg-lime text-ink"],
@@ -261,8 +276,10 @@ export default function ImportManager() {
       const prepSet = new Set(mode === "full" ? start.prep : []);
       const list = start.rows.map((n) => byRow.get(n)!).filter(Boolean);
       const imageErrors: Done["imageErrors"] = [];
-      for (let i = 0; i < list.length; i += 10) {
-        const part = list.slice(i, i + 10);
+      // Small steps with a short pause keep every request light (Cloudflare free plan CPU limit)
+      for (let i = 0; i < list.length; i += STEP) {
+        if (i) await sleep(250);
+        const part = list.slice(i, i + STEP);
         const needs = part.filter((x) => prepSet.has(x.row));
         const prepared = needs.length ? (await api<{ prepared: unknown[] }>({ action: "prepare", rows: needs })).prepared : [];
         const d = await api<{ imageErrors: Done["imageErrors"] }>({ action: "commitChunk", logId, mode, rows: part, prepared });
