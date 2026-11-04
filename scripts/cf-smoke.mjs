@@ -12,6 +12,7 @@ async function get(path, { image = false } = {}) {
   let ok = r.status >= 200 && r.status < 400, note = "", body = "";
   if (r.status && !image) {
     body = await r.text();
+    if (r.status >= 500) note = `${r.headers?.get?.("cf-ray") || ""} ${body.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").slice(0, 220)}`;
     if (bad.test(body)) (ok = false), (note = "error text in page");
   } else if (r.status) {
     const buf = Buffer.from(await r.arrayBuffer());
