@@ -33,7 +33,7 @@ const decode = <T>(s: string): T =>
   });
 
 const READS = new Set(["findMany", "findFirst", "findUnique", "count", "aggregate", "groupBy"]);
-type Model = "product" | "category" | "banner" | "offer" | "setting" | "rep" | "wholesaleCode";
+type Model = "product" | "productImage" | "category" | "banner" | "offer" | "setting" | "rep" | "wholesaleCode";
 
 const run = unstable_cache(
   async (model: string, op: string, args: string) => {

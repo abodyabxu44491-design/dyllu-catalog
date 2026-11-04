@@ -2,6 +2,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { cdb } from "@/lib/cache";
+import { chunks } from "@/lib/chunks";
 import { getSettings } from "@/lib/settings";
 import { getWholesale } from "@/lib/wholesale";
 import { getLang, pick } from "@/lib/lang";
@@ -30,11 +31,24 @@ export default async function Catalog(props: { searchParams: Promise<{ cat?: str
         products: {
           where: { isActive: true },
           orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
-          include: { images: { orderBy: { sortOrder: "asc" }, take: 1 } },
         },
       },
     }),
   ]);
+  // First image of each product, read in one list query (a nested include per product goes over D1's 100-value limit)
+  const pics = (
+    await Promise.all(
+      chunks(cats.flatMap((c) => c.products.map((p) => p.id))).map((ids) =>
+        cdb.productImage.findMany({
+          where: { productId: { in: ids } },
+          orderBy: [{ productId: "asc" }, { sortOrder: "asc" }, { id: "asc" }],
+          select: { productId: true, url: true },
+        }),
+      ),
+    )
+  ).flat();
+  const imageOf = new Map<number, string>();
+  for (const i of pics) if (!imageOf.has(i.productId)) imageOf.set(i.productId, i.url);
   const offers = await activeOffers(),
     withOffer = <T extends { id: number; categoryId: number }>(p: T) => ({ ...p, offer: offerFor(p, offers) });
   const all = await cdb.category.findMany({
@@ -110,7 +124,7 @@ export default async function Catalog(props: { searchParams: Promise<{ cat?: str
                     {imgs && (
                       <td className="py-2">
                         <span className="block w-12 h-12 rounded-lg bg-soft overflow-hidden">
-                          {p.images[0] && <img src={p.images[0].url} alt="" className="w-full h-full object-contain" />}
+                          {imageOf.has(p.id) && <img src={imageOf.get(p.id)} alt="" className="w-full h-full object-contain" />}
                         </span>
                       </td>
                     )}
