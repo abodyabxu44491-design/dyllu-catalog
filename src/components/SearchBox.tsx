@@ -2,7 +2,6 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Icon from "./Icon";
 import { useLang } from "@/lib/useLang";
 import { t } from "@/lib/i18n";
@@ -26,7 +25,6 @@ export default function SearchBox({
 }) {
   const L = useLang(),
     en = L === "en",
-    r = useRouter(),
     id = useId();
   const [q, setQ] = useState(initial),
     [hits, setHits] = useState<Hit[]>([]),
@@ -70,7 +68,7 @@ export default function SearchBox({
   const go = (href: string) => {
     setOpen(false);
     onDone?.();
-    r.push(href);
+    location.assign(href); // full page: served from the edge copy, no server render
   };
   function submit(e: React.FormEvent) {
     e.preventDefault();

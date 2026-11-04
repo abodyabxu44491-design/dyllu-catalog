@@ -9,7 +9,7 @@
 import { default as app } from "./.open-next/worker.js";
 import { runUsageAlert } from "./src/lib/usageAlert";
 
-type D1 = { prepare(q: string): { bind(...v: unknown[]): { first<T>(): Promise<T | null> } } };
+type D1 = { prepare(q: string): { bind(...v: unknown[]): { first<T>(): Promise<T | null>; run(): Promise<unknown> } } };
 type R2Object = { body: ReadableStream; size: number; httpMetadata?: { contentType?: string } };
 type Env = Parameters<typeof runUsageAlert>[0] & {
   DB: D1;
@@ -18,7 +18,8 @@ type Env = Parameters<typeof runUsageAlert>[0] & {
 };
 type Ctx = { waitUntil(p: Promise<unknown>): void };
 
-const PAGE_TTL = 600; // 10 minutes; offers that start or end by date show up within this time
+const PAGE_TTL = 3 * 3600; // admin saves refresh copies at once; this only bounds date-based offers (start/end)
+const MISSING_TTL = 600; // "page not found" answers
 const FILE_TTL = 30 * 24 * 3600; // uploaded files never change (each upload gets a new name)
 // Pages that depend on a signed-in person or must always be fresh are never cached
 const PRIVATE = /^\/(api|admin|admin-login|rep|rep-login|trade|order|_next\/image)(\/|$)/;
@@ -27,7 +28,9 @@ const CACHED_API = /^\/api\/(products|products\/by-ids|search|categories)$/;
 const TYPES: Record<string, string> = { jpg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif", pdf: "application/pdf" };
 const ROUTER_HEADERS = ["rsc", "next-router-prefetch", "next-router-segment-prefetch", "next-router-state-tree", "next-url"];
 
-// Changes when the admin saves anything (see bustStore in src/lib/cache.ts); read at most every 5 s per isolate
+// Requests no page answers (app links checks, scanners): a plain 404 without starting the app
+const JUNK = /^\/(\.well-known\/|wp-|wordpress|xmlrpc|cgi-bin|vendor\/|\.env|\.git|phpmyadmin)|\.(php|asp|aspx|jsp|cgi|env|ini|bak|sql)$/i;
+// Changes on every successful admin save (see bumpVersion below); read at most every 5 s per isolate
 let version = { v: "0", at: 0 };
 async function storeVersion(env: Env) {
   if (Date.now() - version.at < 5000) return version.v;
@@ -47,10 +50,15 @@ async function digest(s: string) {
   const b = new Uint8Array(await crypto.subtle.digest("SHA-1", new TextEncoder().encode(s)));
   return Array.from(b.slice(0, 10), (x) => x.toString(16).padStart(2, "0")).join("");
 }
+async function bumpVersion(env: Env) {
+  await env.DB.prepare(`INSERT INTO "Setting" ("key", "value") VALUES ('cache.version', ?) ON CONFLICT("key") DO UPDATE SET "value" = excluded."value"`)
+    .bind(String(Date.now()))
+    .run();
+}
 const cacheable = (r: Response) => {
   const t = r.headers.get("content-type") ?? "";
   return (
-    r.status === 200 &&
+    (r.status === 200 || r.status === 404) &&
     !r.headers.has("set-cookie") &&
     /^(text\/html|text\/x-component|application\/(xml|manifest\+json|json)|text\/plain)/.test(t)
   );
@@ -60,7 +68,15 @@ async function edge(req: Request, env: Env, ctx: Ctx): Promise<Response> {
   const url = new URL(req.url);
   const get = req.method === "GET" || req.method === "HEAD";
   const cache = (globalThis.caches as unknown as { default?: Cache } | undefined)?.default;
-  if (!get || !cache) return app.fetch(req, env, ctx);
+  if (!get) {
+    const res: Response = await app.fetch(req, env, ctx);
+    // A saved admin change: every edge copy is replaced on its next visit
+    if (res.ok && url.pathname.startsWith("/api/admin/") && !/\/(login|logout)$/.test(url.pathname))
+      ctx.waitUntil(bumpVersion(env).catch(() => {}));
+    return res;
+  }
+  if (JUNK.test(url.pathname)) return new Response("Not found", { status: 404, headers: { "Cache-Control": "public, max-age=86400" } });
+  if (!cache) return app.fetch(req, env, ctx);
 
   // Uploaded images and files: straight from R2 (the Next.js app is not started), then kept at the edge
   const file = url.pathname.match(/^\/uploads\/([\w-]{4,64}\.(jpg|png|webp|gif|pdf))$/);
@@ -102,7 +118,7 @@ async function edge(req: Request, env: Env, ctx: Ctx): Promise<Response> {
   const res: Response = await app.fetch(req, env, ctx);
   if (cacheable(res)) {
     const copy = new Response(res.clone().body, res);
-    copy.headers.set("Cache-Control", `public, max-age=${PAGE_TTL}`);
+    copy.headers.set("Cache-Control", `public, max-age=${res.status === 404 ? MISSING_TTL : PAGE_TTL}`);
     ctx.waitUntil(cache.put(key, copy));
   }
   return res;

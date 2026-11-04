@@ -1,6 +1,5 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 "use client";
-import { useRouter } from "next/navigation";
 import Icon, { type IconName } from "./Icon";
 export default function SortSelect({
   label,
@@ -13,14 +12,13 @@ export default function SortSelect({
   options: { v: string; label: string; href: string }[];
   icon?: IconName;
 }) {
-  const r = useRouter();
   return (
     <label className="relative inline-flex items-center">
       <span className="sr-only">{label}</span>
       <Icon n={icon} s={16} className="absolute start-3 text-steel pointer-events-none" />
       <select
         value={value}
-        onChange={(e) => r.push(options.find((o) => o.v === e.target.value)!.href, { scroll: false })}
+        onChange={(e) => location.assign(options.find((o) => o.v === e.target.value)!.href)}
         className="field h-10 ps-9 text-sm font-bold w-auto rounded-full"
       >
         {options.map((o) => (
