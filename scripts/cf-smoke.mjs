@@ -7,7 +7,7 @@ let fails = 0;
 const bad = /Application error|Internal Server Error|تعذر تحميل الصفحة/;
 async function get(path, { image = false } = {}) {
   const t = Date.now();
-  const r = await fetch(base + path, { redirect: "manual", headers: { "user-agent": "dyllu-smoke" } }).catch((e) => ({ status: 0, err: e }));
+  const r = await fetch(base + path, { redirect: "manual", headers: { "user-agent": "dyllu-smoke" }, signal: AbortSignal.timeout(25000) }).catch((e) => ({ status: 0, err: e }));
   const ms = Date.now() - t;
   let ok = r.status >= 200 && r.status < 400, note = "", body = "";
   if (r.status && !image) {

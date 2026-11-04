@@ -119,12 +119,14 @@ jobs:
 
       - name: Check the deployed site (read-only)
         if: inputs.task == 'check'
+        timeout-minutes: 8
         run: |
           # Where the domain points right now, as seen by the .com registry and public resolvers
-          echo "Registry nameservers:"; dig +short NS dyllusa.com @a.gtld-servers.net || true
-          for r in 1.1.1.1 8.8.8.8 9.9.9.9 208.67.222.222; do echo "dyllusa.com via $r: $(dig +short dyllusa.com @$r | tr '\n' ' ')"; done
-          echo "Old Vercel DNS still answers: $(dig +short dyllusa.com @ns1.vercel-dns.com | tr '\n' ' ')"
+          echo "Registry nameservers:"; dig +time=3 +tries=1 +short NS dyllusa.com @a.gtld-servers.net || true
+          for r in 1.1.1.1 8.8.8.8 9.9.9.9 208.67.222.222; do echo "dyllusa.com via $r: $(dig +time=3 +tries=1 +short dyllusa.com @$r | tr '\n' ' ')"; done
+          echo "Old Vercel DNS still answers: $(dig +time=3 +tries=1 +short dyllusa.com @ns1.vercel-dns.com | tr '\n' ' ')"
           node scripts/cf-smoke.mjs https://dyllu-catalog.dyllucatalog.workers.dev
+          echo "--- dyllusa.com ---"; node scripts/cf-smoke.mjs https://dyllusa.com || true
 
       - name: Point the domain at the Worker and test it
         if: inputs.task == 'domain'
