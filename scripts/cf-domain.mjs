@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 // Points the domain at the Worker as a Workers Custom Domain (Cloudflare creates the DNS record and certificate).
-// Runs only when the zone is active on Cloudflare. Records that pointed the same names to the old host are replaced.
+// Runs only when the zone is active on Cloudflare. A/AAAA/CNAME records for the same names (copied from the old host) are removed first.
 //   node scripts/cf-domain.mjs dyllusa.com www.dyllusa.com
 const { CLOUDFLARE_API_TOKEN: token, CLOUDFLARE_ACCOUNT_ID: account } = process.env;
 const service = process.env.WORKER_NAME || "dyllu-catalog";
@@ -27,6 +27,12 @@ if (zone.status !== "active") {
   process.exit(2);
 }
 for (const hostname of hosts) {
+  // Records copied from the old host (Vercel) for this exact name block the attach: remove them first
+  for (const r of await call("GET", `/zones/${zone.id}/dns_records?name=${hostname}`)) {
+    if (!["A", "AAAA", "CNAME"].includes(r.type)) continue;
+    await call("DELETE", `/zones/${zone.id}/dns_records/${r.id}`);
+    console.log(`Removed old record ${r.type} ${r.name} -> ${r.content}`);
+  }
   const res = await call("PUT", `/accounts/${account}/workers/domains`, {
     hostname,
     service,
