@@ -1,11 +1,14 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client"
+  output        = "../src/generated/prisma"
+  runtime       = "cloudflare"
+  compilerBuild = "small"
 }
 
+// Cloudflare D1 (SQLite). Migrations live in /migrations and are applied with wrangler.
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider = "sqlite"
 }
 
 enum OrderStatus {
@@ -41,8 +44,8 @@ model Product {
   nameEn         String
   descriptionAr  String?
   descriptionEn  String?
-  price          Decimal?          @db.Decimal(10, 2)
-  wholesalePrice Decimal?          @db.Decimal(10, 2)
+  price          Decimal?
+  wholesalePrice Decimal?
   videoUrl       String?
   showPrice      Boolean           @default(true)
   isActive       Boolean           @default(true)
@@ -131,7 +134,7 @@ model Order {
   customerId      Int
   customer        Customer       @relation(fields: [customerId], references: [id])
   notes           String?
-  total           Decimal?       @db.Decimal(10, 2)
+  total           Decimal?
   hasUnpriced     Boolean        @default(false)
   status          OrderStatus    @default(NEW)
   source          String?
@@ -160,7 +163,7 @@ model OrderItem {
   product      Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
   nameSnapshot String
   skuSnapshot  String?
-  unitPrice    Decimal? @db.Decimal(10, 2)
+  unitPrice    Decimal?
   quantity     Int
 }
 
@@ -287,8 +290,8 @@ model Offer {
   nameEn           String    @default("")
   percent          Int
   scope            String    @default("all") // all | categories | products
-  categoryIds      Int[]     @default([])
-  productIds       Int[]     @default([])
+  categoryIds      Json      @default("[]") // number[]
+  productIds       Json      @default("[]") // number[]
   includeWholesale Boolean   @default(false)
   startsAt         DateTime?
   endsAt           DateTime?
@@ -298,17 +301,36 @@ model Offer {
 
 // Excel import history; "changes" keeps previous and new values so the last import can be undone
 model ImportLog {
-  id        Int       @id @default(autoincrement())
+  id        Int            @id @default(autoincrement())
   kind      String
   fileName  String
   adminName String
-  created   Int       @default(0)
-  updated   Int       @default(0)
-  rejected  Int       @default(0)
-  changes   Json
+  created   Int            @default(0)
+  updated   Int            @default(0)
+  rejected  Int            @default(0)
+  changes   Json // { createdCategories: number[] } (older imports also kept their changes here)
+  status    String         @default("done") // running | done | undone
   undoneAt  DateTime?
   undoneBy  String?
-  createdAt DateTime  @default(now())
+  createdAt DateTime       @default(now())
+  items     ImportChange[]
 
   @@index([createdAt])
+}
+
+// One row per product touched by an import, written before the product changes, so an import can be
+// rolled back even if it stops halfway (D1 has no multi-statement transactions)
+model ImportChange {
+  id          Int       @id @default(autoincrement())
+  logId       Int
+  log         ImportLog @relation(fields: [logId], references: [id], onDelete: Cascade)
+  productId   Int?
+  sku         String
+  op          String // create | update
+  before      Json?
+  addedImages Json? // number[]
+  done        Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  @@index([logId])
 }

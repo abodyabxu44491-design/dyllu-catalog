@@ -6,3 +6,7 @@ next-env.d.ts
 *.tsbuildinfo
 /public/uploads/*
 !/public/uploads/.gitkeep
+src/generated/
+.open-next/
+.wrangler/
+.dev.vars

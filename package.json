@@ -1,74 +1,76 @@
 {
- "name": "dyllu-catalog",
- "private": true,
- "version": "1.0.0",
- "description": "DYLLU product catalog: storefront, admin panel, sales reps, offers and reports.",
- "author": "Abdullah Al-Sakni",
- "license": "UNLICENSED",
- "scripts": {
-  "dev": "next dev",
-  "build": "node scripts/prestart.mjs && next build",
-  "start": "node scripts/prestart.mjs && next start",
-  "db:push": "prisma db push",
-  "db:seed": "tsx prisma/seed.ts",
-  "studio": "prisma studio",
-  "postinstall": "prisma generate",
-  "typecheck": "tsc --noEmit",
-  "check": "node scripts/check-env.mjs",
-  "db:validate": "prisma validate",
-  "setup": "npm run check && prisma generate && prisma db push && tsx prisma/seed.ts",
-  "start:only": "next start",
-  "build:only": "next build",
-  "catalog:import": "node scripts/import-catalog.mjs",
-  "english:backfill": "node scripts/backfill-english.mjs",
-  "format": "prettier --write \"src/**/*.{ts,tsx,mjs,css}\" \"scripts/**/*.mjs\" \"prisma/seed.ts\" \"*.{mjs,ts}\"",
-  "format:check": "prettier --check \"src/**/*.{ts,tsx,mjs,css}\" \"scripts/**/*.mjs\" \"prisma/seed.ts\" \"*.{mjs,ts}\"",
-  "check:site": "node scripts/check-site.mjs"
- },
- "dependencies": {
-  "@anthropic-ai/sdk": "^0.131.0",
-  "@aws-sdk/client-s3": "^3.600.0",
-  "@prisma/client": "^5.20.0",
-  "@zxing/browser": "0.1.5",
-  "@zxing/library": "0.21.3",
-  "next": "^15.5.28",
-  "prisma": "^5.20.0",
-  "qrcode": "^1.5.4",
-  "react": "^19.1.10",
-  "react-dom": "^19.1.10",
-  "read-excel-file": "^9.3.12",
-  "sharp": "^0.35.5",
-  "write-excel-file": "^4.1.1",
-  "zod": "^3.23.0",
-  "zustand": "^4.5.0"
- },
- "devDependencies": {
-  "@types/node": "^20",
-  "@types/qrcode": "^1.5.5",
-  "@types/react": "^19.3.0",
-  "@types/react-dom": "^19.3.0",
-  "autoprefixer": "^10",
-  "playwright": "1.56.1",
-  "postcss": "^8.5.30",
-  "prettier": "3.6.2",
-  "tailwindcss": "^3.4.0",
-  "tsx": "^4.19.0",
-  "typescript": "^5.5.0"
- },
- "engines": {
-  "node": ">=18.18"
- },
- "browserslist": [
-  "iOS >= 14",
-  "Safari >= 14",
-  "Chrome >= 90",
-  "Edge >= 90",
-  "Firefox >= 90",
-  "Samsung >= 14",
-  "> 0.3%",
-  "not dead"
- ],
- "overrides": {
-  "postcss": "$postcss"
- }
+  "name": "dyllu-catalog",
+  "private": true,
+  "version": "1.0.0",
+  "description": "DYLLU product catalog: storefront, admin panel, sales reps, offers and reports.",
+  "author": "Abdullah Al-Sakni",
+  "license": "UNLICENSED",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "postinstall": "prisma generate",
+    "typecheck": "tsc --noEmit",
+    "check": "node scripts/check-env.mjs",
+    "format": "prettier --write \"src/**/*.{ts,tsx,mjs,css}\" \"scripts/**/*.mjs\" \"prisma/seed.ts\" \"*.{mjs,ts}\"",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx,mjs,css}\" \"scripts/**/*.mjs\" \"prisma/seed.ts\" \"*.{mjs,ts}\"",
+    "check:site": "node scripts/check-site.mjs",
+    "cf:build": "opennextjs-cloudflare build",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "db:migrate:local": "wrangler d1 migrations apply dyllu --local",
+    "db:migrate:remote": "wrangler d1 migrations apply dyllu --remote",
+    "data:export": "node scripts/migrate-to-d1.mjs export",
+    "data:verify": "node scripts/migrate-to-d1.mjs verify"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.131.0",
+    "@opennextjs/cloudflare": "^1.20.16",
+    "@prisma/adapter-d1": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "@zxing/browser": "0.1.5",
+    "@zxing/library": "0.21.3",
+    "next": "^15.5.28",
+    "prisma": "^7.10.1",
+    "qrcode": "^1.5.4",
+    "react": "^19.1.10",
+    "react-dom": "^19.1.10",
+    "read-excel-file": "^9.3.12",
+    "write-excel-file": "^4.1.1",
+    "zod": "^3.23.0",
+    "zustand": "^4.5.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20261104.1",
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "autoprefixer": "^10",
+    "better-sqlite3": "^13.0.3",
+    "pg": "^8.23.1",
+    "playwright": "1.56.1",
+    "postcss": "^8.5.30",
+    "prettier": "3.6.2",
+    "tailwindcss": "^3.4.0",
+    "tsx": "^4.19.0",
+    "typescript": "^5.5.0",
+    "wrangler": "^4.157.0"
+  },
+  "engines": {
+    "node": ">=18.18"
+  },
+  "browserslist": [
+    "iOS >= 14",
+    "Safari >= 14",
+    "Chrome >= 90",
+    "Edge >= 90",
+    "Firefox >= 90",
+    "Samsung >= 14",
+    "> 0.3%",
+    "not dead"
+  ],
+  "overrides": {
+    "postcss": "$postcss"
+  }
 }

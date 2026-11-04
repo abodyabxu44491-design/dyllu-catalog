@@ -49,35 +49,35 @@ export async function createOrder(raw: unknown, ws: { id: number } | null = null
     return { productId: p.id, nameSnapshot: p.nameAr || p.nameEn, skuSnapshot: p.sku, unitPrice: v, quantity: i.quantity };
   });
   const store = input.source ? await db.store.findUnique({ where: { code: input.source } }) : null;
-  return db.$transaction(async (tx) => {
-    const { name, phone, company, city } = input.customer,
-      phoneKey = normalizePhone(phone);
-    const fresh = Object.fromEntries(Object.entries({ name, phone, company, city }).filter(([, v]) => v));
-    // The first rep a customer orders through becomes their assigned rep
-    const customer = await tx.customer.upsert({
-      where: { phoneKey },
-      update: { ...fresh, ...(chosen && { repId: chosen.id }) },
-      create: { ...fresh, phone, phoneKey, name, repId: rep?.id ?? null },
-    });
-    const o = await tx.order.create({
-      data: {
-        number: crypto.randomUUID(),
-        customerId: customer.id,
-        notes: input.notes,
-        source: input.source,
-        storeId: store?.id,
-        total,
-        hasUnpriced,
-        repId: rep?.id,
-        isWholesale: !!ws,
-        wholesaleCodeId: ws?.id,
-        items: { create: items },
-      },
-    });
-    return tx.order.update({
-      where: { id: o.id },
-      data: { number: `DY-${10000 + o.id}` },
-      include: { items: true, customer: true, rep: true, store: true },
-    });
+  // D1 has no interactive transactions. The order and its items are one write; the customer is saved first,
+  // so a failure can never leave items without an order or an order without its customer.
+  const { name, phone, company, city } = input.customer,
+    phoneKey = normalizePhone(phone);
+  const fresh = Object.fromEntries(Object.entries({ name, phone, company, city }).filter(([, v]) => v));
+  // The first rep a customer orders through becomes their assigned rep
+  const customer = await db.customer.upsert({
+    where: { phoneKey },
+    update: { ...fresh, ...(chosen && { repId: chosen.id }) },
+    create: { ...fresh, phone, phoneKey, name, repId: rep?.id ?? null },
+  });
+  const o = await db.order.create({
+    data: {
+      number: crypto.randomUUID(),
+      customerId: customer.id,
+      notes: input.notes,
+      source: input.source,
+      storeId: store?.id,
+      total,
+      hasUnpriced,
+      repId: rep?.id,
+      isWholesale: !!ws,
+      wholesaleCodeId: ws?.id,
+      items: { create: items },
+    },
+  });
+  return db.order.update({
+    where: { id: o.id },
+    data: { number: `DY-${10000 + o.id}` },
+    include: { items: true, customer: true, rep: true, store: true },
   });
 }

@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { cache } from "react";
 import { cdb } from "./cache";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 // A product belongs to a category through its primary category or one of its extra categories
 export const inCategory = (id: number): Prisma.ProductWhereInput => ({ OR: [{ categoryId: id }, { categories: { some: { id } } }] });
 export const catCount = { select: { products: { where: { isActive: true } }, extraProducts: { where: { isActive: true } } } } as const;
@@ -12,9 +12,9 @@ export function searchWhere(q?: string | null): Prisma.ProductWhereInput {
   return {
     AND: words.map((w) => ({
       OR: [
-        { nameAr: { contains: w, mode: "insensitive" as const } },
-        { nameEn: { contains: w, mode: "insensitive" as const } },
-        { sku: { contains: w, mode: "insensitive" as const } },
+        { nameAr: { contains: w } },
+        { nameEn: { contains: w } },
+        { sku: { contains: w } },
       ],
     })),
   };

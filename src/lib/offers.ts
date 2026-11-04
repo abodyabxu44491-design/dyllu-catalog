@@ -1,19 +1,23 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { cache } from "react";
-import type { Offer, Prisma } from "@prisma/client";
+import type { Offer, Prisma } from "@/generated/prisma/client";
 import { cdb } from "./cache";
 // All enabled offers come from the cache; start and end times are checked here, so offers switch on and off on time
-export const activeOffers = cache(async () => {
+// SQLite has no list columns: offer product/category ids are stored as JSON arrays
+export const idList = (v: unknown): number[] => (Array.isArray(v) ? v.map(Number).filter(Number.isInteger) : []);
+export type OfferRow = Omit<Offer, "categoryIds" | "productIds"> & { categoryIds: number[]; productIds: number[] };
+export const toOffer = (o: Offer): OfferRow => ({ ...o, categoryIds: idList(o.categoryIds), productIds: idList(o.productIds) });
+export const activeOffers = cache(async (): Promise<OfferRow[]> => {
   const now = Date.now();
   const all = await cdb.offer.findMany({ where: { isActive: true }, orderBy: { percent: "desc" } });
-  return all.filter((o) => (!o.startsAt || +o.startsAt <= now) && (!o.endsAt || +o.endsAt > now));
+  return all.filter((o) => (!o.startsAt || +o.startsAt <= now) && (!o.endsAt || +o.endsAt > now)).map(toOffer);
 });
 export type AppliedOffer = { pct: number; nameAr: string; nameEn: string; wholesale: boolean; endsAt: string | null };
-const applies = (o: Offer, p: { id: number; categoryId: number }) =>
+const applies = (o: OfferRow, p: { id: number; categoryId: number }) =>
   o.scope === "all" ||
   (o.scope === "categories" && o.categoryIds.includes(p.categoryId)) ||
   (o.scope === "products" && o.productIds.includes(p.id));
-export function offerFor(p: { id: number; categoryId: number }, offers: Offer[]): AppliedOffer | null {
+export function offerFor(p: { id: number; categoryId: number }, offers: OfferRow[]): AppliedOffer | null {
   const o = offers.find((x) => applies(x, p));
   return o
     ? {

@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import Link from "next/link";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { STATUS_AR, money } from "@/lib/admin/labels";
 import { Card, PageHead, Stat } from "@/components/admin/ui";
@@ -89,14 +89,37 @@ export default async function Reports(props: { searchParams: Promise<{ r?: strin
       take: 8,
     }),
     db.order.groupBy({ by: ["customerId"], where: ok, _count: true, _sum: { total: true }, orderBy: { _sum: { total: "desc" } }, take: 8 }),
-    db.$queryRaw<{ id: number; name: string; qty: bigint; rev: Prisma.Decimal | null }[]>`
-      SELECT oi."productId" AS id, MAX(oi."nameSnapshot") AS name, SUM(oi.quantity) AS qty, SUM(oi.quantity * COALESCE(oi."unitPrice", 0)) AS rev
-      FROM "OrderItem" oi JOIN "Order" o ON o.id = oi."orderId"
-      WHERE o.status <> 'CANCELLED' AND o."createdAt" >= ${fromSql} AND oi."productId" IS NOT NULL
-      GROUP BY oi."productId" ORDER BY qty DESC, rev DESC LIMIT 10`,
-    db.$queryRaw<{ d: Date; n: bigint; t: Prisma.Decimal | null }[]>`
-      SELECT date_trunc(${monthly ? "month" : "day"}, o."createdAt" AT TIME ZONE 'Asia/Riyadh') AS d, COUNT(*) AS n, SUM(o.total) AS t
-      FROM "Order" o WHERE o.status <> 'CANCELLED' AND o."createdAt" >= ${fromSql} GROUP BY 1 ORDER BY 1`,
+    // Totals are computed here from plain queries, so the page does not depend on database-specific date/SQL functions
+    db.orderItem
+      .findMany({
+        where: { order: { status: { not: "CANCELLED" }, createdAt: { gte: fromSql } }, productId: { not: null } },
+        select: { productId: true, nameSnapshot: true, quantity: true, unitPrice: true },
+      })
+      .then((rows) => {
+        const m = new Map<number, { id: number; name: string; qty: number; rev: number }>();
+        for (const r of rows) {
+          const e = m.get(r.productId!) ?? { id: r.productId!, name: r.nameSnapshot, qty: 0, rev: 0 };
+          e.qty += r.quantity;
+          e.rev += r.quantity * Number(r.unitPrice ?? 0);
+          if (r.nameSnapshot > e.name) e.name = r.nameSnapshot;
+          m.set(e.id, e);
+        }
+        return [...m.values()].sort((a, b) => b.qty - a.qty || b.rev - a.rev).slice(0, 10);
+      }),
+    db.order
+      .findMany({ where: { status: { not: "CANCELLED" }, createdAt: { gte: fromSql } }, select: { createdAt: true, total: true } })
+      .then((rows) => {
+        const m = new Map<string, { k: string; n: number; t: number }>();
+        for (const r of rows) {
+          // Riyadh time (UTC+3, no daylight saving)
+          const k = new Date(r.createdAt.getTime() + 3 * 36e5).toISOString().slice(0, monthly ? 7 : 10);
+          const e = m.get(k) ?? { k, n: 0, t: 0 };
+          e.n++;
+          e.t += Number(r.total ?? 0);
+          m.set(k, e);
+        }
+        return [...m.values()].sort((a, b) => a.k.localeCompare(b.k));
+      }),
     db.customer.count({ where: from ? { createdAt: { gte: from } } : {} }),
   ]);
   const [repRows, storeRows, custRows] = await Promise.all([
@@ -112,7 +135,7 @@ export default async function Reports(props: { searchParams: Promise<{ r?: strin
     dOrd = delta(orders, prev?._count);
   const sub = (d: number | null) =>
     d == null ? (days ? "لا توجد بيانات للفترة السابقة" : undefined) : `${d >= 0 ? "▲" : "▼"} ${Math.abs(d)}% عن الفترة السابقة`;
-  const pts = series.map((x) => ({ k: x.d.toISOString().slice(0, monthly ? 7 : 10), n: Number(x.n), t: Number(x.t ?? 0) }));
+  const pts = series;
   const bars: { k: string; n: number; t: number }[] = [];
   if (!monthly && days)
     for (let i = days - 1; i >= 0; i--) {

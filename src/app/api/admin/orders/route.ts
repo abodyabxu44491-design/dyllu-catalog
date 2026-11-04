@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { NextResponse } from "next/server";
 import { denyUnlessAdmin } from "@/lib/adminAuth";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 const DONE = ["COMPLETED", "CANCELLED"] as const;
 // archive: true/false archives or restores one order; action "archiveDone" archives every completed or cancelled order

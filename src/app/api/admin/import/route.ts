@@ -5,7 +5,7 @@ import { currentAdmin } from "@/lib/adminAuth";
 import { db } from "@/lib/db";
 import { bustStore } from "@/lib/cache";
 import { errMsg } from "@/lib/apiError";
-import { analyze, commit, prepare, undo, undoPlan, type RawRow } from "@/lib/admin/excelImport";
+import { analyze, commitChunk, commitFinish, commitStart, prepare, undoChunk, undoPlan, type RawRow } from "@/lib/admin/excelImport";
 export const maxDuration = 60;
 const Row = z
   .object({ row: z.number().int().min(1) })
@@ -20,15 +20,22 @@ const Body = z.discriminatedUnion("action", [
   }),
   z.object({ action: z.literal("prepare"), rows: z.array(Row).min(1).max(10) }),
   z.object({
-    action: z.literal("commit"),
+    action: z.literal("commitStart"),
     mode: z.enum(["full", "stock"]),
     rows: z.array(Row).min(1).max(5000),
     createCategories: z.boolean().default(false),
     fileName: z.string().max(200).default(""),
-    prepared: z.array(z.any()).max(5000).default([]),
   }),
+  z.object({
+    action: z.literal("commitChunk"),
+    logId: z.number().int(),
+    mode: z.enum(["full", "stock"]),
+    rows: z.array(Row).min(1).max(25),
+    prepared: z.array(z.any()).max(25).default([]),
+  }),
+  z.object({ action: z.literal("commitFinish"), logId: z.number().int() }),
   z.object({ action: z.literal("undoPlan"), id: z.number().int() }),
-  z.object({ action: z.literal("undo"), id: z.number().int() }),
+  z.object({ action: z.literal("undoChunk"), id: z.number().int() }),
 ]);
 export async function POST(req: Request) {
   const admin = await currentAdmin();
@@ -44,15 +51,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ results, summary, newCategories });
     }
     if (x.action === "prepare") return NextResponse.json({ prepared: await prepare(x.rows) });
-    if (x.action === "commit")
+    if (x.action === "commitStart")
       return NextResponse.json(
-        await commit(x.mode, x.rows, { createCategories: x.createCategories, fileName: x.fileName, admin: who, prepared: x.prepared }),
+        await commitStart(x.mode, x.rows, { createCategories: x.createCategories, fileName: x.fileName, admin: who }),
       );
+    if (x.action === "commitChunk") return NextResponse.json(await commitChunk(x.logId, x.mode, x.rows, x.prepared));
+    if (x.action === "commitFinish") return NextResponse.json(await commitFinish(x.logId));
     if (x.action === "undoPlan") {
       const { log, ...plan } = await undoPlan(x.id);
       return NextResponse.json({ ...plan, fileName: log.fileName });
     }
-    return NextResponse.json(await undo(x.id, who));
+    return NextResponse.json(await undoChunk(x.id, who));
   } catch (e) {
     return NextResponse.json({ error: errMsg(e, "كود منتج أو باركود مكرر، أعد المعاينة") }, { status: 400 });
   }
@@ -70,6 +79,7 @@ export async function GET() {
       created: true,
       updated: true,
       rejected: true,
+      status: true,
       undoneAt: true,
       undoneBy: true,
       createdAt: true,

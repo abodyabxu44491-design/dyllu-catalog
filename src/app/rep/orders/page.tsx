@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import Link from "next/link";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { currentRep } from "@/lib/repAuth";
 import { pageParam } from "@/lib/format";
@@ -22,10 +22,10 @@ export default async function RepOrders(props: { searchParams: Promise<{ st?: st
     repId: rep.id,
     ...(q && {
       OR: [
-        { number: { contains: q, mode: "insensitive" } },
-        { customer: { name: { contains: q, mode: "insensitive" } } },
+        { number: { contains: q } },
+        { customer: { name: { contains: q } } },
         { customer: { phone: { contains: q } } },
-        { customer: { company: { contains: q, mode: "insensitive" } } },
+        { customer: { company: { contains: q } } },
       ],
     }),
   };

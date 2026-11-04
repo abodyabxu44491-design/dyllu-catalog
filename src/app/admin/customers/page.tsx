@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import Link from "next/link";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { pageParam } from "@/lib/format";
 import { prettyPhone, telHref, waHref } from "@/lib/phone";
@@ -24,10 +24,10 @@ export default async function Customers(props: { searchParams: Promise<{ q?: str
   const cw: Prisma.CustomerWhereInput = q
     ? {
         OR: [
-          { name: { contains: q, mode: "insensitive" } },
+          { name: { contains: q } },
           { phone: { contains: q } },
-          { company: { contains: q, mode: "insensitive" } },
-          { city: { contains: q, mode: "insensitive" } },
+          { company: { contains: q } },
+          { city: { contains: q } },
         ],
       }
     : {};

@@ -2,6 +2,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { barcodeVariants, normalizeBarcode } from "@/lib/barcode";
+import { normalizeSku } from "@/lib/admin/products";
 import { limited } from "@/lib/ratelimit";
 import { currentTrade } from "@/lib/tradeAuth";
 export const dynamic = "force-dynamic";
@@ -15,10 +16,14 @@ export async function GET(req: Request) {
   const raw = new URL(req.url).searchParams.get("b") ?? "",
     code = normalizeBarcode(raw);
   if (!code) return NextResponse.json({ error: "اكتب رقم الباركود" }, { status: 400, headers: H });
-  const p = await db.product.findFirst({
+  const variants = barcodeVariants(code),
+    sku = normalizeSku(raw);
+  // A barcode match wins; otherwise the exact product code (LIKE narrows, the exact comparison happens here)
+  const rows = await db.product.findMany({
+    take: 20,
     where: {
       isActive: true,
-      OR: [{ barcode: { in: barcodeVariants(code) } }, { sku: { equals: raw.trim(), mode: "insensitive" } }],
+      OR: [{ barcode: { in: variants } }, ...(sku ? [{ sku: { startsWith: sku } }] : [])],
     },
     include: {
       images: { orderBy: { sortOrder: "asc" }, select: { url: true } },
@@ -27,6 +32,7 @@ export async function GET(req: Request) {
       category: { select: { nameAr: true } },
     },
   });
+  const p = rows.find((r) => r.barcode && variants.includes(r.barcode)) ?? rows.find((r) => normalizeSku(r.sku) === sku) ?? null;
   await db.$transaction([
     db.tradeScan.create({ data: { codeId: shop.id, barcode: code, productId: p?.id ?? null, found: !!p } }),
     db.wholesaleCode.update({ where: { id: shop.id }, data: { lastUsedAt: new Date() } }),

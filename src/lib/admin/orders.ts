@@ -1,5 +1,5 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
-import type { OrderStatus, Prisma } from "@prisma/client";
+import type { OrderStatus, Prisma } from "@/generated/prisma/client";
 import { STATUS_AR } from "./labels";
 export type OrderFilters = { status?: string; q?: string; t?: string; from?: string; to?: string; store?: string; archived?: string };
 export function orderWhere({ status, q, t, from, to, store, archived }: OrderFilters, withStatus = true): Prisma.OrderWhereInput {
@@ -22,12 +22,12 @@ export function orderWhere({ status, q, t, from, to, store, archived }: OrderFil
     ...((gte || lt) && { createdAt: { ...(gte && { gte }), ...(lt && { lt }) } }),
     ...(q && {
       OR: [
-        { number: { contains: q, mode: "insensitive" } },
-        { customer: { name: { contains: q, mode: "insensitive" } } },
+        { number: { contains: q } },
+        { customer: { name: { contains: q } } },
         { customer: { phone: { contains: q } } },
-        { customer: { company: { contains: q, mode: "insensitive" } } },
-        { source: { contains: q, mode: "insensitive" } },
-        { store: { name: { contains: q, mode: "insensitive" } } },
+        { customer: { company: { contains: q } } },
+        { source: { contains: q } },
+        { store: { name: { contains: q } } },
       ],
     }),
   };

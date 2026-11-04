@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { NextResponse } from "next/server";
-import { OrderStatus } from "@prisma/client";
+import { OrderStatus } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { currentRep } from "@/lib/repAuth";
 export async function PUT(req: Request) {

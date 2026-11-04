@@ -1,7 +1,7 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { unstable_cache, revalidateTag } from "next/cache";
 import { after } from "next/server";
-import { Prisma } from "@prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import { db } from "./db";
 
 // Public pages read through `cdb`: the same Prisma calls, answered from the hosting data cache.

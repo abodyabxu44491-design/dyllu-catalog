@@ -1,0 +1,29 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dyllu-catalog",
+  "main": "worker.ts",
+  "compatibility_date": "2026-10-01",
+  // nodejs_compat: node:crypto for passwords/sessions. global_fetch_strictly_public: server fetches cannot reach private networks.
+  "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
+  "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
+  "observability": { "enabled": true },
+  "d1_databases": [
+    // App data. database_id is filled in when the database is created in the Cloudflare account.
+    { "binding": "DB", "database_name": "dyllu", "database_id": "55690881-7356-4209-83cf-d47a2378ab4d", "migrations_dir": "migrations" },
+    // Same database, used by the Next.js cache for on-demand revalidation
+    { "binding": "NEXT_TAG_CACHE_D1", "database_name": "dyllu", "database_id": "55690881-7356-4209-83cf-d47a2378ab4d" }
+  ],
+  "r2_buckets": [
+    // Product images and PDFs
+    { "binding": "BUCKET", "bucket_name": "dyllu-files" },
+    // Rendered-page cache (Next.js incremental cache)
+    { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "dyllu-cache" }
+  ],
+  // Hourly free-plan usage check (see src/lib/usageAlert.ts)
+  "triggers": { "crons": ["17 * * * *"] },
+  "vars": {
+    "MAIN_DOMAIN": "dyllusa.com",
+    "ALERT_PERCENT": "70"
+    // Set once the domain is on Cloudflare: CF_ACCOUNT_ID, ALERT_EMAIL, ALERT_FROM (+ secret CF_ANALYTICS_TOKEN and a send_email binding "EMAIL")
+  }
+}

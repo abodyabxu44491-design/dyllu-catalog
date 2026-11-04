@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import Link from "next/link";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import { cdb } from "@/lib/cache";
 import { getSettings } from "@/lib/settings";
 import { getWholesale } from "@/lib/wholesale";

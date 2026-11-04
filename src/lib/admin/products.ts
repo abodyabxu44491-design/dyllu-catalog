@@ -90,13 +90,17 @@ export const normalizeSku = (raw?: string | null) =>
     .replace(/\s+/g, " ")
     .toUpperCase()
     .slice(0, 60);
+// SQLite compares "=" case-sensitively, while LIKE (startsWith) ignores ASCII case: narrow with LIKE, then compare normalized codes
 export async function skuOwner(raw: string | null | undefined, exceptId?: number | null) {
   const sku = normalizeSku(raw);
   if (!sku) return null;
-  return db.product.findFirst({
-    where: { sku: { equals: sku, mode: "insensitive" }, ...(exceptId ? { id: { not: exceptId } } : {}) },
-    select: { id: true, nameAr: true },
+  const rows = await db.product.findMany({
+    where: { sku: { startsWith: sku }, ...(exceptId ? { id: { not: exceptId } } : {}) },
+    select: { id: true, nameAr: true, sku: true },
+    take: 50,
   });
+  const hit = rows.find((r) => normalizeSku(r.sku) === sku);
+  return hit ? { id: hit.id, nameAr: hit.nameAr } : null;
 }
 // One barcode belongs to one product. UPC-A/EAN-13 forms of the same code count as the same barcode.
 export async function barcodeOwner(raw: string | null | undefined, exceptId?: number | null) {
@@ -173,20 +177,28 @@ export async function saveProduct(id: number | null, raw: unknown) {
     await mutual(created.id);
     return created;
   }
-  const w = { where: { productId: id } };
-  const [, , , , p] = await db.$transaction([
-    db.productImage.deleteMany(w),
-    db.productSpec.deleteMany(w),
-    db.productFeature.deleteMany(w),
-    db.productDocument.deleteMany(w),
-    db.product.update({
-      where: { id },
-      data: { ...data, ...nested, ...links(true) },
-      include: { features: { orderBy: { sortOrder: "asc" } }, specs: { orderBy: { sortOrder: "asc" } } },
-    }),
-  ]);
+  // D1 has no multi-statement transactions: add the new rows first, then remove the old ones by id.
+  // If anything stops halfway the product shows duplicates, never missing images or specs.
+  const old = await db.product.findUniqueOrThrow({
+    where: { id },
+    select: {
+      images: { select: { id: true } },
+      specs: { select: { id: true } },
+      features: { select: { id: true } },
+      documents: { select: { id: true } },
+    },
+  });
+  const ids = (a: { id: number }[]) => ({ id: { in: a.map((x) => x.id) } });
+  await db.product.update({ where: { id }, data: { ...data, ...nested, ...links(true) } });
+  await db.productImage.deleteMany({ where: ids(old.images) });
+  await db.productSpec.deleteMany({ where: ids(old.specs) });
+  await db.productFeature.deleteMany({ where: ids(old.features) });
+  await db.productDocument.deleteMany({ where: ids(old.documents) });
   await mutual(id);
-  return p;
+  return db.product.findUniqueOrThrow({
+    where: { id },
+    include: { features: { orderBy: { sortOrder: "asc" } }, specs: { orderBy: { sortOrder: "asc" } } },
+  });
 }
 export async function duplicateProduct(id: number) {
   const p = await db.product.findUniqueOrThrow({ where: { id }, include: { images: true, specs: true, features: true, documents: true } });

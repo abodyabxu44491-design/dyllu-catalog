@@ -7,10 +7,7 @@ import { ipOf, limited } from "@/lib/ratelimit";
 export async function POST(req: Request) {
   if (limited(`login:${ipOf(req)}`, 8, 5 * 60_000)) return NextResponse.json({ error: "محاولات كثيرة، حاول بعد 5 دقائق" }, { status: 429 });
   if (!sessionSecret())
-    return NextResponse.json(
-      { error: "إعدادات السيرفر غير مكتملة: أضف DATABASE_URL و ADMIN_SESSION_SECRET في متغيرات البيئة" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "إعدادات السيرفر غير مكتملة: أضف ADMIN_SESSION_SECRET في متغيرات Cloudflare" }, { status: 500 });
   const { email, password } = await req.json().catch(() => ({ email: "", password: "" }));
   const u = await db.adminUser.findUnique({
     where: {

@@ -50,6 +50,7 @@ type Log = {
   created: number;
   updated: number;
   rejected: number;
+  status?: string;
   undoneAt: string | null;
   undoneBy: string | null;
   createdAt: string;
@@ -234,29 +235,61 @@ export default function ImportManager() {
     } as never).toFile(`DYLLU-import-errors-${file.replace(/\.[^.]+$/, "") || "file"}.xlsx`);
   }
 
+  // Rolls back an import step by step (used for a manual undo and automatically when saving fails)
+  async function rollback(id: number) {
+    for (let guard = 0; guard < 1000; guard++) {
+      const d = await api<{ remaining: number }>({ action: "undoChunk", id });
+      if (!d.remaining) return;
+    }
+  }
   async function confirm() {
     if (!an) return;
     setBusy("commit");
     setProgress(0);
+    let logId = 0;
     try {
-      // Translations and image downloads run first in small batches, then everything is saved in one step
-      const todo = new Set(an.results.filter((x) => x.needsPrep && x.action !== "error").map((x) => x.row));
-      const prepRows = mode === "full" ? rows.filter((x) => todo.has(x.row)) : [];
-      const prepared: unknown[] = [];
-      for (let i = 0; i < prepRows.length; i += 10) {
-        const d = await api<{ prepared: unknown[] }>({ action: "prepare", rows: prepRows.slice(i, i + 10) });
-        prepared.push(...d.prepared);
-        setProgress(Math.round(((i + 10) / prepRows.length) * 90));
+      // Saved in small steps so each request stays light; if any step fails, everything saved so far is rolled back
+      const start = await api<{ logId: number; rows: number[]; prep: number[] }>({
+        action: "commitStart",
+        mode,
+        rows,
+        createCategories: newCats,
+        fileName: file,
+      });
+      logId = start.logId;
+      const byRow = new Map(rows.map((x) => [x.row, x]));
+      const prepSet = new Set(mode === "full" ? start.prep : []);
+      const list = start.rows.map((n) => byRow.get(n)!).filter(Boolean);
+      const imageErrors: Done["imageErrors"] = [];
+      for (let i = 0; i < list.length; i += 10) {
+        const part = list.slice(i, i + 10);
+        const needs = part.filter((x) => prepSet.has(x.row));
+        const prepared = needs.length ? (await api<{ prepared: unknown[] }>({ action: "prepare", rows: needs })).prepared : [];
+        const d = await api<{ imageErrors: Done["imageErrors"] }>({ action: "commitChunk", logId, mode, rows: part, prepared });
+        imageErrors.push(...d.imageErrors);
+        setProgress(Math.min(98, Math.round(((i + part.length) / list.length) * 98)));
       }
-      setProgress(95);
-      const res = await api<Done>({ action: "commit", mode, rows, createCategories: newCats, fileName: file, prepared });
+      const fin = await api<{ created: number; updated: number; rejected: number }>({ action: "commitFinish", logId });
+      const res: Done = { ...fin, same: an.summary.same, imageErrors };
       setProgress(100);
       setDone(res);
       toast(`تم الحفظ: ${res.created} جديد و ${res.updated} تحديث`, { tone: "ok" });
       r.refresh();
       loadLogs();
     } catch (e) {
-      toast(`${(e as Error).message}. لم يُحفظ أي تغيير`, { tone: "err" });
+      let undone = !logId;
+      if (logId)
+        try {
+          await rollback(logId);
+          undone = true;
+        } catch {}
+      toast(
+        undone
+          ? `${(e as Error).message}. تم التراجع تلقائيًا، ولم يُحفظ أي تغيير`
+          : `${(e as Error).message}. لم يكتمل التراجع التلقائي، اضغط «تراجع» من السجل`,
+        { tone: "err" },
+      );
+      loadLogs();
     }
     setBusy("");
   }
@@ -272,7 +305,7 @@ export default function ImportManager() {
     if (!plan) return;
     setBusy("undo");
     try {
-      await api({ action: "undo", id: plan.id });
+      await rollback(plan.id);
       toast("تم التراجع عن الاستيراد وإرجاع القيم السابقة", { tone: "ok" });
       setPlan(null);
       r.refresh();
@@ -585,6 +618,7 @@ export default function ImportManager() {
                 <span className="font-bold truncate max-w-[14rem]" dir="auto">
                   {l.fileName || "ملف"}
                 </span>
+                {l.status === "running" && !l.undoneAt && <Badge cls="bg-amber-50 text-amber-800">لم يكتمل، تراجع عنه</Badge>}
                 <span className="text-xs text-steel">
                   {fmt(l.createdAt)} • {l.adminName}
                 </span>

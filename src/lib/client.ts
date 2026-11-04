@@ -6,17 +6,18 @@ const read = async (r: Response) => {
     return {};
   }
 };
+// Images are resized and converted to WebP in the browser before upload (the server stores them as they arrive)
 async function shrink(f: File): Promise<File> {
-  if (!/^image\/(jpeg|png|webp)$/.test(f.type) || f.size < 1.5e6 || typeof createImageBitmap !== "function") return f;
+  if (!/^image\/(jpeg|png|webp)$/.test(f.type) || f.size < 250_000 || typeof createImageBitmap !== "function") return f;
   try {
     const bmp = await createImageBitmap(f, { imageOrientation: "from-image" } as ImageBitmapOptions),
-      k = Math.min(1, 2000 / Math.max(bmp.width, bmp.height));
+      k = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
     const c = document.createElement("canvas");
     c.width = Math.round(bmp.width * k);
     c.height = Math.round(bmp.height * k);
     c.getContext("2d")!.drawImage(bmp, 0, 0, c.width, c.height);
     bmp.close?.();
-    const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/webp", 0.9));
+    const blob = await new Promise<Blob | null>((r) => c.toBlob(r, "image/webp", 0.82));
     return blob && blob.size < f.size ? new File([blob], f.name.replace(/\.\w+$/, "") + ".webp", { type: "image/webp" }) : f;
   } catch {
     return f;

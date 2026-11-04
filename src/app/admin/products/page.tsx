@@ -1,6 +1,6 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import Link from "next/link";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
 import { pageParam } from "@/lib/format";
 import { inCategory } from "@/lib/catalog";
@@ -36,9 +36,9 @@ export default async function List(props: { searchParams: Promise<{ q?: string; 
     ...(Number.isInteger(Number(cat)) && cat && inCategory(Number(cat))),
     ...(q && {
       OR: [
-        { nameAr: { contains: q, mode: "insensitive" } },
-        { nameEn: { contains: q, mode: "insensitive" } },
-        { sku: { contains: q, mode: "insensitive" } },
+        { nameAr: { contains: q } },
+        { nameEn: { contains: q } },
+        { sku: { contains: q } },
         { barcode: { contains: q.replace(/\s/g, "") } },
       ],
     }),

@@ -1,10 +1,11 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { db } from "@/lib/db";
+import { toOffer } from "@/lib/offers";
 import OffersManager from "@/components/admin/OffersManager";
 export const dynamic = "force-dynamic";
 export default async function Offers() {
   const [offers, cats] = await Promise.all([
-    db.offer.findMany({ orderBy: [{ isActive: "desc" }, { id: "desc" }] }),
+    db.offer.findMany({ orderBy: [{ isActive: "desc" }, { id: "desc" }] }).then((r) => r.map(toOffer)),
     db.category.findMany({ orderBy: { sortOrder: "asc" }, select: { id: true, nameAr: true } }),
   ]);
   const ids = [...new Set(offers.flatMap((o) => o.productIds))];

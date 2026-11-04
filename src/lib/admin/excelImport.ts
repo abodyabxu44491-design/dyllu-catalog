@@ -5,15 +5,14 @@
 //   commit   -> applies all valid rows in one database transaction and logs previous values
 //   undo     -> restores the previous values of the latest import
 // Products that are not in the file are never touched.
-import { lookup } from "node:dns/promises";
-import { isIP } from "node:net";
-import type { Prisma } from "@prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 import { db } from "../db";
 import { englishFor } from "../translate";
 import { saveUpload } from "../storage";
 import { toAsciiDigits } from "../phone";
 import { barcodeVariants, normalizeBarcode } from "../barcode";
-import { normalizeSku } from "./products";
+import { normalizeSku, skuOwner } from "./products";
+import { chunks } from "../chunks";
 
 export type Mode = "full" | "stock";
 export type RawRow = {
@@ -186,14 +185,20 @@ export async function analyze(mode: Mode, raw: RawRow[], createCategories = fals
     if (at.length > 1) for (const r of at) (dupRows.add(r), errs.get(r)!.push(`الكود مكرر في الملف (الصفوف ${at.join("، ")})`));
   for (const [, at] of byBc) if (at.length > 1) for (const r of at) errs.get(r)!.push(`الباركود مكرر في الملف (الصفوف ${at.join("، ")})`);
   const skus = [...bySku.keys()];
-  const existing: Existing[] = skus.length
-    ? await db.product.findMany({ where: { OR: skus.map((s) => ({ sku: { equals: s, mode: "insensitive" as const } })) }, include: ex })
+  // D1 limits values per query: match codes in memory, then load the matching products in small batches
+  const wanted = new Set(skus);
+  const ids = skus.length
+    ? (await db.product.findMany({ where: { sku: { not: null } }, select: { id: true, sku: true } }))
+        .filter((r) => wanted.has(normalizeSku(r.sku)))
+        .map((r) => r.id)
     : [];
+  const existing: Existing[] = [];
+  for (const part of chunks(ids)) existing.push(...(await db.product.findMany({ where: { id: { in: part } }, include: ex })));
   const bySkuDb = new Map(existing.map((p) => [normalizeSku(p.sku), p]));
   const bcs = [...byBc.keys()].flatMap((b) => barcodeVariants(b));
-  const bcOwners = bcs.length
-    ? await db.product.findMany({ where: { barcode: { in: bcs } }, select: { id: true, barcode: true, nameAr: true } })
-    : [];
+  const bcOwners: { id: number; barcode: string | null; nameAr: string }[] = [];
+  for (const part of chunks(bcs))
+    bcOwners.push(...(await db.product.findMany({ where: { barcode: { in: part } }, select: { id: true, barcode: true, nameAr: true } })));
   const cats = mode === "full" ? await categoryMap() : new Map<string, number>();
   const newCats = new Set<string>();
   const results: RowResult[] = rows.map((p) => {
@@ -304,12 +309,14 @@ export async function analyze(mode: Mode, raw: RawRow[], createCategories = fals
 
 const PRIVATE =
   /^(10\.|127\.|169\.254\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|0\.|100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\.|::1$|f[cd]|fe80:)/i;
+// Literal private addresses are refused here; names that resolve to private networks are blocked by the
+// Workers runtime itself (compatibility flag "global_fetch_strictly_public")
 async function safeUrl(url: string | URL) {
   const u = new URL(url);
   if (!/^https?:$/.test(u.protocol)) throw new Error("رابط الصورة يجب أن يبدأ بـ https://");
-  const host = u.hostname.replace(/^\[|\]$/g, ""),
-    addr = isIP(host) ? host : (await lookup(host)).address;
-  if (PRIVATE.test(addr) || host === "localhost") throw new Error("رابط الصورة غير مسموح");
+  const host = u.hostname.replace(/^\[|\]$/g, "").toLowerCase();
+  if (PRIVATE.test(host) || host === "localhost" || host.endsWith(".localhost") || host.endsWith(".internal"))
+    throw new Error("رابط الصورة غير مسموح");
   return u;
 }
 async function fetchImage(url: string): Promise<string> {
@@ -340,9 +347,8 @@ export async function prepare(raw: RawRow[]): Promise<Prepared[]> {
   const out: Prepared[] = [];
   for (const r of raw) {
     const p = parseRow("full", r, []);
-    const cur = p.sku
-      ? await db.product.findFirst({ where: { sku: { equals: p.sku, mode: "insensitive" } }, include: { features: true, specs: true } })
-      : null;
+    const owner = p.sku ? await skuOwner(p.sku) : null;
+    const cur = owner ? await db.product.findUnique({ where: { id: owner.id }, include: { features: true, specs: true } }) : null;
     const fe = new Map((cur?.features ?? []).map((f) => [f.textAr.trim(), f.textEn])),
       sn = new Map((cur?.specs ?? []).map((x) => [x.nameAr.trim(), x.nameEn])),
       sv = new Map((cur?.specs ?? []).map((x) => [x.value.trim(), x.valueEn ?? ""]));
@@ -417,196 +423,250 @@ const snap = (p: Existing): Snap => ({
 });
 export type Change = { id: number; sku: string; op: "create" | "update"; before?: Snap; addedImages?: number[] };
 
-export async function commit(
-  mode: Mode,
-  raw: RawRow[],
-  opts: { createCategories: boolean; fileName: string; admin: string; prepared: Prepared[] },
-) {
+type LogMeta = { createdCategories?: number[]; items?: Change[] };
+const meta = (l: { changes: unknown }) => ((l.changes ?? {}) as LogMeta) || {};
+const ids = (v: unknown): number[] => (Array.isArray(v) ? v.map(Number).filter(Number.isInteger) : []);
+
+// An import runs in steps so each request stays small: start (log + new categories), chunks of rows, finish.
+// Before a product changes, its previous values are stored in ImportChange; any failure is rolled back from there.
+export async function commitStart(mode: Mode, raw: RawRow[], opts: { createCategories: boolean; fileName: string; admin: string }) {
   const a = await analyze(mode, raw, opts.createCategories);
-  const prep = new Map(opts.prepared.map((p) => [p.row, p]));
   const todo = a.results.filter((r) => r.action === "create" || r.action === "update");
-  // Rows that need translation/images but were not prepared get them now (small files only)
-  const missing = todo.filter((r) => mode === "full" && r.needsPrep && !prep.has(r.row));
-  if (missing.length > 25) throw new Error("أعد المعاينة ثم التأكيد");
-  for (const p of await prepare(raw.filter((x) => missing.some((m) => m.row === x.row)))) prep.set(p.row, p);
-  const parsed = new Map(a.parsed.map((p) => [p.row, p]));
-  const changes: Change[] = [],
-    createdCategories: number[] = [];
-  await db.$transaction(
-    async (tx) => {
-      const cats = await categoryMap();
-      if (mode === "full" && opts.createCategories)
-        for (const name of a.newCategories) {
-          const [nameEn] = await englishFor([{ ar: name, title: true }]);
-          const max = await tx.category.aggregate({ _max: { sortOrder: true } });
-          const c = await tx.category.create({
-            data: {
-              nameAr: name,
-              nameEn,
-              slug: `${slugify(nameEn) || "cat"}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
-              sortOrder: (max._max.sortOrder ?? 0) + 1,
-              isActive: true,
-            },
-          });
-          cats.set(name.toLowerCase(), c.id);
-          createdCategories.push(c.id);
-        }
-      for (const r of todo) {
-        const p = parsed.get(r.row)!,
-          cur = a.existing.get(p.sku),
-          pr = prep.get(r.row);
-        if (mode === "stock") {
-          await tx.product.update({ where: { id: cur!.id }, data: { stock: p.stock, inStock: (p.stock ?? 0) > 0 } });
-          changes.push({ id: cur!.id, sku: p.sku, op: "update", before: snap(cur!) });
-          continue;
-        }
-        const catIds = (p.categories ?? []).map((c) => cats.get(c.toLowerCase())).filter((x): x is number => x !== undefined);
-        const data: Prisma.ProductUncheckedUpdateInput = {
-          ...(p.name !== undefined && { nameAr: p.name }),
-          ...(pr?.en.name && { nameEn: pr.en.name }),
-          ...(p.description !== undefined && { descriptionAr: p.description, descriptionEn: pr?.en.description ?? null }),
-          ...(p.price !== undefined && { price: p.price }),
-          ...(p.wholesale !== undefined && { wholesalePrice: p.wholesale }),
-          ...(p.stock !== undefined && { stock: p.stock, inStock: (p.stock ?? 0) > 0 }),
-          ...(p.stock === undefined && p.inStock !== undefined && { inStock: p.inStock }),
-          ...(p.barcode !== undefined && { barcode: p.barcode }),
-          ...(p.isActive !== undefined && { isActive: p.isActive }),
-          ...(p.isFeatured !== undefined && { isFeatured: p.isFeatured }),
-          ...(catIds.length && { categoryId: catIds[0] }),
-        };
-        const features = p.features?.map((textAr, k) => ({ textAr, textEn: pr?.en.features?.[k] ?? textAr, sortOrder: k }));
-        const specs = p.specs?.map(([nameAr, value], k) => {
-          const [nEn, vEn] = pr?.en.specs?.[k] ?? [nameAr, value];
-          return { nameAr, nameEn: nEn || nameAr, value, valueEn: vEn && vEn !== value ? vEn : null, sortOrder: k };
-        });
-        if (!cur) {
-          const created = await tx.product.create({
-            data: {
-              ...(data as Prisma.ProductUncheckedCreateInput),
-              nameAr: p.name!,
-              nameEn: pr?.en.name || p.name!,
-              sku: p.sku,
-              categoryId: catIds[0],
-              slug: `${slugify(pr?.en.name ?? "") || "p"}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
-              showPrice: true,
-              categories: { connect: catIds.slice(1).map((id) => ({ id })) },
-              features: { create: features ?? [] },
-              specs: { create: specs ?? [] },
-              ...(pr?.image && { images: { create: [{ url: pr.image, sortOrder: 0, isPrimary: true }] } }),
-            },
-          });
-          changes.push({ id: created.id, sku: p.sku, op: "create" });
-          continue;
-        }
-        const before: Snap = {
-          ...snap(cur),
-          ...(features && { features: cur.features.map((f) => ({ textAr: f.textAr, textEn: f.textEn })) }),
-          ...(specs && { specs: cur.specs.map((s) => ({ nameAr: s.nameAr, nameEn: s.nameEn, value: s.value, valueEn: s.valueEn })) }),
-        };
-        if (features) await tx.productFeature.deleteMany({ where: { productId: cur.id } });
-        if (specs) await tx.productSpec.deleteMany({ where: { productId: cur.id } });
-        await tx.product.update({
-          where: { id: cur.id },
-          data: {
-            ...data,
-            ...(catIds.length && {
-              categories: {
-                set: catIds
-                  .slice(1)
-                  .filter((id) => id !== catIds[0])
-                  .map((id) => ({ id })),
-              },
-            }),
-            ...(features && { features: { create: features } }),
-            ...(specs && { specs: { create: specs } }),
-          },
-        });
-        let addedImages: number[] | undefined;
-        if (pr?.image) {
-          const img = await tx.productImage.create({
-            data: { productId: cur.id, url: pr.image, sortOrder: cur.images.length, isPrimary: cur.images.length === 0 },
-          });
-          addedImages = [img.id];
-        }
-        changes.push({ id: cur.id, sku: p.sku, op: "update", before, addedImages });
-      }
-      await tx.importLog.create({
+  if (!todo.length) throw new Error("لا توجد صفوف صالحة للحفظ");
+  if (await db.importLog.findFirst({ where: { status: "running" }, select: { id: true } }))
+    throw new Error("توجد عملية استيراد لم تكتمل. تراجع عنها من السجل أولًا");
+  const log = await db.importLog.create({
+    data: {
+      kind: mode,
+      fileName: opts.fileName.slice(0, 200) || "ملف",
+      adminName: opts.admin,
+      rejected: a.summary.errors,
+      status: "running",
+      changes: { createdCategories: [] },
+    },
+  });
+  const createdCategories: number[] = [];
+  if (mode === "full" && opts.createCategories)
+    for (const name of a.newCategories) {
+      const [nameEn] = await englishFor([{ ar: name, title: true }]);
+      const max = await db.category.aggregate({ _max: { sortOrder: true } });
+      const c = await db.category.create({
         data: {
-          kind: mode,
-          fileName: opts.fileName.slice(0, 200) || "ملف",
-          adminName: opts.admin,
-          created: changes.filter((c) => c.op === "create").length,
-          updated: changes.filter((c) => c.op === "update").length,
-          rejected: a.summary.errors,
-          changes: { items: changes, createdCategories } as unknown as Prisma.InputJsonValue,
+          nameAr: name,
+          nameEn,
+          slug: `${slugify(nameEn) || "cat"}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
+          sortOrder: (max._max.sortOrder ?? 0) + 1,
+          isActive: true,
         },
       });
-    },
-    { timeout: 120_000, maxWait: 15_000 },
-  );
+      createdCategories.push(c.id);
+      await db.importLog.update({ where: { id: log.id }, data: { changes: { createdCategories } } });
+    }
+  return { logId: log.id, rows: todo.map((r) => r.row), prep: todo.filter((r) => r.needsPrep).map((r) => r.row) };
+}
+
+export async function commitChunk(logId: number, mode: Mode, raw: RawRow[], prepared: Prepared[]) {
+  const log = await db.importLog.findUnique({ where: { id: logId } });
+  if (!log || log.status !== "running") throw new Error("عملية الاستيراد غير موجودة أو انتهت");
+  // Categories were created at the start, so every category in these rows must exist now
+  const a = await analyze(mode, raw, false);
+  const prep = new Map(prepared.map((p) => [p.row, p]));
+  const missing = a.results.filter((r) => mode === "full" && r.needsPrep && r.action !== "error" && !prep.has(r.row));
+  for (const p of await prepare(raw.filter((x) => missing.some((m) => m.row === x.row)))) prep.set(p.row, p);
+  const parsed = new Map(a.parsed.map((p) => [p.row, p]));
+  const cats = await categoryMap();
+  let created = 0,
+    updated = 0;
+  for (const r of a.results.filter((x) => x.action === "create" || x.action === "update")) {
+    const p = parsed.get(r.row)!,
+      cur = a.existing.get(p.sku),
+      pr = prep.get(r.row);
+    if (mode === "stock") {
+      const ch = await db.importChange.create({ data: { logId, productId: cur!.id, sku: p.sku, op: "update", before: snap(cur!) } });
+      await db.product.update({ where: { id: cur!.id }, data: { stock: p.stock, inStock: (p.stock ?? 0) > 0 } });
+      await db.importChange.update({ where: { id: ch.id }, data: { done: true } });
+      updated++;
+      continue;
+    }
+    const catIds = (p.categories ?? []).map((c) => cats.get(c.toLowerCase())).filter((x): x is number => x !== undefined);
+    const data: Prisma.ProductUncheckedUpdateInput = {
+      ...(p.name !== undefined && { nameAr: p.name }),
+      ...(pr?.en.name && { nameEn: pr.en.name }),
+      ...(p.description !== undefined && { descriptionAr: p.description, descriptionEn: pr?.en.description ?? null }),
+      ...(p.price !== undefined && { price: p.price }),
+      ...(p.wholesale !== undefined && { wholesalePrice: p.wholesale }),
+      ...(p.stock !== undefined && { stock: p.stock, inStock: (p.stock ?? 0) > 0 }),
+      ...(p.stock === undefined && p.inStock !== undefined && { inStock: p.inStock }),
+      ...(p.barcode !== undefined && { barcode: p.barcode }),
+      ...(p.isActive !== undefined && { isActive: p.isActive }),
+      ...(p.isFeatured !== undefined && { isFeatured: p.isFeatured }),
+      ...(catIds.length && { categoryId: catIds[0] }),
+    };
+    const features = p.features?.map((textAr, k) => ({ textAr, textEn: pr?.en.features?.[k] ?? textAr, sortOrder: k }));
+    const specs = p.specs?.map(([nameAr, value], k) => {
+      const [nEn, vEn] = pr?.en.specs?.[k] ?? [nameAr, value];
+      return { nameAr, nameEn: nEn || nameAr, value, valueEn: vEn && vEn !== value ? vEn : null, sortOrder: k };
+    });
+    if (!cur) {
+      if (!catIds.length) continue;
+      // Recorded before the product exists, so a stop right after creating it can still be rolled back by code
+      const ch = await db.importChange.create({ data: { logId, sku: p.sku, op: "create" } });
+      const product = await db.product.create({
+        data: {
+          ...(data as Prisma.ProductUncheckedCreateInput),
+          nameAr: p.name!,
+          nameEn: pr?.en.name || p.name!,
+          sku: p.sku,
+          categoryId: catIds[0],
+          slug: `${slugify(pr?.en.name ?? "") || "p"}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`,
+          showPrice: true,
+          categories: { connect: catIds.slice(1).map((id) => ({ id })) },
+          features: { create: features ?? [] },
+          specs: { create: specs ?? [] },
+          ...(pr?.image && { images: { create: [{ url: pr.image, sortOrder: 0, isPrimary: true }] } }),
+        },
+      });
+      await db.importChange.update({ where: { id: ch.id }, data: { productId: product.id, done: true } });
+      created++;
+      continue;
+    }
+    const before: Snap = {
+      ...snap(cur),
+      ...(features && { features: cur.features.map((f) => ({ textAr: f.textAr, textEn: f.textEn })) }),
+      ...(specs && { specs: cur.specs.map((x) => ({ nameAr: x.nameAr, nameEn: x.nameEn, value: x.value, valueEn: x.valueEn })) }),
+    };
+    const ch = await db.importChange.create({
+      data: { logId, productId: cur.id, sku: p.sku, op: "update", before: before as unknown as Prisma.InputJsonValue },
+    });
+    // New rows first, old ones removed after, so nothing is lost if a step fails
+    await db.product.update({
+      where: { id: cur.id },
+      data: {
+        ...data,
+        ...(catIds.length && {
+          categories: {
+            set: catIds
+              .slice(1)
+              .filter((id) => id !== catIds[0])
+              .map((id) => ({ id })),
+          },
+        }),
+        ...(features && { features: { create: features } }),
+        ...(specs && { specs: { create: specs } }),
+      },
+    });
+    if (features) await db.productFeature.deleteMany({ where: { id: { in: cur.features.map((f) => f.id) } } });
+    if (specs) await db.productSpec.deleteMany({ where: { id: { in: cur.specs.map((x) => x.id) } } });
+    let addedImages: number[] = [];
+    if (pr?.image) {
+      const img = await db.productImage.create({
+        data: { productId: cur.id, url: pr.image, sortOrder: cur.images.length, isPrimary: cur.images.length === 0 },
+      });
+      addedImages = [img.id];
+    }
+    await db.importChange.update({ where: { id: ch.id }, data: { addedImages, done: true } });
+    updated++;
+  }
+  await db.importLog.update({ where: { id: logId }, data: { created: { increment: created }, updated: { increment: updated } } });
   return {
-    created: changes.filter((c) => c.op === "create").length,
-    updated: changes.filter((c) => c.op === "update").length,
-    rejected: a.summary.errors,
-    same: a.summary.same,
-    imageErrors: [...prep.values()].filter((p) => p.imageError).map((p) => ({ row: p.row, error: p.imageError! })),
+    created,
+    updated,
+    imageErrors: [...prep.values()].filter((x) => x.imageError).map((x) => ({ row: x.row, error: x.imageError! })),
   };
 }
 
-type LogChanges = { items: Change[]; createdCategories: number[] };
-// Only the most recent import that has not been undone can be undone
+export async function commitFinish(logId: number) {
+  const log = await db.importLog.update({ where: { id: logId }, data: { status: "done" } });
+  return { created: log.created, updated: log.updated, rejected: log.rejected };
+}
+
+// Imports saved before ImportChange existed keep their changes in the log JSON; copy them into rows once
+async function materialize(log: { id: number; changes: unknown }) {
+  const items = meta(log).items;
+  if (!items?.length || (await db.importChange.count({ where: { logId: log.id } }))) return;
+  for (const part of chunks(items, 20))
+    await db.importChange.createMany({
+      data: part.map((c) => ({
+        logId: log.id,
+        productId: c.id,
+        sku: c.sku,
+        op: c.op,
+        before: (c.before ?? null) as unknown as Prisma.InputJsonValue,
+        addedImages: c.addedImages ?? [],
+        done: true,
+      })),
+    });
+  await db.importLog.update({ where: { id: log.id }, data: { changes: { createdCategories: meta(log).createdCategories ?? [] } } });
+}
+
+// Only the most recent import that has not been undone can be undone (including one that stopped halfway)
 export async function undoPlan(id: number) {
   const latest = await db.importLog.findFirst({ where: { undoneAt: null }, orderBy: { id: "desc" } });
   if (!latest || latest.id !== id) throw new Error("يمكن التراجع عن آخر عملية استيراد فقط");
-  const { items } = latest.changes as unknown as LogChanges;
-  const ids = items.map((c) => c.id);
+  await materialize(latest);
+  const items = await db.importChange.findMany({ where: { logId: id } });
   const prods = await db.product.findMany({
-    where: { id: { in: ids } },
+    where: { id: { in: items.map((c) => c.productId).filter((x): x is number => x != null) } },
     select: { id: true, sku: true, nameAr: true, updatedAt: true, _count: { select: { items: true } } },
   });
   const after = new Date(latest.createdAt.getTime() + 5000);
+  const created = items.filter((c) => c.op === "create");
   return {
     log: latest,
     restore: items.filter((c) => c.op === "update").length,
-    remove: items.filter((c) => c.op === "create" && prods.find((p) => p.id === c.id && p._count.items === 0)).length,
-    hide: items.filter((c) => c.op === "create" && prods.find((p) => p.id === c.id && p._count.items > 0)).length,
+    remove: created.filter((c) => !prods.find((p) => p.id === c.productId && p._count.items > 0)).length,
+    hide: created.filter((c) => prods.find((p) => p.id === c.productId && p._count.items > 0)).length,
     // Products edited again after the import: undo overwrites those later edits
-    conflicts: prods.filter((p) => p.updatedAt > after).map((p) => ({ id: p.id, sku: p.sku, name: p.nameAr })),
+    conflicts: prods
+      .filter((p) => p.updatedAt > after && latest.status !== "running")
+      .map((p) => ({ id: p.id, sku: p.sku, name: p.nameAr })),
   };
 }
-export async function undo(id: number, admin: string) {
-  const plan = await undoPlan(id);
-  const { items, createdCategories } = plan.log.changes as unknown as LogChanges;
-  await db.$transaction(
-    async (tx) => {
-      for (const c of [...items].reverse()) {
-        const p = await tx.product.findUnique({ where: { id: c.id }, select: { id: true, _count: { select: { items: true } } } });
-        if (!p) continue;
-        if (c.op === "create") {
-          if (p._count.items > 0) await tx.product.update({ where: { id: c.id }, data: { isActive: false } });
-          else await tx.product.delete({ where: { id: c.id } });
-          continue;
-        }
-        const b = c.before!;
-        if (b.features) {
-          await tx.productFeature.deleteMany({ where: { productId: c.id } });
-          await tx.productFeature.createMany({ data: b.features.map((f, k) => ({ ...f, productId: c.id, sortOrder: k })) });
-        }
-        if (b.specs) {
-          await tx.productSpec.deleteMany({ where: { productId: c.id } });
-          await tx.productSpec.createMany({ data: b.specs.map((s, k) => ({ ...s, productId: c.id, sortOrder: k })) });
-        }
-        if (c.addedImages?.length) await tx.productImage.deleteMany({ where: { id: { in: c.addedImages } } });
-        const { categories, features: _f, specs: _s, ...scalars } = b;
-        await tx.product.update({ where: { id: c.id }, data: { ...scalars, categories: { set: categories.map((x) => ({ id: x })) } } });
+
+// Reverts a few products per call, newest first; a change row is deleted only after its product is restored
+export async function undoChunk(id: number, admin: string, size = 15) {
+  const log = await db.importLog.findUnique({ where: { id } });
+  if (!log || log.undoneAt) throw new Error("لا توجد عملية للتراجع عنها");
+  await materialize(log);
+  const items = await db.importChange.findMany({ where: { logId: id }, orderBy: { id: "desc" }, take: size });
+  for (const c of items) {
+    let pid = c.productId;
+    if (c.op === "create" && pid == null) {
+      // Stopped between creating the product and recording it: find it by code among products created since the import began
+      const found = await db.product.findMany({
+        where: { sku: { startsWith: c.sku }, createdAt: { gte: log.createdAt } },
+        select: { id: true, sku: true },
+      });
+      pid = found.find((f) => normalizeSku(f.sku) === c.sku)?.id ?? null;
+    }
+    const p = pid ? await db.product.findUnique({ where: { id: pid }, select: { id: true, _count: { select: { items: true } } } }) : null;
+    if (p && c.op === "create") {
+      if (p._count.items > 0) await db.product.update({ where: { id: p.id }, data: { isActive: false } });
+      else await db.product.delete({ where: { id: p.id } });
+    } else if (p && c.before) {
+      const b = c.before as unknown as Snap;
+      if (b.features) {
+        await db.productFeature.deleteMany({ where: { productId: p.id } });
+        await db.productFeature.createMany({ data: b.features.map((f, k) => ({ ...f, productId: p.id, sortOrder: k })) });
       }
-      for (const cid of createdCategories) {
-        const used = await tx.product.count({ where: { categoryId: cid } });
-        if (!used) await tx.category.delete({ where: { id: cid } });
+      if (b.specs) {
+        await db.productSpec.deleteMany({ where: { productId: p.id } });
+        await db.productSpec.createMany({ data: b.specs.map((x, k) => ({ ...x, productId: p.id, sortOrder: k })) });
       }
-      await tx.importLog.update({ where: { id }, data: { undoneAt: new Date(), undoneBy: admin } });
-    },
-    { timeout: 120_000, maxWait: 15_000 },
-  );
-  return { restored: plan.restore, removed: plan.remove, hidden: plan.hide };
+      const added = ids(c.addedImages);
+      if (added.length) await db.productImage.deleteMany({ where: { id: { in: added } } });
+      const { categories, features: _f, specs: _s, ...scalars } = b;
+      await db.product.update({ where: { id: p.id }, data: { ...scalars, categories: { set: categories.map((x) => ({ id: x })) } } });
+    }
+    await db.importChange.delete({ where: { id: c.id } });
+  }
+  const remaining = await db.importChange.count({ where: { logId: id } });
+  if (!remaining) {
+    for (const cid of meta(log).createdCategories ?? []) {
+      const used = await db.product.count({ where: { OR: [{ categoryId: cid }, { categories: { some: { id: cid } } }] } });
+      if (!used) await db.category.delete({ where: { id: cid } }).catch(() => {});
+    }
+    await db.importLog.update({ where: { id }, data: { undoneAt: new Date(), undoneBy: admin, status: "undone" } });
+  }
+  return { reverted: items.length, remaining };
 }
