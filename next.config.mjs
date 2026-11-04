@@ -7,6 +7,8 @@ if (process.argv.includes("dev")) initOpenNextCloudflareForDev();
 export default {
   // Prisma's query compiler is a WebAssembly module: keep its import as-is so the Workers bundler loads it as a module
   webpack(config, { isServer }) {
+    // Links never prefetch (see src/components/NoPrefetchLink.tsx)
+    config.resolve.alias = { ...config.resolve.alias, "next/link$": path.resolve("src/components/NoPrefetchLink.tsx") };
     if (isServer)
       config.externals = [
         ...[config.externals ?? []].flat(),

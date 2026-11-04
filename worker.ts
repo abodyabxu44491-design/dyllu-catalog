@@ -10,13 +10,21 @@ import { default as app } from "./.open-next/worker.js";
 import { runUsageAlert } from "./src/lib/usageAlert";
 
 type D1 = { prepare(q: string): { bind(...v: unknown[]): { first<T>(): Promise<T | null> } } };
-type Env = Parameters<typeof runUsageAlert>[0] & { DB: D1; CF_VERSION_METADATA?: { id: string } };
+type R2Object = { body: ReadableStream; size: number; httpMetadata?: { contentType?: string } };
+type Env = Parameters<typeof runUsageAlert>[0] & {
+  DB: D1;
+  BUCKET: { get(key: string): Promise<R2Object | null> };
+  CF_VERSION_METADATA?: { id: string };
+};
 type Ctx = { waitUntil(p: Promise<unknown>): void };
 
 const PAGE_TTL = 600; // 10 minutes; offers that start or end by date show up within this time
 const FILE_TTL = 30 * 24 * 3600; // uploaded files never change (each upload gets a new name)
 // Pages that depend on a signed-in person or must always be fresh are never cached
 const PRIVATE = /^\/(api|admin|admin-login|rep|rep-login|trade|order|_next\/image)(\/|$)/;
+// Read-only store data used by the catalog pages (prices depend on language and wholesale code, which are in the key)
+const CACHED_API = /^\/api\/(products|products\/by-ids|search|categories)$/;
+const TYPES: Record<string, string> = { jpg: "image/jpeg", png: "image/png", webp: "image/webp", gif: "image/gif", pdf: "application/pdf" };
 const ROUTER_HEADERS = ["rsc", "next-router-prefetch", "next-router-segment-prefetch", "next-router-state-tree", "next-url"];
 
 // Changes when the admin saves anything (see bustStore in src/lib/cache.ts); read at most every 5 s per isolate
@@ -54,20 +62,26 @@ async function edge(req: Request, env: Env, ctx: Ctx): Promise<Response> {
   const cache = (globalThis.caches as unknown as { default?: Cache } | undefined)?.default;
   if (!get || !cache) return app.fetch(req, env, ctx);
 
-  // Uploaded images and files: cached for a month at the edge
-  if (url.pathname.startsWith("/uploads/")) {
+  // Uploaded images and files: straight from R2 (the Next.js app is not started), then kept at the edge
+  const file = url.pathname.match(/^\/uploads\/([\w-]{4,64}\.(jpg|png|webp|gif|pdf))$/);
+  if (file) {
     const key = new Request(url.origin + url.pathname);
     const hit = await cache.match(key);
     if (hit) return hit;
-    const res: Response = await app.fetch(req, env, ctx);
-    if (res.status === 200) {
-      const copy = new Response(res.clone().body, res);
-      copy.headers.set("Cache-Control", `public, max-age=${FILE_TTL}, immutable`);
-      ctx.waitUntil(cache.put(key, copy));
-    }
+    const obj = await env.BUCKET.get(file[1]);
+    if (!obj) return app.fetch(req, env, ctx); // older files still in the database
+    const headers = new Headers({
+      "Content-Type": obj.httpMetadata?.contentType || TYPES[file[2]] || "application/octet-stream",
+      "Content-Length": String(obj.size),
+      "Cache-Control": `public, max-age=${FILE_TTL}, immutable`,
+      "X-Content-Type-Options": "nosniff",
+    });
+    const res = new Response(obj.body, { headers });
+    ctx.waitUntil(cache.put(key, res.clone()));
     return res;
   }
-  if (PRIVATE.test(url.pathname) || url.pathname.startsWith("/_next/")) return app.fetch(req, env, ctx);
+  const api = CACHED_API.test(url.pathname);
+  if (!api && (PRIVATE.test(url.pathname) || url.pathname.startsWith("/_next/"))) return app.fetch(req, env, ctx);
 
   // One copy per page, language, wholesale code, router state (client navigation) and store version
   const variant = [
