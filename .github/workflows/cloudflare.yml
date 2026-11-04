@@ -15,11 +15,11 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "deploy | migrate | files | verify | check | domain | cpu"
+        description: "deploy | migrate | files | verify | check | domain | cpu | profile"
         required: true
         default: deploy
         type: choice
-        options: [deploy, migrate, files, verify, check, domain, cpu]
+        options: [deploy, migrate, files, verify, check, domain, cpu, profile]
 permissions:
   contents: read
 concurrency:
@@ -144,3 +144,18 @@ jobs:
       - name: CPU time per request (last hours)
         if: inputs.task == 'cpu' || inputs.task == 'check'
         run: node scripts/cf-cpu.mjs 6 || true
+
+      - name: CPU per request from live logs (wrangler tail)
+        if: inputs.task == 'profile'
+        timeout-minutes: 10
+        run: |
+          npx wrangler tail dyllu-catalog --format json > tail.jsonl 2> tail.err &
+          TAIL=$!
+          sleep 15
+          node scripts/cf-smoke.mjs https://dyllusa.com || true
+          node scripts/cf-smoke.mjs https://dyllusa.com || true
+          sleep 20
+          kill $TAIL || true
+          sleep 2
+          tail -5 tail.err || true
+          node scripts/cf-profile.mjs tail.jsonl
