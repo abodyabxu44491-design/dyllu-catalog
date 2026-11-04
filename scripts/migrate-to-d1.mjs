@@ -98,7 +98,19 @@ function fingerprint(rows, cols) {
   return h.digest("hex");
 }
 
-async function exportData(url, outDir) {
+// Accept the connection string even if it was pasted with extras (quotes, "psql ", "DATABASE_URL=", spaces)
+function cleanPgUrl(raw) {
+  const m = String(raw || "").match(/postgres(?:ql)?:\/\/[^\s'"`]+/);
+  if (!m) throw new Error("NEON_DATABASE_URL does not contain a postgresql:// link. Copy the full connection string from Neon.");
+  const u = new URL(m[0]);
+  // Shape only, never the password
+  console.log(`Source: ${u.protocol}//${u.username ? u.username + ":***@" : ""}${u.hostname}/${u.pathname.slice(1)}`);
+  if (!u.hostname.includes(".")) throw new Error(`The host "${u.hostname}" is not a Neon address. Copy the full connection string again.`);
+  return m[0];
+}
+
+async function exportData(raw, outDir) {
+  const url = cleanPgUrl(raw);
   const { default: pg } = await import("pg");
   const client = new pg.Client({
     connectionString: url,
