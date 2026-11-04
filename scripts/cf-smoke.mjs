@@ -33,7 +33,7 @@ const listing = await get("/products");
 const all = home + listing;
 const products = [...new Set([...all.matchAll(/href="(\/products\/[^"?#]+)"/g)].map((m) => m[1]))].slice(0, 6);
 const cats = [...new Set([...all.matchAll(/href="(\/categories\/[^"?#]+)"/g)].map((m) => m[1]))].slice(0, 3);
-const imgs = [...new Set([...all.matchAll(/(\/uploads\/[A-Za-z0-9._-]+)/g)].map((m) => m[1]))].slice(0, 8);
+const imgs = [...new Set([...all.matchAll(/(\/uploads\/[\w-]{4,64}\.(?:webp|jpg|png|gif|pdf))/g)].map((m) => m[1]))].slice(0, 8);
 if (!products.length) (fails++, console.log("FAIL no product links found on home/listing"));
 if (!imgs.length) (fails++, console.log("FAIL no uploaded images found on home/listing"));
 for (const p of [...products, ...cats]) await get(p);
