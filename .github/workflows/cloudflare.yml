@@ -97,7 +97,7 @@ jobs:
           npx opennextjs-cloudflare build
           # Prerendered pages go to the R2 cache through the API (the built-in step starts a remote helper worker that can hang)
           node scripts/cf-cache.mjs
-          npx wrangler deploy
+          OPEN_NEXT_DEPLOY=true npx wrangler deploy
           # Secrets are stored encrypted in Cloudflare, never in the repository
           put() { if [ -n "${2:-}" ]; then printf '%s' "$2" | npx wrangler secret put "$1"; fi; }
           if [ -n "${ADMIN_SESSION_SECRET:-}" ]; then
