@@ -15,11 +15,11 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "deploy | migrate | files | verify | check | domain | cpu | profile"
+        description: "deploy | migrate | files | verify | check | domain | cpu | profile | logs"
         required: true
         default: deploy
         type: choice
-        options: [deploy, migrate, files, verify, check, domain, cpu, profile]
+        options: [deploy, migrate, files, verify, check, domain, cpu, profile, logs]
 permissions:
   contents: read
 concurrency:
@@ -142,8 +142,15 @@ jobs:
           curl -sS -o /dev/null -w "www: %{http_code}\n" https://www.dyllusa.com/
 
       - name: CPU time per request (last hours)
-        if: inputs.task == 'cpu' || inputs.task == 'check'
+        if: inputs.task == 'cpu' || inputs.task == 'check' || inputs.task == 'logs'
         run: node scripts/cf-cpu.mjs 6 || true
+
+      - name: Real requests from Workers Logs (failures and CPU per path)
+        if: inputs.task == 'logs'
+        timeout-minutes: 5
+        env:
+          DEBUG_LOGS: "1"
+        run: node scripts/cf-logs.mjs 24
 
       - name: CPU per request from live logs (wrangler tail)
         if: inputs.task == 'profile'
