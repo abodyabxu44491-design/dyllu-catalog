@@ -26,7 +26,7 @@ npx wrangler d1 execute dyllu --remote --file out/data.sql
 node scripts/migrate-to-d1.mjs files out --remote             # رفع الملفات ثم تنزيلها ومقارنة البصمة
 node scripts/migrate-to-d1.mjs verify out --remote            # مقارنة عدد السجلات وبصمة كل جدول
 ```
-أو من GitHub ← Actions ← **Cloudflare** ← Run workflow (`migrate` / `deploy` / `verify`). سير العمل يرفض الاستيراد إذا كانت D1 فيها منتجات مسبقًا.
+أو من GitHub ← Actions ← **Cloudflare** ← Run workflow (`migrate` / `files` / `deploy` / `verify`). سير العمل يرفض الاستيراد إذا كانت D1 فيها منتجات مسبقًا. مهمة `files` تكمل نقل الصور الناقصة فقط (تتخطى المنقول المطابق) ثم تتحقق من كل شيء.
 
 ## الأسرار (لا تُكتب في المستودع)
 في GitHub ← Settings ← Secrets ← Actions:

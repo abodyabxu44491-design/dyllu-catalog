@@ -243,21 +243,74 @@ function verify(outDir, target) {
   process.exitCode = bad ? 1 : 0;
 }
 
-function uploadFiles(outDir, target) {
-  const manifest = JSON.parse(fs.readFileSync(path.join(outDir, "manifest.json"), "utf8"));
-  const bucket = process.env.R2_BUCKET || "dyllu-files";
+const CACHE = "public, max-age=31536000, immutable";
+const sha = (buf) => crypto.createHash("sha256").update(buf).digest("hex");
+
+// Remote: straight to the Cloudflare R2 object API, several files at a time.
+// Resumable: a file already in R2 with the same sha256 is skipped, so a re-run only sends what is missing.
+async function uploadRemote(manifest, outDir, bucket) {
+  const { CLOUDFLARE_API_TOKEN: token, CLOUDFLARE_ACCOUNT_ID: account } = process.env;
+  if (!token || !account) throw new Error("CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are required for --remote");
+  const base = `${process.env.CLOUDFLARE_API_BASE_URL || "https://api.cloudflare.com/client/v4"}/accounts/${account}/r2/buckets/${bucket}/objects/`;
+  const auth = { Authorization: `Bearer ${token}` };
+  const call = async (url, init, tries = 5) => {
+    for (let i = 1; ; i++) {
+      const r = await fetch(url, init).catch((e) => ({ ok: false, status: 0, text: async () => String(e) }));
+      if (r.ok || r.status === 404 || i >= tries || (r.status >= 400 && r.status < 500 && r.status !== 429)) return r;
+      await new Promise((res) => setTimeout(res, 1000 * 2 ** i));
+    }
+  };
+  const remoteSha = async (name) => {
+    const r = await call(base + encodeURIComponent(name), { headers: auth });
+    if (r.status === 404) return null;
+    if (!r.ok) throw new Error(`GET ${name}: ${r.status} ${(await r.text()).slice(0, 200)}`);
+    return sha(Buffer.from(await r.arrayBuffer()));
+  };
+  let bad = 0, sent = 0, skipped = 0, done = 0;
+  const queue = [...manifest.files];
+  const worker = async () => {
+    for (let f; (f = queue.shift()); ) {
+      let ok = (await remoteSha(f.name)) === f.sha256;
+      if (ok) skipped++;
+      else {
+        const body = fs.readFileSync(path.join(outDir, "files", f.name));
+        const r = await call(base + encodeURIComponent(f.name), {
+          method: "PUT",
+          headers: { ...auth, "content-type": f.type || "application/octet-stream", "cache-control": CACHE },
+          body,
+        });
+        if (!r.ok) console.log(`PUT ${f.name}: ${r.status} ${(await r.text()).slice(0, 200)}`);
+        ok = r.ok && (await remoteSha(f.name)) === f.sha256; // read it back and compare
+        sent++;
+      }
+      if (!ok) { bad++; console.log(`DIFF ${f.name}`); }
+      if (++done % 50 === 0 || done === manifest.files.length) console.log(`${done}/${manifest.files.length} checked (${sent} sent, ${skipped} already there)`);
+    }
+  };
+  await Promise.all(Array.from({ length: Number(process.env.R2_PARALLEL || 8) }, worker));
+  return bad;
+}
+
+function uploadLocal(manifest, outDir, bucket) {
   const tmp = path.join(outDir, ".check");
   let bad = 0;
   for (const f of manifest.files) {
     const src = path.join(outDir, "files", f.name);
-    const run = (args) => execFileSync("npx", ["wrangler", "r2", "object", ...args, target], { cwd: ROOT, stdio: "pipe" });
-    run(["put", `${bucket}/${f.name}`, "--file", src, "--content-type", f.type, "--cache-control", "public, max-age=31536000, immutable"]);
+    const run = (args) => execFileSync("npx", ["wrangler", "r2", "object", ...args, "--local"], { cwd: ROOT, stdio: "pipe" });
+    run(["put", `${bucket}/${f.name}`, "--file", src, "--content-type", f.type, "--cache-control", CACHE]);
     run(["get", `${bucket}/${f.name}`, "--file", tmp]);
-    const ok = crypto.createHash("sha256").update(fs.readFileSync(tmp)).digest("hex") === f.sha256;
+    const ok = sha(fs.readFileSync(tmp)) === f.sha256;
     if (!ok) bad++;
     console.log(`${ok ? "OK  " : "DIFF"} ${f.name} (${f.size} bytes)`);
   }
   fs.rmSync(tmp, { force: true });
+  return bad;
+}
+
+async function uploadFiles(outDir, target) {
+  const manifest = JSON.parse(fs.readFileSync(path.join(outDir, "manifest.json"), "utf8"));
+  const bucket = process.env.R2_BUCKET || "dyllu-files";
+  const bad = target === "--remote" ? await uploadRemote(manifest, outDir, bucket) : uploadLocal(manifest, outDir, bucket);
   console.log(bad ? `\n${bad} file(s) differ. Do not switch over.` : `\nAll ${manifest.files.length} files are in R2 and identical.`);
   process.exitCode = bad ? 1 : 0;
 }
@@ -265,7 +318,7 @@ function uploadFiles(outDir, target) {
 const [cmd, a, b] = process.argv.slice(2);
 if (cmd === "export" && a && b) await exportData(a, b);
 else if (cmd === "verify" && a && b) verify(a, b);
-else if (cmd === "files" && a && b) uploadFiles(a, b);
+else if (cmd === "files" && a && b) await uploadFiles(a, b);
 else
   console.log(
     "usage: export <postgres-url> <out-dir> | files <out-dir> <--local|--remote> | verify <out-dir> <d1-sqlite-file|--local|--remote>",
