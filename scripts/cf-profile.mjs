@@ -2,15 +2,30 @@
 // Summarise `wrangler tail --format json` output: CPU and wall time for each request, in order.
 //   node scripts/cf-profile.mjs tail.jsonl
 import fs from "node:fs";
-const lines = fs.readFileSync(process.argv[2], "utf8").split("\n").filter((l) => l.trim().startsWith("{"));
-let n = 0;
-for (const l of lines) {
-  let e;
-  try {
-    e = JSON.parse(l);
-  } catch {
-    continue;
+// wrangler prints one pretty-printed JSON object per event: split them by brace depth
+function objects(text) {
+  const out = [];
+  let depth = 0, start = -1, str = false, esc = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (str) {
+      if (esc) esc = false;
+      else if (c === "\\") esc = true;
+      else if (c === '"') str = false;
+      continue;
+    }
+    if (c === '"') str = true;
+    else if (c === "{") (depth++ === 0) && (start = i);
+    else if (c === "}" && --depth === 0) {
+      try {
+        out.push(JSON.parse(text.slice(start, i + 1)));
+      } catch {}
+    }
   }
+  return out;
+}
+let n = 0;
+for (const e of objects(fs.readFileSync(process.argv[2], "utf8"))) {
   const url = e.event?.request?.url ?? e.event?.cron ?? "?";
   const path = url.replace(/^https?:\/\/[^/]+/, "");
   const ex = (e.exceptions ?? []).map((x) => x.message).join("; ");
