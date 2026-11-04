@@ -60,7 +60,21 @@ export const cdb = new Proxy({} as Pick<typeof db, Model>, {
 // Called on every admin API request: cleared right away and again once the response is sent (after the change is saved)
 export function bustStore() {
   revalidateTag(STORE_TAG);
+  void bumpEdge();
   try {
-    after(() => revalidateTag(STORE_TAG));
+    after(async () => {
+      revalidateTag(STORE_TAG);
+      await bumpEdge();
+    });
+  } catch {}
+}
+// The edge page cache (worker.ts) keys every page by this value: a new value starts fresh copies everywhere
+async function bumpEdge() {
+  try {
+    const { getCloudflareContext } = await import("@opennextjs/cloudflare");
+    await getCloudflareContext()
+      .env.DB.prepare(`INSERT INTO "Setting" ("key", "value") VALUES ('cache.version', ?) ON CONFLICT("key") DO UPDATE SET "value" = excluded."value"`)
+      .bind(String(Date.now()))
+      .run();
   } catch {}
 }

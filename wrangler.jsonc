@@ -7,6 +7,8 @@
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "observability": { "enabled": true },
+  // Changes on every deploy; the edge page cache in worker.ts uses it so a deploy never serves old pages
+  "version_metadata": { "binding": "CF_VERSION_METADATA" },
   "d1_databases": [
     // App data. database_id is filled in when the database is created in the Cloudflare account.
     { "binding": "DB", "database_name": "dyllu", "database_id": "55690881-7356-4209-83cf-d47a2378ab4d", "migrations_dir": "migrations" },
