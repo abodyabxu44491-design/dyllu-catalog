@@ -36,6 +36,7 @@
   "exclude": [
     "node_modules",
     "worker.ts",
+    "prisma/seed.ts",
     ".open-next",
     ".wrangler"
   ]
