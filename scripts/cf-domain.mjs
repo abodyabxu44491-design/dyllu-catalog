@@ -28,7 +28,12 @@ if (zone.status !== "active") {
 }
 for (const hostname of hosts) {
   // Records copied from the old host (Vercel) for this exact name block the attach: remove them first
-  for (const r of await call("GET", `/zones/${zone.id}/dns_records?name=${hostname}`)) {
+  // (needs a token with DNS edit; without it the records must be removed in the dashboard first)
+  const old = await call("GET", `/zones/${zone.id}/dns_records?name=${hostname}`).catch((e) => {
+    console.log(`Cannot read DNS records with this token (${String(e.message).slice(0, 80)}...), attaching directly`);
+    return [];
+  });
+  for (const r of old) {
     if (!["A", "AAAA", "CNAME"].includes(r.type)) continue;
     await call("DELETE", `/zones/${zone.id}/dns_records/${r.id}`);
     console.log(`Removed old record ${r.type} ${r.name} -> ${r.content}`);
