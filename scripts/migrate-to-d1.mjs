@@ -253,11 +253,22 @@ async function uploadRemote(manifest, outDir, bucket) {
   if (!token || !account) throw new Error("CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are required for --remote");
   const base = `${process.env.CLOUDFLARE_API_BASE_URL || "https://api.cloudflare.com/client/v4"}/accounts/${account}/r2/buckets/${bucket}/objects/`;
   const auth = { Authorization: `Bearer ${token}` };
-  const call = async (url, init, tries = 5) => {
+  // The Cloudflare API allows about 1200 requests per 5 minutes: pace all workers together and back off on 429
+  const gap = 1000 / Number(process.env.R2_RPS || 3);
+  let next = 0;
+  const pace = async () => {
+    const now = Date.now(), at = Math.max(now, next);
+    next = at + gap;
+    if (at > now) await new Promise((res) => setTimeout(res, at - now));
+  };
+  const call = async (url, init, tries = 10) => {
     for (let i = 1; ; i++) {
-      const r = await fetch(url, init).catch((e) => ({ ok: false, status: 0, text: async () => String(e) }));
+      await pace();
+      const r = await fetch(url, init).catch((e) => ({ ok: false, status: 0, headers: new Headers(), text: async () => String(e) }));
       if (r.ok || r.status === 404 || i >= tries || (r.status >= 400 && r.status < 500 && r.status !== 429)) return r;
-      await new Promise((res) => setTimeout(res, 1000 * 2 ** i));
+      const wait = r.status === 429 ? Math.max(Number(r.headers.get("retry-after")) || 0, 30) * 1000 : 1000 * 2 ** Math.min(i, 5);
+      if (r.status === 429) { next = Math.max(next, Date.now() + wait); console.log(`Cloudflare asked to slow down, waiting ${wait / 1000}s`); }
+      await new Promise((res) => setTimeout(res, wait));
     }
   };
   const remoteSha = async (name) => {
@@ -287,7 +298,7 @@ async function uploadRemote(manifest, outDir, bucket) {
       if (++done % 50 === 0 || done === manifest.files.length) console.log(`${done}/${manifest.files.length} checked (${sent} sent, ${skipped} already there)`);
     }
   };
-  await Promise.all(Array.from({ length: Number(process.env.R2_PARALLEL || 8) }, worker));
+  await Promise.all(Array.from({ length: Number(process.env.R2_PARALLEL || 4) }, worker));
   return bad;
 }
 
