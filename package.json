@@ -17,7 +17,7 @@
     "check:site": "node scripts/check-site.mjs",
     "cf:build": "opennextjs-cloudflare build",
     "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
-    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "deploy": "opennextjs-cloudflare build && node scripts/cf-cache.mjs && wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply dyllu --local",
     "db:migrate:remote": "wrangler d1 migrations apply dyllu --remote",
     "data:export": "node scripts/migrate-to-d1.mjs export",
