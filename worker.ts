@@ -18,8 +18,10 @@ type Env = Parameters<typeof runUsageAlert>[0] & {
 };
 type Ctx = { waitUntil(p: Promise<unknown>): void };
 
-const PAGE_TTL = 3 * 3600; // admin saves refresh copies at once; this only bounds date-based offers (start/end)
+const PAGE_TTL = 3 * 3600; // a copy older than this is refreshed in the background (covers offers that start or end by date)
 const MISSING_TTL = 600; // "page not found" answers
+const KEEP = 7 * 24 * 3600; // how long a copy may be served (refreshed in the background) before it is dropped
+const refreshing = new Set<string>(); // background renders in progress in this isolate
 const FILE_TTL = 30 * 24 * 3600; // uploaded files never change (each upload gets a new name)
 // Pages that depend on a signed-in person or must always be fresh are never cached
 const PRIVATE = /^\/(api|admin|admin-login|rep|rep-login|trade|order|_next\/image)(\/|$)/;
@@ -99,7 +101,12 @@ async function edge(req: Request, env: Env, ctx: Ctx): Promise<Response> {
   const api = CACHED_API.test(url.pathname);
   if (!api && (PRIVATE.test(url.pathname) || url.pathname.startsWith("/_next/"))) return app.fetch(req, env, ctx);
 
-  // One copy per page, language, wholesale code, router state (client navigation) and store version
+  // Signed-in admins always get the live store, so their own changes show at once
+  if (cookie(req, "dyllu_admin")) return app.fetch(req, env, ctx);
+
+  // One copy per page, language, wholesale code and router state (client navigation), per deploy.
+  // A copy made before the last admin save, or older than PAGE_TTL, is still served immediately while a
+  // fresh one is rendered in the background: visitors never wait for a render that already has a copy.
   const variant = [
     cookie(req, "lang") === "en" ? "en" : "ar",
     cookie(req, "dyllu_ws"),
@@ -107,20 +114,39 @@ async function edge(req: Request, env: Env, ctx: Ctx): Promise<Response> {
     req.method,
   ].join("|");
   const build = env.CF_VERSION_METADATA?.id ?? "dev";
-  const key = new Request(`${url.origin}/__page/${build}/${await storeVersion(env)}/${await digest(variant)}${url.pathname}${url.search}`);
+  const current = await storeVersion(env);
+  const key = new Request(`${url.origin}/__page/${build}/${await digest(variant)}${url.pathname}${url.search}`);
+  const store = async (res: Response) => {
+    if (!cacheable(res)) return;
+    const copy = new Response(res.body, res);
+    copy.headers.set("Cache-Control", `public, max-age=${KEEP}`);
+    copy.headers.set("X-Store-Version", current);
+    copy.headers.set("X-Stored-At", String(Date.now()));
+    await cache.put(key, copy);
+  };
   const hit = await cache.match(key);
   if (hit) {
+    const age = Date.now() - Number(hit.headers.get("X-Stored-At") || 0);
+    const fresh = hit.headers.get("X-Store-Version") === current && age < (hit.status === 404 ? MISSING_TTL : PAGE_TTL) * 1000;
+    if (!fresh && !refreshing.has(key.url)) {
+      refreshing.add(key.url);
+      ctx.waitUntil(
+        app
+          .fetch(new Request(req.url, { headers: req.headers }), env, ctx)
+          .then(store)
+          .catch(() => {})
+          .finally(() => refreshing.delete(key.url)),
+      );
+    }
     const h = new Response(hit.body, hit);
     h.headers.set("Cache-Control", "private, no-cache"); // browsers always ask again; the edge answers
-    h.headers.set("X-Edge-Cache", "HIT");
+    h.headers.set("X-Edge-Cache", fresh ? "HIT" : "STALE");
+    h.headers.delete("X-Store-Version");
+    h.headers.delete("X-Stored-At");
     return h;
   }
   const res: Response = await app.fetch(req, env, ctx);
-  if (cacheable(res)) {
-    const copy = new Response(res.clone().body, res);
-    copy.headers.set("Cache-Control", `public, max-age=${res.status === 404 ? MISSING_TTL : PAGE_TTL}`);
-    ctx.waitUntil(cache.put(key, copy));
-  }
+  ctx.waitUntil(store(res.clone()).catch(() => {}));
   return res;
 }
 
