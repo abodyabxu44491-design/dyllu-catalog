@@ -31,7 +31,7 @@ node scripts/migrate-to-d1.mjs verify out --remote            # مقارنة ع�
 ## الأسرار (لا تُكتب في المستودع)
 في GitHub ← Settings ← Secrets ← Actions:
 - `CLOUDFLARE_API_TOKEN`، `CLOUDFLARE_ACCOUNT_ID`
-- `ADMIN_SESSION_SECRET`: **نفس القيمة المستخدمة سابقًا في Vercel**، حتى تبقى روابط المحلات وجلسات الدخول صالحة
+- `ADMIN_SESSION_SECRET` (اختياري): إذا لم يُضف، يُنشأ مفتاح عشوائي داخل Cloudflare عند أول نشر ويبقى ثابتًا بعدها. تغييره يتطلب إعادة إرسال روابط تطبيق المحلات وتسجيل الدخول من جديد
 - `NEON_DATABASE_URL`: للنقل فقط
 - اختياري: `ANTHROPIC_API_KEY` (الترجمة)، `CF_ANALYTICS_TOKEN` (تنبيه الاستهلاك)
 

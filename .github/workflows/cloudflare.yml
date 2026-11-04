@@ -4,7 +4,8 @@
 #   migrate  copy the PostgreSQL (Neon) data into D1 and the uploaded files into R2, then verify every table and file
 #   verify   re-check D1/R2 against the last export manifest without changing anything
 # Secrets (GitHub → Settings → Secrets and variables → Actions): CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID,
-# ADMIN_SESSION_SECRET (same value as before, so shop links and sessions stay valid), NEON_DATABASE_URL (migrate only),
+# ADMIN_SESSION_SECRET (optional: when absent, one is generated inside Cloudflare on the first deploy and then kept),
+# NEON_DATABASE_URL (migrate only),
 # ANTHROPIC_API_KEY (optional, translations), CF_ANALYTICS_TOKEN (optional, usage alerts).
 name: Cloudflare
 on:
@@ -85,6 +86,11 @@ jobs:
           npx opennextjs-cloudflare deploy
           # Secrets are stored encrypted in Cloudflare, never in the repository
           put() { if [ -n "${2:-}" ]; then printf '%s' "$2" | npx wrangler secret put "$1"; fi; }
-          put ADMIN_SESSION_SECRET "$ADMIN_SESSION_SECRET"
+          if [ -n "${ADMIN_SESSION_SECRET:-}" ]; then
+            put ADMIN_SESSION_SECRET "$ADMIN_SESSION_SECRET"
+          elif ! npx wrangler secret list --format json | grep -q '"ADMIN_SESSION_SECRET"'; then
+            # First deploy without a provided value: generate one inside Cloudflare (never printed, never stored elsewhere)
+            put ADMIN_SESSION_SECRET "$(node -e 'console.log(require("crypto").randomBytes(32).toString("hex"))')"
+          fi
           put ANTHROPIC_API_KEY "${ANTHROPIC_API_KEY:-}"
           put CF_ANALYTICS_TOKEN "${CF_ANALYTICS_TOKEN:-}"
