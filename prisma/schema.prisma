@@ -334,3 +334,33 @@ model ImportChange {
 
   @@index([logId])
 }
+
+// Phones and browsers that allowed notifications (Web Push)
+model PushSubscription {
+  id         Int      @id @default(autoincrement())
+  endpoint   String   @unique
+  p256dh     String
+  auth       String
+  audience   String   @default("store") // store | admin | rep | trade (the app it was enabled from)
+  lang       String   @default("ar")
+  createdAt  DateTime @default(now())
+  lastSeenAt DateTime @default(now())
+}
+
+// Notifications sent from the admin panel, sent in small groups
+model Announcement {
+  id         Int       @id @default(autoincrement())
+  title      String
+  body       String
+  url        String    @default("/")
+  image      String?
+  audience   String    @default("store") // store | all
+  status     String    @default("sending") // sending | done
+  total      Int       @default(0)
+  sent       Int       @default(0)
+  failed     Int       @default(0)
+  lastId     Int       @default(0) // last subscription handled, so an interrupted send can continue
+  createdBy  String?
+  createdAt  DateTime  @default(now())
+  finishedAt DateTime?
+}

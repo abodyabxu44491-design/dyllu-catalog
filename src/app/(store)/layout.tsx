@@ -2,7 +2,10 @@
 import SiteHeader from "@/components/SiteHeader";
 import SiteFooter from "@/components/SiteFooter";
 import BottomNav from "@/components/BottomNav";
-export default function StoreLayout({ children }: { children: React.ReactNode }) {
+import NotifyPrompt from "@/components/NotifyPrompt";
+import { getLang } from "@/lib/lang";
+export default async function StoreLayout({ children }: { children: React.ReactNode }) {
+  const en = (await getLang()) === "en";
   return (
     <>
       <SiteHeader />
@@ -11,6 +14,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       </main>
       <SiteFooter />
       <BottomNav />
+      <NotifyPrompt en={en} />
     </>
   );
 }

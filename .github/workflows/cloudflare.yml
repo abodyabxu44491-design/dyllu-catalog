@@ -108,6 +108,12 @@ jobs:
             # First deploy without a provided value: generate one inside Cloudflare (never printed, never stored elsewhere)
             put ADMIN_SESSION_SECRET "$(node -e 'console.log(require("crypto").randomBytes(32).toString("hex"))')"
           fi
+          # Notification keys (VAPID): created once inside Cloudflare, then kept. Changing them would disconnect every subscribed phone.
+          if ! npx wrangler secret list --format json | grep -q '"VAPID_PRIVATE_KEY"'; then
+            KEYS=$(node -e 'crypto.subtle.generateKey({name:"ECDSA",namedCurve:"P-256"},true,["sign"]).then(async k=>{const j=await crypto.subtle.exportKey("jwk",k.privateKey);const p=Buffer.from(await crypto.subtle.exportKey("raw",k.publicKey)).toString("base64url");console.log(p+" "+j.d)})')
+            put VAPID_PUBLIC_KEY "${KEYS%% *}"
+            put VAPID_PRIVATE_KEY "${KEYS##* }"
+          fi
           put ANTHROPIC_API_KEY "${ANTHROPIC_API_KEY:-}"
           put CF_ANALYTICS_TOKEN "${CF_ANALYTICS_TOKEN:-}"
 
