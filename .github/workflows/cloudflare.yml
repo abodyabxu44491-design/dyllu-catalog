@@ -15,11 +15,11 @@ on:
   workflow_dispatch:
     inputs:
       task:
-        description: "deploy | migrate | files | verify | check | domain"
+        description: "deploy | migrate | files | verify | check | domain | cpu"
         required: true
         default: deploy
         type: choice
-        options: [deploy, migrate, files, verify, check, domain]
+        options: [deploy, migrate, files, verify, check, domain, cpu]
 permissions:
   contents: read
 concurrency:
@@ -140,3 +140,7 @@ jobs:
           done
           node scripts/cf-smoke.mjs https://dyllusa.com
           curl -sS -o /dev/null -w "www: %{http_code}\n" https://www.dyllusa.com/
+
+      - name: CPU time per request (last hours)
+        if: inputs.task == 'cpu' || inputs.task == 'check'
+        run: node scripts/cf-cpu.mjs 6 || true
