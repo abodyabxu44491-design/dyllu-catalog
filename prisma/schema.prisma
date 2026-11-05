@@ -355,7 +355,9 @@ model Announcement {
   url        String    @default("/")
   image      String?
   audience   String    @default("store") // store | all
-  status     String    @default("sending") // sending | done
+  status     String    @default("sending") // scheduled | sending | done
+  sendAt     DateTime? // scheduled: sent automatically from this time (offer or ad that starts later)
+  source     String? // "banner:12", "offer:3" for automatic ones
   total      Int       @default(0)
   sent       Int       @default(0)
   failed     Int       @default(0)

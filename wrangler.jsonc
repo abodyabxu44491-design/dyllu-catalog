@@ -24,8 +24,8 @@
     // Rendered-page cache (Next.js incremental cache)
     { "binding": "NEXT_INC_CACHE_R2_BUCKET", "bucket_name": "dyllu-cache" }
   ],
-  // Hourly free-plan usage check (see src/lib/usageAlert.ts)
-  "triggers": { "crons": ["17 * * * *"] },
+  // Hourly usage check (src/lib/usageAlert.ts) and, every 5 minutes, scheduled offer/ad notifications (api/push/cron)
+  "triggers": { "crons": ["17 * * * *", "*/5 * * * *"] },
   "vars": {
     "MAIN_DOMAIN": "dyllusa.com",
     "ALERT_PERCENT": "70"

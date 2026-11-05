@@ -26,6 +26,8 @@ export default async function Notifications() {
         failed: a.failed,
         by: a.createdBy,
         at: a.createdAt.toISOString(),
+        sendAt: a.sendAt?.toISOString() ?? null,
+        source: a.source,
       }))}
     />
   );

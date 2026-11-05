@@ -8,7 +8,20 @@ import { currentEndpoint, enablePush, pushSupport } from "@/lib/pushClient";
 import { toast } from "@/store/toast";
 import { ask } from "@/store/confirm";
 import { AEmpty, Badge, Card, Field, PageHead, Stat } from "./ui";
-type H = { id: number; title: string; body: string; url: string; status: string; total: number; sent: number; failed: number; by: string | null; at: string };
+type H = {
+  id: number;
+  title: string;
+  body: string;
+  url: string;
+  status: string;
+  total: number;
+  sent: number;
+  failed: number;
+  by: string | null;
+  at: string;
+  sendAt: string | null;
+  source: string | null;
+};
 type Cat = { slug: string; nameAr: string };
 // Riyadh time (UTC+3), formatted the same on the server and in the browser
 const when = (iso: string) => {
@@ -75,7 +88,7 @@ export default function NotificationsManager({
     if (!m.title || !m.body) return toast("اكتب العنوان والنص", { tone: "err" });
     const ok = await ask({
       title: "إرسال الإشعار لكل العملاء؟",
-      body: `يصل إلى ${counts.store} جهاز فعّل الإشعارات، حتى لو كان التطبيق مغلقًا. لا يمكن سحبه بعد الإرسال.`,
+      body: `يصل إلى ${counts.store + counts.other} جهاز فعّل الإشعارات (العملاء وأجهزة الإدارة والمناديب)، حتى لو كان التطبيق مغلقًا. لا يمكن سحبه بعد الإرسال.`,
       ok: "إرسال الآن",
     });
     if (!ok) return;
@@ -118,12 +131,18 @@ export default function NotificationsManager({
     }
   }
   async function remove(h: H) {
-    if (!(await ask({ title: "حذف من السجل؟", body: "يُحذف من القائمة فقط، والإشعار الذي وصل للعملاء لا يتأثر.", ok: "حذف", danger: true })))
+    if (
+      !(await ask({ title: "حذف من السجل؟", body: "يُحذف من القائمة فقط، والإشعار الذي وصل للعملاء لا يتأثر.", ok: "حذف", danger: true }))
+    )
       return;
     await fetch(`/api/admin/push?id=${h.id}`, { method: "DELETE" });
     r.refresh();
   }
-  const quick: [string, string][] = [["الرئيسية", "/"], ["كل المنتجات", "/products"], ...cats.slice(0, 6).map((c) => [c.nameAr, `/categories/${c.slug}`] as [string, string])];
+  const quick: [string, string][] = [
+    ["الرئيسية", "/"],
+    ["كل المنتجات", "/products"],
+    ...cats.slice(0, 6).map((c) => [c.nameAr, `/categories/${c.slug}`] as [string, string]),
+  ];
   const pct = progress ? Math.round(((progress.sent + progress.failed) / Math.max(1, progress.total)) * 100) : 0;
   return (
     <div className="max-w-5xl space-y-4">
@@ -138,13 +157,25 @@ export default function NotificationsManager({
       )}
       <div className="grid sm:grid-cols-2 gap-3">
         <Stat label="أجهزة العملاء المفعّل عليها" value={counts.store.toLocaleString("en-US")} sub="يصلها الإشعار" icon="bell" />
-        <Stat label="أجهزة الإدارة والمناديب" value={counts.other.toLocaleString("en-US")} sub="للتجربة فقط" icon="users" tone="soft" />
+        <Stat
+          label="أجهزة الإدارة والمناديب"
+          value={counts.other.toLocaleString("en-US")}
+          sub="يصلها الإشعار أيضًا"
+          icon="users"
+          tone="soft"
+        />
       </div>
       <div className="grid lg:grid-cols-[1fr_340px] gap-4 items-start">
         <Card title="إشعار جديد">
           <div className="space-y-4">
             <Field label="العنوان" hint={`${title.length}/70`}>
-              <input className="field" maxLength={70} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="مثال: خصم 20% على العدد اليدوية" />
+              <input
+                className="field"
+                maxLength={70}
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="مثال: خصم 20% على العدد اليدوية"
+              />
             </Field>
             <Field label="النص" hint={`${body.length}/240`}>
               <textarea
@@ -196,15 +227,19 @@ export default function NotificationsManager({
               </div>
             )}
             <div className="flex flex-col sm:flex-row gap-2">
-              <button onClick={send} disabled={busy || !ready || !counts.store} className="btn btn-lg btn-lime sm:flex-1">
+              <button onClick={send} disabled={busy || !ready || !(counts.store + counts.other)} className="btn btn-lg btn-lime sm:flex-1">
                 <Icon n="bell" s={18} />
-                {busy ? "جارٍ الإرسال..." : `إرسال لكل العملاء (${counts.store})`}
+                {busy ? "جارٍ الإرسال..." : `إرسال لكل العملاء (${counts.store + counts.other})`}
               </button>
               <button onClick={test} disabled={busy || !ready || support !== "yes"} className="btn btn-lg btn-ghost">
                 تجربة على جهازي
               </button>
             </div>
-            {support === "install" && <small className="block text-xs text-steel">للتجربة على الآيفون: افتح لوحة التحكم من التطبيق المثبّت على الشاشة الرئيسية.</small>}
+            {support === "install" && (
+              <small className="block text-xs text-steel">
+                للتجربة على الآيفون: افتح لوحة التحكم من التطبيق المثبّت على الشاشة الرئيسية.
+              </small>
+            )}
           </div>
         </Card>
         <div className="lg:sticky lg:top-4 space-y-2">
@@ -237,7 +272,10 @@ export default function NotificationsManager({
                   </small>
                 </div>
                 <div className="flex items-center gap-2">
-                  {h.status === "done" ? (
+                  {h.source && <Badge>{h.source.startsWith("offer") ? "تلقائي: عرض" : "تلقائي: إعلان"}</Badge>}
+                  {h.status === "scheduled" ? (
+                    <Badge cls="bg-ink text-lime">يُرسل {h.sendAt ? when(h.sendAt) : "لاحقًا"}</Badge>
+                  ) : h.status === "done" ? (
                     <Badge cls="bg-lime text-ink">وصل {h.sent}</Badge>
                   ) : (
                     <Badge cls="bg-accent/10 text-accent">
@@ -245,8 +283,12 @@ export default function NotificationsManager({
                     </Badge>
                   )}
                   {h.failed > 0 && <Badge>لم يصل {h.failed}</Badge>}
-                  {h.status !== "done" && (
-                    <button disabled={busy} onClick={() => (setBusy(true), deliver(h.id, h.total).finally(() => setBusy(false)))} className="btn btn-sm btn-lime">
+                  {h.status === "sending" && (
+                    <button
+                      disabled={busy}
+                      onClick={() => (setBusy(true), deliver(h.id, h.total).finally(() => setBusy(false)))}
+                      className="btn btn-sm btn-lime"
+                    >
                       أكمل الإرسال
                     </button>
                   )}

@@ -9,6 +9,7 @@ import { toast } from "@/store/toast";
 import { ask } from "@/store/confirm";
 import { AEmpty, Badge, Field, PageHead } from "./ui";
 import Switch from "./Switch";
+import { pushNote } from "@/lib/pushNote";
 export type Prod = {
   id: number;
   slug: string;
@@ -234,7 +235,8 @@ function Editor({ b0, cats, cur, onDone }: { b0: B; cats: Cat[]; cur: string; on
     [msg, setMsg] = useState(""),
     [busy, setBusy] = useState(false),
     [up, setUp] = useState(false),
-    [device, setDevice] = useState<"m" | "d">("d");
+    [device, setDevice] = useState<"m" | "d">("d"),
+    [notify, setNotify] = useState(!b0.id);
   useEffect(() => {
     if (window.innerWidth < 1024) setDevice("m");
   }, []);
@@ -262,10 +264,11 @@ function Editor({ b0, cats, cur, onDone }: { b0: B; cats: Cat[]; cur: string; on
       startsAt: v.startsAt ? new Date(v.startsAt).toISOString() : null,
       endsAt: v.endsAt ? new Date(v.endsAt).toISOString() : null,
       linkUrl: v.linkUrl || null,
+      notify,
     });
     setBusy(false);
     if (x.ok) {
-      toast(v.id ? "تم حفظ الإعلان" : "تم نشر الإعلان");
+      toast((v.id ? "تم حفظ الإعلان" : "تم نشر الإعلان") + pushNote(x.data.push));
       onDone();
       r.refresh();
     } else setMsg(x.data.error || "تحقق من بيانات الإعلان");
@@ -508,6 +511,12 @@ function Editor({ b0, cats, cur, onDone }: { b0: B; cats: Cat[]; cur: string; on
             </div>
           </div>
           <Switch label="الإعلان فعّال" on={v.isActive} onChange={(x) => set("isActive", x)} />
+          <Switch
+            label={v.id ? "أرسل إشعارًا بهذا التعديل" : "أرسل إشعارًا للعملاء"}
+            hint="يصل لكل من فعّل الإشعارات حتى لو التطبيق مغلق، ووقت بداية الإعلان إن كان مجدولًا"
+            on={notify}
+            onChange={setNotify}
+          />
           <div className="grid sm:grid-cols-2 gap-3">
             <Field label="يبدأ في (اختياري)">
               <input className="field" type="datetime-local" value={v.startsAt ?? ""} onChange={(e) => set("startsAt", e.target.value)} />

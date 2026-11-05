@@ -9,6 +9,7 @@ import { toast } from "@/store/toast";
 import { ask } from "@/store/confirm";
 import { AEmpty, Badge, Field, PageHead } from "./ui";
 import Switch from "./Switch";
+import { pushNote } from "@/lib/pushNote";
 type O = {
   id?: number;
   nameAr: string;
@@ -146,6 +147,7 @@ function Editor({
     [v, setV] = useState<O>(o0),
     [busy, setBusy] = useState(false),
     [err, setErr] = useState(""),
+    [notify, setNotify] = useState(!o0.id),
     [, bump] = useState(0);
   const set = <K extends keyof O>(k: K, x: O[K]) => setV((o) => ({ ...o, [k]: x }));
   const quick = (days: number | null) => {
@@ -155,10 +157,10 @@ function Editor({
   async function save() {
     setErr("");
     setBusy(true);
-    const x = await post("/api/admin/offers", { ...v, id: v.id, percent: Number(v.percent) });
+    const x = await post("/api/admin/offers", { ...v, id: v.id, percent: Number(v.percent), notify });
     setBusy(false);
     if (!x.ok) return setErr(x.data.error || "تعذر الحفظ");
-    toast(v.id ? "تم حفظ العرض" : "تم إنشاء العرض");
+    toast((v.id ? "تم حفظ العرض" : "تم إنشاء العرض") + pushNote(x.data.push));
     onClose();
     r.refresh();
   }
@@ -309,6 +311,12 @@ function Editor({
             onChange={(x) => set("includeWholesale", x)}
           />
           <Switch label="العرض مفعّل" on={v.isActive} onChange={(x) => set("isActive", x)} />
+          <Switch
+            label={v.id ? "أرسل إشعارًا بهذا التعديل" : "أرسل إشعارًا للعملاء"}
+            hint="يصل لكل من فعّل الإشعارات، ووقت بداية العرض إن كان مجدولًا"
+            on={notify}
+            onChange={setNotify}
+          />
         </div>
         <p className="rounded-2xl bg-lime/25 p-3 text-sm leading-6">
           <b>الملخص:</b> خصم <b dir="ltr">{v.percent}%</b> على {scopeTxt}

@@ -1,7 +1,8 @@
 // Copyright (c) 2026 Abdullah Al-Sakni. All rights reserved. DYLLU Catalog.
 import { NextResponse } from "next/server";
 import { errMsg } from "@/lib/apiError";
-import { denyUnlessAdmin } from "@/lib/adminAuth";
+import { currentAdmin, denyUnlessAdmin } from "@/lib/adminAuth";
+import { announce } from "@/lib/push";
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { englishFor } from "@/lib/translate";
@@ -55,16 +56,51 @@ export async function POST(req: Request) {
     const en = await englishFor(keys.map((k) => ({ ar: parsed[`${k}Ar`], prevAr: prev?.[`${k}Ar`], prevEn: prev?.[`${k}En`] })));
     const { id, startsAt, endsAt, ...d } = { ...parsed, ...Object.fromEntries(keys.map((k, i) => [`${k}En`, en[i] || null])) },
       data = { ...d, startsAt: date(startsAt), endsAt: date(endsAt) };
-    if (id) return NextResponse.json(await db.banner.update({ where: { id }, data }));
-    const max = await db.banner.aggregate({ _max: { sortOrder: true } });
-    return NextResponse.json(await db.banner.create({ data: { ...data, sortOrder: (max._max.sortOrder ?? -1) + 1 } }));
+    const saved = id
+      ? await db.banner.update({ where: { id }, data })
+      : await db.banner.create({
+          data: { ...data, sortOrder: ((await db.banner.aggregate({ _max: { sortOrder: true } }))._max.sortOrder ?? -1) + 1 },
+        });
+    // New ad (or an edit the admin chose to announce): notify customers now, or when it starts
+    const notify = typeof body.notify === "boolean" ? body.notify : !id;
+    const push = notify && saved.isActive && (!saved.endsAt || saved.endsAt > new Date()) ? await bannerNotice(saved) : null;
+    return NextResponse.json({ ...saved, push });
   } catch (e) {
     return NextResponse.json({ error: errMsg(e) }, { status: 400 });
   }
 }
+async function bannerNotice(b: {
+  id: number;
+  type: string;
+  productId: number | null;
+  titleAr: string | null;
+  subtitleAr: string | null;
+  linkUrl: string | null;
+  image: string;
+  startsAt: Date | null;
+}) {
+  const p = b.productId
+    ? await db.product.findUnique({
+        where: { id: b.productId },
+        select: { slug: true, nameAr: true, images: { orderBy: { sortOrder: "asc" }, take: 1, select: { url: true } } },
+      })
+    : null;
+  const image = b.type === "PRODUCT" ? (p?.images[0]?.url ?? null) : b.image || null;
+  return announce(
+    {
+      title: b.titleAr?.trim() || p?.nameAr || "إعلان جديد من DYLLU",
+      body: b.subtitleAr?.trim() || (p ? "شوفه الحين في الكتالوج" : "اضغط وشوف التفاصيل"),
+      url: p ? `/products/${p.slug}` : b.linkUrl?.startsWith("/") ? b.linkUrl : "/",
+      image: image && (image.startsWith("/uploads/") || image.startsWith("https://")) ? image : null,
+    },
+    { source: `banner:${b.id}`, startsAt: b.startsAt, createdBy: (await currentAdmin())?.name },
+  ).catch(() => null);
+}
 export async function DELETE(req: Request) {
   const deny = await denyUnlessAdmin();
   if (deny) return deny;
-  await db.banner.delete({ where: { id: Number(new URL(req.url).searchParams.get("id")) } });
+  const id = Number(new URL(req.url).searchParams.get("id"));
+  await db.banner.delete({ where: { id } });
+  await db.announcement.deleteMany({ where: { source: `banner:${id}`, status: "scheduled" } });
   return NextResponse.json({ ok: true });
 }

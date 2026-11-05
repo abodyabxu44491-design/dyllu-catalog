@@ -8,9 +8,17 @@ import { toast } from "@/store/toast";
 const KEY = "dy-push-ask";
 export default function NotifyPrompt({ en = false }: { en?: boolean }) {
   const [show, setShow] = useState(false),
+    [ios, setIos] = useState(false),
     [busy, setBusy] = useState(false);
   useEffect(() => {
-    if (pushSupport() !== "yes") return;
+    const support = pushSupport();
+    // iPhone in Safari: notifications need the app on the Home Screen first, so explain how once in a while
+    if (support === "install") {
+      if (Date.now() - Number(localStorage.getItem(KEY) || 0) < 14 * 864e5) return;
+      const t = setTimeout(() => (setIos(true), setShow(true)), 12000);
+      return () => clearTimeout(t);
+    }
+    if (support !== "yes") return;
     if (Notification.permission === "granted") {
       syncPush("store");
       return;
@@ -19,7 +27,7 @@ export default function NotifyPrompt({ en = false }: { en?: boolean }) {
     const last = Number(localStorage.getItem(KEY) || 0);
     if (Date.now() - last < 14 * 864e5) return;
     // In the installed app ask soon; in a normal browser tab only after the visitor has looked around
-    const t = setTimeout(() => setShow(true), standalone() ? 2500 : 20000);
+    const t = setTimeout(() => setShow(true), standalone() ? 2500 : 10000);
     return () => clearTimeout(t);
   }, []);
   if (!show) return null;
@@ -34,7 +42,8 @@ export default function NotifyPrompt({ en = false }: { en?: boolean }) {
     localStorage.setItem(KEY, String(Date.now()));
     setShow(false);
     if (r === "on") toast(en ? "Notifications are on" : "تم تفعيل الإشعارات، ستصلك العروض أول بأول");
-    else if (r === "denied") toast(en ? "Notifications are blocked in your settings" : "الإشعارات مقفلة من إعدادات الجهاز", { tone: "err" });
+    else if (r === "denied")
+      toast(en ? "Notifications are blocked in your settings" : "الإشعارات مقفلة من إعدادات الجهاز", { tone: "err" });
     else toast(en ? "Could not turn on notifications" : "تعذر تفعيل الإشعارات، حاول لاحقًا", { tone: "err" });
   }
   return (
@@ -48,16 +57,40 @@ export default function NotifyPrompt({ en = false }: { en?: boolean }) {
       </span>
       <div className="flex-1 min-w-0">
         <b className="block">{en ? "Get our offers first" : "خلك أول من يعرف بالعروض"}</b>
-        <p className="text-sm text-white/75 leading-6">
-          {en ? "Turn on notifications for new offers and products." : "فعّل الإشعارات ليصلك كل عرض ومنتج جديد مباشرة على جوالك."}
-        </p>
+        {ios ? (
+          <p className="text-sm text-white/75 leading-6">
+            {en ? (
+              <>
+                On iPhone, tap <b className="text-white">Share</b> then <b className="text-white">Add to Home Screen</b>, open DYLLU from
+                your Home Screen and turn on notifications.
+              </>
+            ) : (
+              <>
+                على الآيفون: اضغط زر <b className="text-white">المشاركة</b> ثم <b className="text-white">إضافة إلى الشاشة الرئيسية</b>،
+                وافتح DYLLU من الشاشة الرئيسية وفعّل الإشعارات عشان توصلك العروض.
+              </>
+            )}
+          </p>
+        ) : (
+          <p className="text-sm text-white/75 leading-6">
+            {en ? "Turn on notifications for new offers and products." : "فعّل الإشعارات ليصلك كل عرض ومنتج جديد مباشرة على جوالك."}
+          </p>
+        )}
         <div className="flex gap-2 mt-3">
-          <button onClick={on} disabled={busy} className="btn btn-md btn-lime flex-1">
-            {busy ? "..." : en ? "Turn on" : "تفعيل"}
-          </button>
-          <button onClick={later} className="btn btn-md flex-1 bg-white/10 text-white hover:bg-white/20">
-            {en ? "Later" : "لاحقًا"}
-          </button>
+          {ios ? (
+            <button onClick={later} className="btn btn-md btn-lime flex-1">
+              {en ? "Got it" : "تمام"}
+            </button>
+          ) : (
+            <>
+              <button onClick={on} disabled={busy} className="btn btn-md btn-lime flex-1">
+                {busy ? "..." : en ? "Turn on" : "تفعيل"}
+              </button>
+              <button onClick={later} className="btn btn-md flex-1 bg-white/10 text-white hover:bg-white/20">
+                {en ? "Later" : "لاحقًا"}
+              </button>
+            </>
+          )}
         </div>
       </div>
     </div>

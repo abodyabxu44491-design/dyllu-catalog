@@ -3,7 +3,8 @@
 import { z } from "zod";
 import { db } from "@/lib/db";
 import { currentAdmin, denyUnlessAdmin } from "@/lib/adminAuth";
-import { audienceWhere, sendGroup, vapid } from "@/lib/push";
+import { after } from "next/server";
+import { audienceWhere, drain, sendNext, vapid } from "@/lib/push";
 import { sendPush } from "@/lib/webpush";
 export const dynamic = "force-dynamic";
 const link = z
@@ -65,22 +66,18 @@ export async function POST(req: Request) {
         createdBy: (await currentAdmin())?.name ?? null,
       },
     });
+    try {
+      after(() => drain(a.id).catch(() => {}));
+    } catch {}
     return Response.json({ id: a.id, total });
   }
-  const a = await db.announcement.findUnique({ where: { id: x.id } });
-  if (!a) return Response.json({ error: "الإشعار غير موجود" }, { status: 404 });
-  if (a.status === "done") return Response.json({ ...a, done: true });
-  const g = await sendGroup(a.audience, a.lastId, payload(a, `ann-${a.id}`));
-  const u = await db.announcement.update({
-    where: { id: a.id },
-    data: {
-      sent: { increment: g.sent },
-      failed: { increment: g.failed },
-      lastId: g.lastId,
-      ...(g.done ? { status: "done", finishedAt: new Date() } : {}),
-    },
-  });
-  return Response.json({ sent: u.sent, failed: u.failed, total: u.total, done: g.done });
+  // One more group (the page shows progress); the same sending also continues on its own in the background
+  const r = await sendNext(x.id);
+  if (!r.done)
+    try {
+      after(() => drain(x.id).catch(() => {}));
+    } catch {}
+  return Response.json(r);
 }
 export async function DELETE(req: Request) {
   const deny = await denyUnlessAdmin();

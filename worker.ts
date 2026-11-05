@@ -18,6 +18,8 @@ type Env = Parameters<typeof runUsageAlert>[0] & {
   DB: D1;
   BUCKET: { get(key: string): Promise<R2Object | null> };
   CF_VERSION_METADATA?: { id: string };
+  MAIN_DOMAIN?: string;
+  ADMIN_SESSION_SECRET?: string;
 };
 type Ctx = { waitUntil(p: Promise<unknown>): void };
 
@@ -165,6 +167,12 @@ async function edge(req: Request, env: Env, ctx: Ctx): Promise<Response> {
 
 export default {
   async fetch(req: Request, env: Env, ctx: Ctx) {
+    // The schedule's key is only ever added by scheduled() below
+    if (req.headers.has("x-dyllu-cron")) {
+      const headers = new Headers(req.headers);
+      headers.delete("x-dyllu-cron");
+      req = new Request(req, { headers });
+    }
     try {
       return await edge(req, env, ctx);
     } catch (e) {
@@ -172,7 +180,17 @@ export default {
       return app.fetch(req, env, ctx);
     }
   },
-  async scheduled(_event: unknown, env: Env, ctx: Ctx) {
-    ctx.waitUntil(runUsageAlert(env).catch((e) => console.error("usage alert", e)));
+  async scheduled(event: { cron?: string }, env: Env, ctx: Ctx) {
+    if (event.cron === "17 * * * *") ctx.waitUntil(runUsageAlert(env).catch((e) => console.error("usage alert", e)));
+    // Every 5 minutes: notifications for offers and ads whose start time has come, and unfinished sends
+    const secret = env.ADMIN_SESSION_SECRET?.trim();
+    if (event.cron !== "17 * * * *" && secret) {
+      const url = `https://${env.MAIN_DOMAIN || "dyllusa.com"}/api/push/cron`;
+      ctx.waitUntil(
+        Promise.resolve(app.fetch(new Request(url, { method: "POST", headers: { "x-dyllu-cron": secret } }), env, ctx))
+          .then((r: Response) => r.text())
+          .catch((e: unknown) => console.error("push schedule", e)),
+      );
+    }
   },
 };
